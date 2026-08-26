@@ -65,3 +65,24 @@ closed reason equality, the 30-case adapter oracle, PROBE/NEGSIM and ladder repl
 anchors, and the 50-case adapter-level open-corpus gate with zero candidates on 25 labeled-correct
 scripts. Any disagreement with a binding oracle is a design regression; implementation stops rather
 than widening a grammar or relabeling an outcome.
+
+## Delta 2.1 amendment
+
+The accepted delta design
+`docs/implementation/MULTITEST-CODE-SLICE-2.1-DESIGN-2026-08-25.md`, Revision 1a,
+`sha256:d468fba746b6eb741f5cc47abc6bd5e5e529ff3e63988f80ec8c3a8c208e4165`,
+advances only the development check, adapter, and detector to `2.1.0`. It adopts the closed R1,
+R2/R3b, R4-R7, R9-R16, and R18 value transports exactly as specified there; R16 is one indivisible
+transport-and-position rule, and R2/R3b uses one shared classifier in both hierarchy exclusion and
+conclusion credit. R8 and R17 remain declined. Treating `p < ALPHA/K` as manual Bonferroni coverage
+remains deferred to a future policy ADR.
+
+The `MASK.sum()` presentation read is an intentional design-time extension beyond the recon's R9
+summary, admitted solely for the nonfeeding, registered-sink-only spec-25 shape. It never supplies
+row selection or control provenance. R12 refuses helper, conditional, and loop-carried stores;
+R15 is the only origin-reducing rule and falls back conservatively on any unresolved record store.
+No whole-module census, threshold/product rule, correction guard, row-completeness proof, qualified
+lane component, wording object, grant, GrantPin, qualification, or Finding authority is weakened.
+Revision 1a records that R5 exposes `spec-47`'s deeper
+`unresolved-decision-threshold` wall; the case remains an abstention and no candidate surface
+changes.

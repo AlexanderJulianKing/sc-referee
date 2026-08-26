@@ -36,7 +36,8 @@ def test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free(
         schema_root=Path("reference/schemas-v0.21.0"),
     )
     expected = json.loads((_ROOT / "adapter_replay_records.json").read_text(encoding="utf-8"))
-    assert canonical_json(observed) == canonical_json(expected)
+    historical = {version: observed[version] for version in ("1.1.0", "2.0.0")}
+    assert canonical_json(historical) == canonical_json(expected)
 
     assert observed["1.1.0"]["correct_candidates"] == 0
     assert observed["1.1.0"]["misstep_candidates"] == 0

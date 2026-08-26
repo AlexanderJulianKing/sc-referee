@@ -221,9 +221,9 @@ def _is_registered_code_multiple_testing_binding(binding: MethodConflictBinding)
         len(matches) == 1
         and matches[0].binding_digest == binding.binding_digest
         and binding.check_id == _MULTIPLE_TESTING_CHECK_ID
-        and binding.check_version == "2.0.0"
+        and binding.check_version == "2.1.0"
         and binding.detector_id == "detector:bounded-code-csv-multiple-testing-conflict"
-        and binding.detector_version == "2.0.0"
+        and binding.detector_version == "2.1.0"
         and binding.required_evidence_planes == ("static_source",)
         and not binding.production_finding_permitted
     )

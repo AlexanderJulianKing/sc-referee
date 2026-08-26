@@ -18,6 +18,7 @@ from sc_referee.method_contract_run import (
 )
 from sc_referee.scientific_checks import code_csv_multiple_testing_adapter_v1_1 as adapter_v1_1
 from sc_referee.scientific_checks import code_csv_multiple_testing_adapter_v2 as adapter_v2
+from sc_referee.scientific_checks import code_csv_multiple_testing_adapter_v2_1 as adapter_v2_1
 from sc_referee.scientific_checks.core import CanonicalOperand
 from sc_referee.scientific_checks.integration import build_frozen_inspection_context
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
@@ -92,9 +93,9 @@ def replay_open_corpus(
         if item.manifest.check_id == CHECK_ID
     )
     active_adapter = module.adapters[0]
-    if not isinstance(active_adapter, adapter_v2.CodeCsvMultipleTestingAdapter):
-        raise TypeError("the active development adapter is not MT 2.0")
-    historical_manifest = replace(
+    if not isinstance(active_adapter, adapter_v2_1.CodeCsvMultipleTestingAdapter):
+        raise TypeError("the active development adapter is not MT 2.1")
+    historical_v1_1_manifest = replace(
         module.adapter_manifests[0],
         adapter_version=adapter_v1_1.MULTIPLE_TESTING_CODE_ADAPTER_VERSION,
         implementation_digest=adapter_v1_1.CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -102,7 +103,7 @@ def replay_open_corpus(
     )
     historical_adapter = adapter_v1_1.CodeCsvMultipleTestingAdapter(
         check_manifest=module.manifest,
-        adapter_manifest=historical_manifest,
+        adapter_manifest=historical_v1_1_manifest,
         complete_operand=CanonicalOperand.scalar(adapter_v1_1.COMPLETE_FAMILY_CORRECTION_OPERAND),
         none_operand=CanonicalOperand.scalar(adapter_v1_1.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND),
         strict_subset_operand=CanonicalOperand.scalar(
@@ -110,7 +111,27 @@ def replay_open_corpus(
         ),
         role_bindings=adapter_v1_1.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
     )
-    results: dict[str, dict[str, list[str]]] = {"1.1.0": {}, "2.0.0": {}}
+    historical_v2_manifest = replace(
+        module.adapter_manifests[0],
+        adapter_version=adapter_v2.MULTIPLE_TESTING_CODE_ADAPTER_VERSION,
+        implementation_digest=adapter_v2.CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=adapter_v2.code_csv_multiple_testing_grammar_digest(),
+    )
+    historical_v2_adapter = adapter_v2.CodeCsvMultipleTestingAdapter(
+        check_manifest=module.manifest,
+        adapter_manifest=historical_v2_manifest,
+        complete_operand=CanonicalOperand.scalar(adapter_v2.COMPLETE_FAMILY_CORRECTION_OPERAND),
+        none_operand=CanonicalOperand.scalar(adapter_v2.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND),
+        strict_subset_operand=CanonicalOperand.scalar(
+            adapter_v2.STRICT_SUBSET_FAMILY_CORRECTION_OPERAND
+        ),
+        role_bindings=adapter_v2.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
+    )
+    results: dict[str, dict[str, list[str]]] = {
+        "1.1.0": {},
+        "2.0.0": {},
+        "2.1.0": {},
+    }
     source_map: dict[str, str] = {}
     for spec, metadata in sorted(labels.items()):
         if metadata.get("label") not in {"correct", "misstep"}:
@@ -172,7 +193,8 @@ def replay_open_corpus(
         )
         for version, adapter in (
             ("1.1.0", historical_adapter),
-            ("2.0.0", active_adapter),
+            ("2.0.0", historical_v2_adapter),
+            ("2.1.0", active_adapter),
         ):
             first = adapter.inspect(context)
             second = adapter.inspect(context)
@@ -185,7 +207,7 @@ def replay_open_corpus(
     ):
         raise ValueError("open-corpus source-set digest changed")
     output: dict[str, dict[str, Any]] = {}
-    for version in ("1.1.0", "2.0.0"):
+    for version in ("1.1.0", "2.0.0", "2.1.0"):
         values = results[version]
         output[version] = {
             "profile": "multitest-open-corpus-adapter-replay-v1",

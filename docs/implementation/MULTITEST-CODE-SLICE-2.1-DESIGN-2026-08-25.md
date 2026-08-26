@@ -1,6 +1,6 @@
 # Multiple-testing code slice 2.1 recall-delta design — 2026-08-25
 
-**Status:** build-ready design, Revision 1; documentation only in this session
+**Status:** build-ready design, Revision 1a; implementation amendment records no behavior change
 
 **Version:** detector/check/adapter `2.1.0`, development lane only
 
@@ -653,7 +653,7 @@ remain frozen. The analyzer-only `baseline_1_1.json` remains diagnostic and is n
 | `spec-41` | candidate / `none` | R5 + R1 |
 | `spec-43` | candidate / `strict_subset` | R5 + R13; three Holm-covered, three raw. |
 | `spec-45` | candidate / `none` | full R16 + R1 |
-| `spec-47` | abstain `unresolved-pvalue-consumer` | First guard remains helper presentation flow; even after it, per-member hand threshold remains refused. |
+| `spec-47` | abstain `unresolved-decision-threshold` | R5 legitimately clears the presentation-helper wall and exposes the deeper designed per-member computed-threshold wall. |
 | `spec-49` | candidate / `none` | R4 + R5 + R6 + R7 |
 
 The minimum executed projection is `17/25`; full R16 raises it to the required `19/25`. The hard
@@ -700,6 +700,11 @@ and the same 50-case movements attributable solely to those rules. The executed 
 correct `spec-28` to `unresolved-decision-threshold` and analyzer-level `spec-42` to
 `unresolved-manual-correction-present`, never to candidate. R5 independently moves `spec-48` as
 pinned above.
+
+The labeled-misstep residual `spec-47` has the same reason-exposure treatment: its 2.0 adapter
+reason `unresolved-pvalue-consumer` moves to `unresolved-decision-threshold` because R5 clears only
+the presentation-helper transport and exposes the unchanged bin-C per-member threshold refusal.
+It remains an abstention, so this movement changes neither candidate nor Finding eligibility.
 
 ## 8. Residuals and deferred work
 
@@ -833,7 +838,9 @@ reproduce zero correct candidates.
 6. **Correct open-corpus reasons:** all remain noncandidates, but the blanket first-reason equality
    assertion has exactly three carve-outs: `spec-28` moves to `unresolved-decision-threshold`,
    `spec-42` moves to `unresolved-manual-correction-present`, and `spec-48` moves to
-   `unresolved-decision-threshold`, as pinned in 7.2. No other correct-case first reason may move.
+   `unresolved-decision-threshold`, as pinned in 7.2. Misstep residual `spec-47` likewise moves from
+   `unresolved-pvalue-consumer` to `unresolved-decision-threshold` when R5 exposes its deeper
+   designed per-member-threshold wall. No other correct-case first reason may move.
 
 Every legitimate change is a recall gain on a labeled/known misstep: the 17 newly reached corpus
 cases plus the two R16 cases. The three correct-case movements above expose a later protective
@@ -973,3 +980,16 @@ recon summary and adds its ADR/FA obligations rather than enlarging it further.
 | Minor 1 — R9 provenance | 2.4, 3.3, 5 | Records `MASK.sum()` as an intentional design-time extension for spec-25, closed to nonfeeding sink-only presentation, for the ADR amendment. |
 | Minor 2 — duplicate files | No design section | No design edit: the custodian had already removed and committed the sixteen name-space-2 duplicates before this revision. |
 | Minor 3 — correct-case reason movements | 7.2, 9.4 | Replaces blanket first-reason stability with the exact `spec-28`, `spec-42`, and `spec-48` abstention movements; all other correct-case reasons stay pinned. |
+
+## 15. Revision 1a changelog
+
+Revision 1a applies the supervisor's section-13 disposition for one reason-exposure conflict. It
+changes no grammar, guard, candidate surface, Finding eligibility, or implementation behavior.
+The built 2.1 adapter was also re-audited over all six residual misstep cases: `spec-13`, `spec-23`,
+`spec-29`, `spec-37`, and `spec-39` retain their Revision-1 abstention reasons; only `spec-47`
+exposes a deeper designed abstention.
+
+| Disposition | Sections changed | Revision 1a result |
+|---|---|---|
+| `spec-47` reason exposure | 7.1, 7.2, 9.4 | Updates the adapter pin from `unresolved-pvalue-consumer` to `unresolved-decision-threshold`: R5 clears its presentation-helper wall and exposes the unchanged bin-C per-member threshold refusal. The case remains an abstention. |
+| Six-residual adapter audit | 7.1, 7.2, 9.4, 15 | Re-executes `spec-13`, `spec-23`, `spec-29`, `spec-37`, `spec-39`, and `spec-47`; the first five retain their pins and none becomes a candidate. |

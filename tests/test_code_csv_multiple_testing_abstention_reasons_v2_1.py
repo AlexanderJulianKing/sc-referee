@@ -9,10 +9,10 @@ from typing import Any, cast
 
 import pytest
 
-import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2 as adapter_module
-import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2 as dataflow
+import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2_1 as adapter_module
+import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2_1 as dataflow
 from sc_referee.core.ids import canonical_json, sha256_digest
-from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2 import _CLOSED_REASONS
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2_1 import _CLOSED_REASONS
 from sc_referee.scientific_checks.core import (
     FrozenBaseRecord,
     FrozenInspectionContext,
@@ -214,7 +214,7 @@ class _ProsePayloadTripwire:
 
 def test_report_and_markdown_add_remove_is_invariant_for_every_guard_fixture() -> None:
     fixtures = runpy.run_path(
-        "evaluation/development/multitest-code-slice-v2/ADVERSARY_FIXTURES.py"
+        "evaluation/development/multitest-code-slice-v2_1/ADVERSARY_FIXTURES.py"
     )["FIXTURES"]
     for fixture in fixtures.values():
         analysis_record = _file_record("analysis.py", "file:analysis")
@@ -261,15 +261,9 @@ def _adapter() -> adapter_module.CodeCsvMultipleTestingAdapter:
         for item in registry.modules_for_lane("development")
         if item.manifest.check_id == _CHECK_ID
     )
-    active = module.adapters[0]
-    return adapter_module.CodeCsvMultipleTestingAdapter(
-        check_manifest=active.check_manifest,
-        adapter_manifest=active.adapter_manifest,
-        complete_operand=active.complete_operand,
-        none_operand=active.none_operand,
-        strict_subset_operand=active.strict_subset_operand,
-        role_bindings=adapter_module.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
-    )
+    adapter = module.adapters[0]
+    assert isinstance(adapter, adapter_module.CodeCsvMultipleTestingAdapter)
+    return adapter
 
 
 def test_verified_authority_unavailable_is_the_first_adapter_reason() -> None:
@@ -309,7 +303,7 @@ def test_x4_fixture_matrix_equals_the_closed_helper_registry() -> None:
 
 def test_fixture_emissions_plus_documented_unreachable_annex_equal_closed_reasons() -> None:
     observed: set[str] = set()
-    for path in Path("tests").glob("*multiple_testing*v2.py"):
+    for path in Path("tests").glob("*multiple_testing*v2_1.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         observed.update(
             str(node.value)

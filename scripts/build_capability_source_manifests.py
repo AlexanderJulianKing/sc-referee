@@ -1231,6 +1231,50 @@ def main() -> None:
         "docs/implementation/MULTITEST-CODE-SLICE-2.0-DESIGN-2026-08-25.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v2)
+    multiple_testing_v2_1 = deepcopy(multiple_testing_v2)
+    multiple_testing_v2_1["detector_version"] = "2.1.0"
+    multiple_testing_v2_1["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.1.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_1["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_1.py"
+    )
+    multiple_testing_resource_v2_1 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_1.py"
+    )
+    multiple_testing_v2_1["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_1:"
+            "BoundedCodeCsvMultipleTestingConflictV2_1Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_1.read_bytes()),
+    }
+    multiple_testing_v2_1["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_dynamic_execution_census_is_whole_module"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_v2_1_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_open_corpus_v2_1.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_v2_1_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_1.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+    }
+    multiple_testing_v2_1["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.1-DESIGN-2026-08-25.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_1)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

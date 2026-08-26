@@ -58,6 +58,9 @@ from sc_referee.scientific_checks.code_csv_dependence_dataflow_v3_1 import (
     CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST as QUALIFIED_CODE_CSV_DEPENDENCE_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2 import (
+    CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_ADAPTER_V2_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2_1 import (
     CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
     COMPLETE_FAMILY_CORRECTION_OPERAND,
     MULTIPLE_TESTING_CODE_ADAPTER_ID,
@@ -74,6 +77,9 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2 import (
     code_csv_multiple_testing_grammar_digest,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2 import (
+    CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V2_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2_1 import (
     CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.copy_dosage_adapter import (
@@ -120,6 +126,9 @@ from sc_referee.scientific_checks.founder_orientation_semantic_adapter import (
     founder_orientation_semantic_recognition_grammar_digest,
 )
 from sc_referee.scientific_checks.integration_multiple_testing_v2 import (
+    MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_INTEGRATION_V2_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.integration_multiple_testing_v2_1 import (
     MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.multiple_testing_recognition_adapter import (
@@ -260,7 +269,7 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
                 == "check:authorized-independent-unit-entry-into-row-independent-procedure"
                 else (
                     "detector:bounded-code-csv-multiple-testing-conflict",
-                    "2.0.0",
+                    "2.1.0",
                 )
                 if module.manifest.check_id == MULTIPLE_TESTING_CODE_CHECK_ID
                 else ("detector:bounded-analysis-method-conflict", "0.3.0")
@@ -280,7 +289,7 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
                 == "check:authorized-independent-unit-entry-into-row-independent-procedure"
                 else (
                     "detector:bounded-code-csv-multiple-testing-conflict",
-                    "2.0.0",
+                    "2.1.0",
                 )
                 if module.manifest.check_id == MULTIPLE_TESTING_CODE_CHECK_ID
                 else ("detector:bounded-analysis-method-conflict", "0.3.0")
@@ -484,10 +493,22 @@ def scientific_check_release_projection(
                 )
             ),
             "scientific_checks/code_csv_multiple_testing_adapter_v2.py": (
-                CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST
+                CODE_CSV_MULTIPLE_TESTING_ADAPTER_V2_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_multiple_testing_dataflow_v2.py": (
+                CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V2_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/integration_multiple_testing_v2.py": (
+                MULTIPLE_TESTING_INTEGRATION_V2_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_adapter_v2_1.py": (
+                CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_dataflow_v2_1.py": (
                 CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/integration_multiple_testing_v2_1.py": (
+                MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_dependence_adapter_v3_0.py": (
                 CODE_CSV_DEPENDENCE_ADAPTER_V3_0_IMPLEMENTATION_DIGEST
@@ -585,9 +606,6 @@ def scientific_check_release_projection(
                         Path(__file__).resolve().parent / "integration_multiple_testing_v1_1.py"
                     ).read_bytes()
                 )
-            ),
-            "scientific_checks/integration_multiple_testing_v2.py": (
-                MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/python_founder_adapter.py": (
                 PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST
@@ -698,6 +716,7 @@ def _method_conflict_detector_manifests() -> Mapping[tuple[str, str], Mapping[st
         ("detector:bounded-code-csv-multiple-testing-conflict", "1.0.0"),
         ("detector:bounded-code-csv-multiple-testing-conflict", "1.1.0"),
         ("detector:bounded-code-csv-multiple-testing-conflict", "2.0.0"),
+        ("detector:bounded-code-csv-multiple-testing-conflict", "2.1.0"),
     }
     matches = [
         item
