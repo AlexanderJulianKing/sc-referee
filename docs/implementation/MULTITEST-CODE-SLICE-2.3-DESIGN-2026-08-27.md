@@ -1,6 +1,6 @@
 # Multiple-testing code slice 2.3 recall-delta design — 2026-08-27
 
-**Status:** build-ready design, Revision 0
+**Status:** build-ready design, Revision 1a
 
 **Version:** detector/check/adapter `2.3.0`, development lane only
 
@@ -395,6 +395,11 @@ A standalone tagged terminal IfExp uses its own key as both transport and decisi
 entry prevents the off-grammar registry from clearing one rendering while hierarchy/conclusion
 credit a different decision.
 
+The transport and decision are one joint matching unit. The matcher never resolves a transport
+clone first and then independently searches for a decision clone. It matches the composite entry
+against one final sink payload, verifies the transport-to-decision containment relation once, and
+accepts or refuses the entire entry atomically.
+
 ### 5.2 Exact final-clone mapping
 
 After all unchanged normalizers produce `S_FINAL`, D13-B searches only descendants of payloads of
@@ -408,13 +413,35 @@ STRUCT
 FAMILY_POS
 ```
 
-Exactly one matching transport clone and, when present, one matching decision clone must occur
-beneath exactly one registered sink payload. Their original and final containment relationships
-must be equal. Object identity is not part of the key. Position alone is insufficient, structure
-alone is insufficient, and a match outside a p-eligible sink is insufficient. Two structurally
-equal clones, a clone shared by two emissions, different family-position origins at one source
-position, a missing marker, or any atomic/composite mapping cardinality other than one is
-unresolved.
+Exactly one jointly matched transport/decision pair must occur beneath exactly one registered sink
+payload for each composite entry. The original and final containment relationship is checked once
+as part of that joint match. Object identity is not part of the key. Position alone is
+insufficient, structure alone is insufficient, and a match outside a p-eligible sink is
+insufficient.
+
+Multiple origin descriptors **may** share one `SOURCE_POS` and one `STRUCT` when every descriptor
+resolves to a distinct singleton `FAMILY_POS` and every complete composite entry maps one-to-one to
+its own final clone pair. This is the required P5 fanout: the one `print_result` definition is
+expanded across seven family members, so five descriptors at one rendering line resolve to
+positions `{2,3,4,5,6}` and two descriptors at the other rendering line resolve to positions
+`{0,1}`. Shared source/structure across those positions is not ambiguity.
+
+For cross-position sharing, refusal is confined to either of these actual failures:
+
+1. one descriptor's `FAMILY_POS` is not uniquely resolvable to a singleton; or
+2. two descriptors compete for the same final transport or decision clone.
+
+Origin descriptors are retained as an ordered occurrence sequence, not a set keyed by their
+structural tuple. Equal composite keys from two analyzer occurrences are never deduplicated; each
+occurrence must independently claim a final clone pair. The analyzer-only occurrence ordinal
+preserves multiplicity but is not a matching field, evidence value, or substitute for
+`FAMILY_POS`. This makes the second refusal observable when two equal descriptors compete for one
+clone.
+
+A missing marker or failed structural/containment/sink/consumer production remains ineligible under
+the surrounding clauses; it is not re-described as a family-position collision. A clone shared by
+two emissions is a consumer/cardinality failure. Different, uniquely resolved family positions at
+one source position are never by themselves unresolved.
 
 The mapping is an immutable one-to-one relation. No two origins may claim one clone and no clone
 may satisfy two descriptors. Its source/position entries are analyzer metadata only and never
@@ -488,10 +515,11 @@ and:
 closure(closure(S_D6, S_FINAL)) == closure(S_D6, S_FINAL)
 ```
 
-where equality includes descriptor keys, origin-to-clone pairs, sink identities, family positions,
-consumer sets, and failure status. Running the closure twice on already-mapped scopes changes
-nothing. Failure is `multiple-testing-code-inspection-exception` and a stop-and-report ordering
-regression, not a reason relabel chosen to satisfy an oracle.
+where equality includes ordered descriptor-occurrence multiplicity, descriptor keys,
+origin-to-clone pairs, sink identities, family positions, consumer sets, and failure status.
+Running the closure twice on already-mapped scopes changes nothing. Failure is
+`multiple-testing-code-inspection-exception` and a stop-and-report ordering regression, not a
+reason relabel chosen to satisfy an oracle.
 
 ## 6. False-accusation analysis and required fixtures
 
@@ -530,7 +558,8 @@ reader model.
 | `correct-terminal-clone-preregistered-001-N5` | Five raw p-values reach cloned two-string verdicts at literal `0.01`, a pre-registered corrected level. | Abstain `unresolved-decision-threshold`; zero candidate/Finding. | D13-B does not bypass order 13, the `{0.05}` raw-family narrowing, source-text Decimal, or the product rule. |
 | `correct-terminal-clone-hidden-correction-helper` | A presentation-shaped outer helper wraps a p from an unresolved adjustment helper. | Abstain `unresolved-pvalue-consumer`; zero candidate/Finding. | The hidden call is an unaccounted p consumer and cannot receive a terminal descriptor. |
 | `correct-terminal-clone-ambiguous-two-sinks` | One eligible terminal value is cloned into two otherwise admitted emissions. | Abstain `unresolved-pvalue-consumer`; zero candidate/Finding. | Mapping cardinality must be exactly one sink clone; no sink is chosen heuristically. |
-| `correct-terminal-clone-family-position-collision` | Two family positions share a source position/shape after expansion. | Abstain `unresolved-pvalue-consumer`; zero candidate/Finding. | `FAMILY_POS` is part of the key and the map is one-to-one; position/shape alone cannot merge origins. |
+| `correct-terminal-clone-family-position-collision` | Two expanded origin descriptors have the same composite key, including the same singleton family position, while normalization leaves one final transport/decision clone pair; both descriptors therefore claim that one pair. The underlying family is completely corrected. | Abstain `unresolved-pvalue-consumer`; zero candidate/Finding. | This is genuine clone competition, not permitted cross-position fanout. The one-to-one map refuses two descriptors claiming one clone. |
+| `positive-terminal-clone-N-position-fanout` | One presentation helper is expanded to `N` family call sites; the `N` descriptors share helper source/structure but resolve to `N` distinct singleton positions and map jointly to `N` distinct clone pairs. The P5 polarity has Holm coverage `{0,1}` and raw conclusions `{2,3,4,5,6}`. | **Candidate** `strict_subset`, corrected positions `{0,1}` of `7`; exactly one candidate and zero Findings. | Source-position reuse is admitted only because family position disambiguates every descriptor and the map proves `N` one-to-one clone pairs with total consumers. This is the mandatory positive control for the P5 shape. |
 | `correct-terminal-clone-computed-threshold` | The tagged verdict uses a computed Sidak/Bonferroni threshold. | Abstain `unresolved-decision-threshold`; zero candidate/Finding. | The existing direct-threshold grammar remains the only decision authority. |
 | `correct-terminal-clone-export-sibling` | The rendered verdict reaches print while the same family p-value also flows to `.to_csv`, `numpy.savetxt`, or `json.dump`. | Abstain `unresolved-pvalue-consumer`; zero candidate/Finding. | Total accounting includes every original and clone consumer; the export is not presentation. |
 
@@ -714,6 +743,12 @@ The adapter writes a checked-in 2.3 E13 replay record and replays it twice byte-
 sealed `AUDIT_RESULTS.json`, `ROLE_MAP.json`, projects, profiles, custody log, and blind score are
 read-only and are never regenerated.
 
+P5's pinned row also depends on the unchanged closed module-constant resolver proving
+`ADJUST_METHOD = "holm"` at the recognized correction call. The E13 oracle test must assert that
+the method resolves to `holm` before it asserts coverage `{0,1}`. A future correction-grammar or
+constant-resolver tightening therefore cannot silently preserve a superficially similar candidate
+while losing the correction-method proof.
+
 ### 9.2 Exact opened movement set
 
 Movement means any canonical adapter-row byte change in outcome, first reason, correction
@@ -744,6 +779,23 @@ recon-pinned residual, although its first reason necessarily changes after D13-A
 opened E10-E13 adapter row is byte-identical to explicit frozen-2.2 replay. This four-row count is
 the executed combined prototype result in `sweep_results.json`; treating only candidate changes as
 movements is forbidden.
+
+The eligible-site population is structurally closed and separately asserted. Exactly five opened
+cases contain a function-local path binding consumed by a recognized reader, all in E13:
+
+```text
+P2 c336be2521785ab6a954  # held at the earlier >N call-census wall
+P5 80091f37c722eba28e18  # reader wall -> candidate strict_subset
+P6 d0f9fcd52f47e4d64668  # reader wall -> manual-correction wall
+N1 b7d38f6e9284abfd3ee6  # reader wall -> correction-lineage wall
+N9 ab70cdb37bb2977d725c  # reader wall -> threshold wall
+```
+
+E10, E11, and E12 contain zero such function-local eligible sites; their module-level path
+bindings are already resolved by 2.2 and do not enter D13-A. This five-site census explains the
+movement set structurally: four rows move, while P2 cannot reach reader resolution because the
+retained `performed_count > N` census fires first. P2's non-movement is contingent on that exact
+guard and is reserved for the separate duplicate-pass evidence/wording ADR in sections 8.1/12.1.
 
 ### 9.3 Open corpus — all fifty rows frozen
 
@@ -858,10 +910,22 @@ claim that implementation strategy is equal. The final 2.3 implementation must e
 - the six 2.2 FA fixtures; and
 - the four targeted E13 correct-analysis attacks.
 
-The final implementation is intentionally stricter on the new alias/mutation/conditional/path
-refusal matrix, which lies outside the prototype's demonstrated positive domain. A final candidate
-where the prototype was a noncandidate is a stop. Prototype and final must have the same four
-opened movements and zero corpus movements.
+The final implementation is intentionally stricter than the prototype in both delta components:
+
+- D13-A's alias/mutation/conditional/path refusal matrix lies outside the prototype's demonstrated
+  positive domain; and
+- D13-B's executed prototype used a materially weaker position-only `any()` sink matcher with no
+  `STRUCT`, `FAMILY_POS`, or cardinality bound, whereas the final design requires joint composite
+  matching and one-to-one per-position clones.
+
+The none-flip direction transfers soundly: tightening an admission cannot create a candidate the
+looser prototype did not create. The positive D13-B claim does **not** transfer. Before section
+9.1 is satisfied, the final strict matcher must re-demonstrate P5 as candidate `strict_subset`,
+positions `{0,1}/7`, through the real adapter and must pass
+`positive-terminal-clone-N-position-fanout`. P5 is the row protected by the exact movement-equality
+gate. A final candidate where the prototype was a noncandidate is a stop; a final P5 abstention is
+also a stop. Only after that demonstration may final/prototype be said to have the same four opened
+movements and zero corpus movements.
 
 ## 12. Residuals
 
@@ -927,16 +991,20 @@ consistency gate.
 
 Run both eligible productions through each 2.2 normalization site that can clone them. Cross:
 
-- one exact clone, zero clone, two clones, two sinks, same source/different structure, same
-  structure/different source, same source/structure/different family position, and missing end
-  positions;
+- one exact clone, zero clone, two competing descriptors for one clone, two sinks, same
+  source/different structure, same structure/different source, unresolved family position, and
+  missing end positions;
+- equal-key origin occurrences remain two records rather than being deduplicated before the
+  competition check;
+- the admitted P5 fanout control: one helper, `N` descriptors sharing source/structure, `N`
+  distinct singleton positions, and `N` jointly matched one-to-one clone pairs;
 - original/clone unrecognized calls, stores, aliases, containers, exports, second emissions, and
   control consumers;
 - every installed terminal-helper production and every frozen refusal shape;
 - exact raw, complete correction, strict-subset correction, computed threshold, conventional bare
   threshold, and pre-registered `0.01` threshold;
 - R1 percent rendering with direct and container-derived p origins; and
-- all seven named section-6.2 fixtures.
+- all eight named section-6.2 fixtures.
 
 Assert the off-grammar, hierarchy, and conclusion registries receive the same map object and same
 composite entry: off-grammar uses its transport field, while hierarchy and conclusion use its
@@ -947,11 +1015,14 @@ unchanged.
 ### 13.3 E13 adapter replay and exact movements
 
 1. Execute all fifteen E13 projects through the real 2.3 adapter and exact committed profiles.
-2. Compare every row with section 9.1, including positions `{0,1}/7` for P5.
+2. Compare every row with section 9.1, including positions `{0,1}/7` for P5, and independently
+   assert that P5's correction method resolves from `ADJUST_METHOD` to exact `holm`.
 3. Execute explicit frozen 2.2 and 2.3 adapters through the same harness.
-4. Assert the canonical changed-case set and length equal section 9.2 exactly.
-5. Write one canonical 2.3 replay record, execute twice, and assert byte equality.
-6. Assert sealed custody, source, audit, role-map, profile, and blind-score bytes are untouched.
+4. Assert the opened eligible-site census is exactly the five E13 cases in section 9.2, zero for
+   E10-E12, and that P2 stops at the retained `>N` census before reader resolution.
+5. Assert the canonical changed-case set and length equal section 9.2 exactly.
+6. Write one canonical 2.3 replay record, execute twice, and assert byte equality.
+7. Assert sealed custody, source, audit, role-map, profile, and blind-score bytes are untouched.
 
 An analyzer-level table may be retained as a diagnostic but cannot replace this adapter gate.
 
@@ -1090,9 +1161,11 @@ modules/tests/replay bytes, dependence modules, and E10-E13 custody/audit/source
 Build acceptance requires all of:
 
 1. exact D13-A site, RHS, immutability, alias, escape, authority-equality, and cross-query grammar;
-2. exact D13-B source-position/structure/family-position key, one-to-one clone mapping, and total
-   origin/clone consumer accounting;
-3. one shared D13-B map used consistently by off-grammar, hierarchy, and conclusion registries;
+2. exact D13-B source-position/structure/family-position key, permitted same-source distinct-
+   position fanout, jointly matched one-to-one clone pairs, and total origin/clone consumer
+   accounting;
+3. one shared D13-B composite map used consistently by off-grammar, hierarchy, and conclusion
+   registries, with transport/decision containment checked once;
 4. unchanged D6 grammar and second-pass equality, followed by D13-B no-mutation and idempotence;
 5. every section-6 named fixture, including both covered/complete controls and exact refusal
    reasons;
@@ -1134,3 +1207,18 @@ threshold, reader-API, row-completeness, evidence, or wording policy.
 | E13 oracle and movements | 9.1-9.2, 13.3, 17 | Pins all fifteen adapter rows and the exact four-case movement set `{P5,P6,N1,N9}`. |
 | None-flip guarantee | 6, 10, 13.4, 17 | Elevates executed combined counts `0/25`, `0/36`, `0/6` to a real-adapter build gate. |
 | Honest read | 15 | Records E13 retrospective `3/6 -> 4/6`, zero corpus movement, and conservative E14 arrival economics. |
+
+### Revision 1a — adversarial design review
+
+Revision 1a folds one blocker, one major, and three minors. It preserves the fifteen-row E13
+oracle, exact four-row movement count, combined none-flip totals, closed reason set, and every
+correction/threshold/census guard. The D13-B fixture matrix now has eight named fixtures because
+the missing P5-shaped positive fanout control is explicit.
+
+| Review finding | Sections changed | Revision 1a disposition |
+|---|---|---|
+| `BL-1` same-source family fanout | 5.2, 6.2, 13.2, 17 | Allows multiple descriptors to share source/structure only when each has a distinct singleton family position and its own jointly matched clone pair; confines family-position refusal to unresolved singleton position or actual clone competition; rewrites the collision fixture and adds the mandatory `N`-position P5 positive control. |
+| `MJ-1` weak prototype transfer | 11.2, 13.2-13.3, 17 | Records the prototype's position-only `any()` matcher, permits none-flip transfer only in the safe tightening direction, and requires the final strict matcher to re-demonstrate P5 before the oracle is satisfied. |
+| `m1` eligible-site population | 9.2, 13.3 | Pins exactly five function-local recognized-reader sites, all E13, zero in E10-E12; P2's non-movement remains contingent on the retained `>N` census and separate ADR. |
+| `m2` composite matching granularity | 5.1-5.3, 13.2, 17 | Requires transport and decision clones to match jointly in one composite entry with containment checked once, never independently reconciled. |
+| `m3` P5 correction-method dependency | 9.1, 13.3 | Pins closed module-constant resolution of `ADJUST_METHOD = "holm"` as a prerequisite for P5 coverage `{0,1}`. |
