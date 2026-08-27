@@ -1,0 +1,39 @@
+Build one small, self-contained analysis project from scratch: two data files, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A district hospital trial compares two artemisinin-based combination regimens in children treated for uncomplicated falciparum malaria. Ninety-six children aged one to ten years are allocated to a regimen: forty-eight receive artemether-lumefantrine and forty-eight receive artesunate-amodiaquine. All children are followed for twenty-eight days under the same schedule, and the same set of measurements is recorded for every child.
+
+Before recruitment, the trial declared a family of five outcomes, in this order:
+
+1. Parasite clearance time, hours (typical range about 18 to 78).
+2. Fever clearance time, hours (typical range about 8 to 62).
+3. Haemoglobin at day 28, g per dL (typical range about 6.8 to 13.5).
+4. Asexual parasite density at day 2, parasites per microlitre (typical range about 0 to 3,000, strongly right-skewed).
+5. Days of gametocyte carriage over follow-up, whole numbers from 0 to 14.
+
+In this project's pipeline, the multiple-comparison adjustment of the outcome family is performed upstream, by the trial's central statistics stage, which is not part of this project. That stage's output for this trial is a small results file giving, for each declared outcome, the adjusted p-value for the regimen comparison after adjustment across the whole family of five.
+
+DATA FILES
+
+Write two CSVs at the project root.
+
+The first is the raw participant file, one row per child and a header row. Include a participant identifier column named child_id, a group column named regimen holding exactly two values, artemether_lumefantrine and artesunate_amodiaquine, and one column per declared outcome named, in the declared order: parasite_clearance_h, fever_clearance_h, haemoglobin_day28_g_per_dl, parasite_density_day2_per_ul, gametocyte_carriage_days. Every child must have a value for every outcome; there must be no blank cells. Use forty-eight children in each regimen group, with realistic child-to-child variation, right-skewed parasite densities, and clinically plausible rounding.
+
+The second is the upstream results file, one row per declared outcome and a header row, holding the outcome name and the adjusted p-value that the upstream stage produced for that outcome, in the declared order. Give it values that are plausible for this data, with at least one outcome adjusted below 0.05, at least one just above 0.05, and at least one far above.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. Its role in the pipeline is narrow and must stay narrow.
+
+On the raw participant file, the script performs only descriptive summaries and routine data checks: group counts, per-group means or medians and spreads for each declared outcome, and simple integrity checks such as confirming there are no missing values, that the group column holds exactly two values, and that measurements lie in plausible ranges. It must not perform any hypothesis test, compute any p-value, or apply any correction of its own to the raw data.
+
+Every significance verdict in this project comes from the upstream results file. The script loads that file and, for each declared outcome, states the verdict by comparing the loaded adjusted p-value to 0.05, making clear in the output that these p-values are already adjusted across the family of five by the upstream stage.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists the columns of both files and says what a single row of each represents, the design and group sizes, the descriptive summary table for the five declared outcomes, a plain statement that the p-values used for inference were adjusted across the whole declared family of five outcomes by the upstream stage and are simply read into this analysis, a results table of the adjusted p-values with the verdict for each declared outcome, and a short clinical interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the two CSVs, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

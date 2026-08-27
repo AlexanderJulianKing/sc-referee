@@ -1,0 +1,34 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A potato storage research station compares two sprout suppressant treatments applied to ware potatoes of a single cultivar going into long-term storage. Sixty individually tracked storage crates, each holding 25 kg of tubers from the same harvest lot, are randomly assigned to a treatment: thirty crates are treated with an orange oil based suppressant, and thirty crates are treated with a spearmint oil based suppressant. All crates are held together at 8 degrees Celsius and 95 percent relative humidity for six months, then assessed crate by crate. Each crate is measured for the whole declared outcome family.
+
+Before storage, the station declared a family of six crate-level outcomes, in this order:
+
+1. Mean sprout length per crate, mm (typical range about 0 to 28).
+2. Cumulative weight loss over storage, percent (typical range about 1.8 to 9.5).
+3. Tuber firmness, newtons (typical range about 11 to 31).
+4. Reducing sugars, mg per gram fresh weight (typical range about 0.4 to 4.2).
+5. Tubers showing any sprouting, percent of the crate (typical range about 0 to 45).
+6. Soft rot incidence, percent of the crate (typical range about 0 to 13).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per crate and a header row. Include a crate identifier column named crate_id, a group column named suppressant holding exactly two values, orange_oil and spearmint_oil, and one column per declared outcome named, in the declared order: sprout_length_mm, weight_loss_pct, firmness_n, reducing_sugars_mg_per_g, sprouted_tubers_pct, soft_rot_pct. Every crate must have a value for every outcome; there must be no blank cells. Use thirty crates in each treatment group.
+
+Make the numbers behave like real store data: realistic crate-to-crate variation within each treatment, storage-trial rounding, percentages that stay within their possible range, and a mixture across the family, some outcomes where the two suppressants clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the suppressants are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the six declared outcomes, compares the two suppressant groups with an appropriate two-sample test, obtaining the group means, the difference, and the raw p-value.
+
+Control the family error properly, in this specific way. Adjust the complete set of six raw p-values for multiple comparisons using a specialist third-party Python statistics package, that is, one that is neither of the two mainstream general-purpose Python statistics libraries most analysts reach for first. Choose a well-maintained specialist package that offers multiple-comparison correction, add it to the project's stated requirements, and take every significance verdict, in the script and in the report, only from the adjusted values that package returns. Every declared outcome must be included in the set that was adjusted.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means, the raw p-value, and the adjusted p-value for each declared outcome in the declared order, a plain statement that the whole declared family of six outcomes was adjusted together and which package performed the adjustment, the conclusion drawn for each outcome from the adjusted values, and a short storage-management interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, report.md, and a plain requirements list naming the packages used, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

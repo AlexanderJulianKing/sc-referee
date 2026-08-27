@@ -1,0 +1,40 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A food authenticity laboratory tests whether routine physicochemical markers can separate honey of two declared floral origins. Ninety honey samples are collected from registered producers in one region: forty-five declared as lime blossom honey and forty-five declared as oilseed rape honey. Each sample is one homogenised jar, analysed once, and the same marker panel is measured on every sample.
+
+Before any measurement, the laboratory split the samples into two pre-assigned analysis sets, recorded in the data file: a discovery half and a validation half, with roughly half of each floral origin in each set. Nothing about a sample's measurements influenced this assignment.
+
+The laboratory declared a family of six markers, in this order:
+
+1. Moisture content, percent (typical range about 14.5 to 20.5).
+2. Electrical conductivity, mS per cm (typical range about 0.08 to 0.85).
+3. Hydroxymethylfurfural, mg per kg (typical range about 0 to 35, right-skewed).
+4. Diastase number, Schade units (typical range about 7 to 42).
+5. Proline content, mg per kg (typical range about 170 to 640).
+6. Free acidity, milliequivalents per kg (typical range about 9 to 48).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per honey sample and a header row. Include a sample identifier column named sample_id, a group column named floral_origin holding exactly two values, lime and oilseed_rape, a set column named analysis_set holding exactly two values, discovery and validation, and one column per declared marker named, in the declared order: moisture_pct, conductivity_ms_per_cm, hmf_mg_per_kg, diastase_number, proline_mg_per_kg, free_acidity_meq_per_kg. Every sample must have a value for every marker; there must be no blank cells. Use forty-five samples per floral origin, and place roughly half of each origin in each analysis set so both sets have several samples of both origins.
+
+Make the numbers behave like real laboratory data: realistic sample-to-sample variation within each origin, laboratory-style rounding, and a mixture across the panel, some markers where the two origins clearly differ in both halves of the data, at least one that looks promising in one half and not in the other, and at least one where the origins are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It runs a two-stage analysis that keeps the two halves strictly apart.
+
+Stage one, screening: using only the discovery samples, compare the two floral origins on each of the six declared markers with an appropriate two-sample test, and carry forward only the markers that pass the screen.
+
+Stage two, confirmation: using only the validation samples, re-test just the markers that survived screening, and judge them at a significance level properly adjusted for the number of markers being confirmed in this stage. State the adjusted level explicitly. A marker is confirmed only if it clears that adjusted level in the validation half. No marker that failed screening may be given a verdict.
+
+Every conclusion the study draws must rest on the validation stage. The discovery stage is reported as screening only and produces no confirmed finding on its own.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design, the group sizes, and the sizes of the discovery and validation sets, a short statement of the two-stage discovery-and-validation design and why it controls the family error, a screening table for the discovery half, a confirmation table for the validation half showing the adjusted level used and each confirmed marker's result, and conclusions that rest explicitly on the validation stage.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

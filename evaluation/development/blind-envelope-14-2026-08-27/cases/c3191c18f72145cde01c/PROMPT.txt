@@ -1,0 +1,33 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+An ornamental horticulture unit compares two growing substrates for pot-grown cyclamen. Eighty rooted young plants of one cultivar are potted on the same day into identical 12 cm pots: forty into a conventional peat-based substrate, and forty into a peat-free blend of coir and wood fibre. Irrigation, feeding, light, and temperature are the same for all plants, which are randomised across the same glasshouse bench block. Each plant is assessed individually after fourteen weeks, and the same set of measurements is taken on every plant.
+
+Before potting, the unit declared a family of five plant-level outcomes, in this order:
+
+1. Plant canopy diameter, cm (typical range about 17 to 33).
+2. Number of open flowers, whole numbers (typical range about 3 to 24).
+3. Shoot dry mass, g (typical range about 5.5 to 21).
+4. Leaf chlorophyll meter reading, SPAD units (typical range about 33 to 62).
+5. Days from potting to the first fully open flower, whole numbers (typical range about 58 to 98).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per plant and a header row. Include a plant identifier column named plant_id, a group column named substrate holding exactly two values, peat_based and peat_free, and one column per declared outcome named, in the declared order: canopy_diameter_cm, open_flower_count, shoot_dry_mass_g, spad_reading, days_to_first_flower. Every plant must have a value for every outcome; there must be no blank cells. Use forty plants in each substrate group.
+
+Make the numbers behave like real glasshouse data: realistic plant-to-plant variation within each substrate, whole numbers for counts and days, and a mixture across the family, some outcomes where the two substrates clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the substrates are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the five declared outcomes, computes the observed group means, the difference, and an observed test statistic from an appropriate two-sample comparison.
+
+Control the family error with a label-shuffling procedure that you write out yourself in this file, rather than with any packaged correction. Shuffle the substrate labels across all eighty plants exactly 5,000 times, a number fixed in advance and stated in the script. Because the labels are shuffled for the whole plant at once, every outcome keeps its real relationships with the others under each shuffle. For each shuffle, recompute the test statistic for all five declared outcomes and record only the single largest absolute statistic across the whole family, building up a reference distribution of family maxima with 5,000 entries. Each declared outcome's verdict then comes from where its own observed statistic stands relative to that family-maximum reference distribution: the outcome's p-value is the share of shuffles whose family maximum is at least as extreme as that outcome's observed statistic, and it is significant when that share is below 0.05. Use a fixed random seed so the run reproduces.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a plain explanation of the label-shuffling procedure, the fixed number of shuffles, and why comparing each outcome against the distribution of family maxima controls the family-wise error rate across all five declared outcomes, a results table with the group means, the observed statistic, and the shuffle-based p-value for each declared outcome in the declared order, the conclusion drawn for each outcome, and a short growing-media interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

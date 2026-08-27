@@ -1,0 +1,35 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A pilot maltings compares two steeping regimes for spring malting barley of a single variety and a single harvest year. Forty-eight micro-malting lots of 5 kg each are prepared from the same grain bulk and randomly allocated to one of two steeping regimes: twenty-four lots to a conventional two-step steep, and twenty-four lots to an extended air-rest steep. Every lot is then germinated and kilned under identical conditions and analysed in the laboratory.
+
+Before the trial began, the maltings declared a family of five malt-quality outcomes, in this order:
+
+1. Friability, percent (typical range about 74 to 94, most lots near 85).
+2. Fine extract on a dry basis, percent (typical range about 78.5 to 83.5).
+3. Free amino nitrogen in the laboratory wort, mg per litre (typical range about 120 to 210).
+4. Diastatic power, degrees Windisch-Kolbach (typical range about 190 to 330).
+5. Beta-glucan in the laboratory wort, mg per litre (typical range about 60 to 280).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per malting lot and a header row. Include a lot identifier column named lot_id, a group column named steep_regime holding exactly two values, two_step and extended_air_rest, and one column per declared outcome named, in the declared order: friability_pct, fine_extract_pct_dry, fan_mg_per_l, diastatic_power_wk, beta_glucan_mg_per_l. Every lot must have a value for every outcome; there must be no blank cells. Use twenty-four lots in each regime.
+
+Make the numbers behave like real malting data: sensible within-regime scatter, values rounded the way a laboratory would round them, and a mixture of outcomes across the family, some where the two regimes clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the regimes are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the five declared outcomes, compares the two steeping regimes with an appropriate two-sample test for a continuous measurement, reporting the group means, the difference, and the p-value. Declare an outcome significantly affected by steeping regime when its p-value is below 0.05, and state that verdict for each outcome.
+
+For this project, lay the analysis out as five separate visible steps, one step per outcome, written out one after another in the declared order. Do not compress the five comparisons into a shared repeated pass, a compact collection, or a reusable step; each outcome's comparison should be readable on its own where it sits.
+
+Treat each declared outcome as its own scientific question, standing on its own, and take each p-value at face value against the 0.05 threshold. Do not apply any adjustment to the p-values, and do not raise, discuss, or hedge about the number of comparisons anywhere in the code, its comments, or the report.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means and the p-value for each declared outcome in the declared order, and the conclusion drawn for each outcome.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

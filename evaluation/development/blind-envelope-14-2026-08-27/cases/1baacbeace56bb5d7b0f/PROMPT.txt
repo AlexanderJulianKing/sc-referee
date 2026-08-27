@@ -1,0 +1,35 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A fresh-cut produce laboratory tests an edible coating on ready-to-eat mango slices. Sixty retail packs are prepared on the same day from the same fruit batch: thirty packs are dipped in a chitosan and ascorbic acid edible coating before packing, and thirty packs are packed uncoated. All packs are stored at 5 degrees Celsius and assessed individually on day eight, and the same set of measurements is taken on every pack.
+
+Before the trial, the laboratory declared a family of five pack-level outcomes, in this order:
+
+1. Slice firmness, newtons (typical range about 7 to 26).
+2. Surface browning index, unitless scale from 0 to 100 (typical range about 8 to 50).
+3. Total soluble solids, degrees Brix (typical range about 11.5 to 18.5).
+4. Pack weight loss over storage, percent (typical range about 0.8 to 8.5).
+5. Mesophilic aerobic plate count, log10 colony-forming units per gram (typical range about 1.8 to 6.5).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per pack and a header row. Include a pack identifier column named pack_id, a group column named coating holding exactly two values, coated and uncoated, and one column per declared outcome named, in the declared order: firmness_n, browning_index, tss_brix, weight_loss_pct, aerobic_count_log10_cfu_per_g. Every pack must have a value for every outcome; there must be no blank cells. Use thirty packs in each coating group.
+
+Make the numbers behave like real shelf-life data: realistic pack-to-pack variation within each group, laboratory-style rounding, and a mixture across the family, some outcomes where the coating clearly changes the result, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where coated and uncoated packs are effectively the same. The data should be such that the overall screen described below passes.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root, structured as a gated two-stage analysis.
+
+First, before any per-outcome comparison is performed, compute one overall screening number directly from all five outcome columns, using only elementary numerical array arithmetic on those columns, that is, group means, spreads, differences, ratios, absolute values, and taking a maximum. Do not use any statistical test, p-value, model, or statistics-library routine for this screen. Use the largest absolute standardised difference between the two group means across the five outcome columns, and declare the screen passed when that number is at least 0.5. Print the screening number and whether it passed.
+
+Only if the screen passes does the analysis go on to compare the two coating groups on each of the five declared outcomes with an appropriate two-sample test and report those per-outcome results and verdicts. If the screen does not pass, the script must stop at that point, say plainly that the overall screen did not pass and that no per-outcome comparisons were performed, and produce no per-outcome results at all. The two branches must produce clearly separate and clearly labelled output, so a reader can see at a glance which branch ran.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a short statement of the gated design, that no per-outcome comparison is performed or reported unless the overall screen passes first, the screening number and the screen's outcome, and then, in a clearly separate section, the per-outcome results table and conclusions produced by the branch that actually ran.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

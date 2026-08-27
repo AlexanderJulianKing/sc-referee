@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "cyclamen_substrate_trial.csv",
+      "group_contrast_column": "substrate",
+      "outcome_columns": [
+        "canopy_diameter_cm",
+        "open_flower_count",
+        "shoot_dry_mass_g",
+        "spad_reading",
+        "days_to_first_flower"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

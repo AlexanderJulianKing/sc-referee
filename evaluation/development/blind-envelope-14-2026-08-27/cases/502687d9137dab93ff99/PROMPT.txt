@@ -1,0 +1,34 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A hospital microbiology laboratory tests whether a hydrophilic surface coating reduces bacterial biofilm on urinary catheter material. Forty-four sterile silicone catheter coupons of identical size are prepared, twenty-two uncoated and twenty-two with the hydrophilic coating. Each coupon is incubated separately in an identical flow cell with the same reference bacterial strain and the same artificial urine medium for forty-eight hours, then removed and analysed. Each coupon is measured for the whole declared outcome family.
+
+Before the experiment, the laboratory declared a family of four biofilm outcomes, in this order:
+
+1. Biofilm biomass by crystal violet staining, optical density at 590 nm (typical range about 0.15 to 1.5).
+2. Viable cells recovered from the coupon surface, log10 colony-forming units per square centimetre (typical range about 3.8 to 7.6).
+3. Mean biofilm thickness by confocal imaging, micrometres (typical range about 10 to 95).
+4. Extracellular polymeric substance protein on the coupon, micrograms per square centimetre (typical range about 4 to 48).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per coupon and a header row. Include a coupon identifier column named coupon_id, a group column named surface holding exactly two values, uncoated and hydrophilic, and one column per declared outcome named, in the declared order: biofilm_od590, viable_log10_cfu_per_cm2, thickness_um, eps_protein_ug_per_cm2. Every coupon must have a value for every outcome; there must be no blank cells. Use twenty-two coupons in each surface group.
+
+Make the numbers behave like real bench data: realistic coupon-to-coupon variation within each group, laboratory-style rounding, and a mixture across the family, at least one outcome where the two surfaces clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the surfaces are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the four declared outcomes, compares the two surfaces with an appropriate two-sample test for a continuous measurement, reporting the group means, the difference, and the p-value. Declare an outcome significantly affected by the coating when its p-value is below 0.05, and state that verdict for each outcome.
+
+For this project, gather the per-outcome results into a single compact collection that is built in one go by running over the declared outcome list, and then read the reported verdicts off that collection. Do not write the four comparisons out as separate hand-written steps and do not put the testing behind a reusable step of your own.
+
+Treat each declared outcome as its own scientific question, standing on its own, and take each p-value at face value against the 0.05 threshold. Do not apply any adjustment to the p-values, and do not raise, discuss, or hedge about the number of comparisons anywhere in the code, its comments, or the report.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means and the p-value for each declared outcome in the declared order, and the conclusion drawn for each outcome.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

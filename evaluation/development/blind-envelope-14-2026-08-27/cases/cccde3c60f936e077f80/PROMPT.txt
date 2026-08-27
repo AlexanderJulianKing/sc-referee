@@ -1,0 +1,37 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A wildlife management agency compares the condition of roe deer yearlings taken in two neighbouring hunting districts during the same autumn cull. Ninety-six yearling roe deer are sampled, forty-eight from the northern district and forty-eight from the southern district. Each animal is weighed and sampled once at the game larder, and the same set of measurements is taken on every animal.
+
+Before the season, the agency declared a family of seven condition outcomes, in this order:
+
+1. Dressed carcass mass, kg (typical range about 11 to 21).
+2. Kidney fat index, unitless ratio (typical range about 0.2 to 2.6).
+3. Back fat depth at the rump, mm (typical range about 0 to 13).
+4. Lower jaw length, mm (typical range about 138 to 162).
+5. Blood haemoglobin, g per dL (typical range about 10.5 to 17.5).
+6. Serum urea, mmol per litre (typical range about 2.8 to 9.5).
+7. Faecal strongyle egg count, eggs per gram (typical range about 0 to 900, right-skewed with many low values).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per deer and a header row. Include an animal identifier column named deer_id, a group column named district holding exactly two values, north and south, and one column per declared outcome named, in the declared order: carcass_mass_kg, kidney_fat_index, back_fat_mm, jaw_length_mm, haemoglobin_g_per_dl, serum_urea_mmol_per_l, faecal_egg_count_epg. Every animal must have a value for every outcome; there must be no blank cells. Use forty-eight animals in each district.
+
+Make the numbers behave like real field data: realistic animal-to-animal variation within each district, field-style rounding, a right-skewed egg count with whole numbers, and a mixture across the family, some outcomes where the districts clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the districts are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the seven declared outcomes, compares the two districts with an appropriate two-sample test, reporting the group means, the difference, and the p-value. Declare an outcome significantly different between districts when its p-value is below 0.05, and state that verdict for each outcome.
+
+For this project, delegate the per-outcome testing to one small reusable step defined inside the same file, which takes the data and the declared outcome list, carries out the comparisons, and returns the collected results. The main part of the script then uses those returned results to print the table and state the verdicts. Keep everything in the one file.
+
+Treat each declared outcome as its own scientific question, standing on its own, and take each p-value at face value against the 0.05 threshold. Do not apply any adjustment to the p-values, and do not raise, discuss, or hedge about the number of comparisons anywhere in the code, its comments, or the report.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means and the p-value for each declared outcome in the declared order, and the conclusion drawn for each outcome, along with a short management interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

@@ -1,0 +1,6 @@
+outcome,adjusted_p_value
+parasite_clearance_h,0.0101
+fever_clearance_h,0.9884
+haemoglobin_day28_g_per_dl,0.0837
+parasite_density_day2_per_ul,0.9884
+gametocyte_carriage_days,0.9884

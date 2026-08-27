@@ -1,0 +1,32 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A regional environmental health service compares two radon mitigation approaches in single-family houses built on the same permeable gravel subsoil. Fifty-six houses with confirmed elevated indoor radon are fitted with one of two systems: twenty-eight receive an active sub-slab depressurisation fan system, and twenty-eight receive an enhanced passive stack with sealed floor penetrations. Twelve months after installation, each house is surveyed once over a ninety-day measurement period, and the same set of measurements is taken in every house.
+
+Before installation, the service declared a family of four house-level outcomes, in this order:
+
+1. Living room radon concentration, becquerels per cubic metre (typical range about 25 to 320).
+2. Main bedroom radon concentration, becquerels per cubic metre (typical range about 20 to 290).
+3. Whole-house air change rate, air changes per hour (typical range about 0.15 to 1.3).
+4. Mean indoor relative humidity over the measurement period, percent (typical range about 33 to 62).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per house and a header row. Include a house identifier column named house_id, a group column named mitigation holding exactly two values, active_subslab and passive_stack, and one column per declared outcome named, in the declared order: living_room_radon_bq_per_m3, bedroom_radon_bq_per_m3, air_change_rate_ach, indoor_rh_pct. Every house must have a value for every outcome; there must be no blank cells. Use twenty-eight houses in each mitigation group.
+
+Make the numbers behave like real survey data: realistic house-to-house variation within each group, right-skewed radon values, survey-style rounding, and a mixture across the family, some outcomes where the two systems clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the systems are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the four declared outcomes, compares the two mitigation groups with an appropriate two-sample test, obtaining the group means, the difference, and the raw p-value.
+
+Control the family error properly. Collect the raw p-values for all four declared outcomes and pass the complete set, in one go, to the standard multiple-comparisons adjustment routine of a widely used Python statistics library. Do not name or select any particular correction method and do not pass a method choice: accept whatever adjustment that routine applies by default when none is specified. Every significance verdict in the script and the report must come only from the outputs of that routine, and every declared outcome must be in the set that was passed to it.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means, the raw p-value, and the adjusted p-value for each declared outcome in the declared order, a plain statement that the whole declared family of four outcomes was adjusted together for multiple comparisons, the conclusion drawn for each outcome from the adjusted values, and a short interpretation for the mitigation programme.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.
