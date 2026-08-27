@@ -1,7 +1,6 @@
 # Multiple-testing code slice 3.0 record-model design — 2026-08-28
 
-**Status:** commissioned build-ready design, Revision 1a; implementation is not authorized by this
-document until adversarial design review and the ADR-0079 amendment in section 2.4 are accepted  
+**Status:** approved-for-build design, Revision 1b
 **Target:** detector/check/adapter `3.0.0`, development lane only  
 **Predecessor:** multiple-testing code slice `2.3.0`  
 **Authority:** frozen scientific-requirement contract profile `1.2.0`; no prose-derived authority  
@@ -55,6 +54,18 @@ pins such as E10 N7. They close the design-evidence blocker and are normative bu
 builder must still execute the public adapter gates and may not replace one with a different
 conservative reason merely because the case remains a noncandidate; disagreement is a section-17
 stop.
+
+Prototype-to-final fidelity is asymmetric. A shadow model may be **looser** than the final
+implementation: in particular, the prototype `_record_boundary_reason` can admit a store after a
+p/flag/table consumer when its positions are resolvable and non-overlapping, while section 6.4
+requires the final implementation to refuse **any** store after a p/flag/table consumer. The
+none-flip result transfers soundly from the looser shadow to a stricter final admission, because
+tightening an admission cannot create a candidate that the looser model did not create; positive
+movements do not transfer. The final strict implementation therefore must re-demonstrate the four
+record-store-dependent candidate movements E12 P5, E14 P2, E14 P4, and E14 P5 before section 12 is
+satisfied, with the per-position record/API evidence required there. A final abstention on any
+pinned candidate is a section-17 stop just as a final candidate on a pinned noncandidate is: the
+builder may not tune either the implementation or the oracle toward the shadow result.
 
 Terms used below:
 
@@ -1493,7 +1504,9 @@ Build acceptance requires, after the final file change:
    22 historical FA fixtures unchanged;
 6. the 131-execution none-flip gate;
 7. all 75 opened rows and exact ten-row movement set plus the 41-row trigger census;
-8. E14 P4/P5 full ladders reaching the terminal candidate states, not merely a deeper wall;
+8. the final strict implementation re-demonstrating record-store-dependent candidates E12 P5,
+   E14 P2, E14 P4, and E14 P5, including E14 P4/P5 full ladders reaching the terminal candidate
+   states rather than merely a deeper wall;
 9. all 50 corpus rows equal and `0/25` correct / `19/25` misstep;
 10. frozen 2.3 component/replay anchors and every prior oracle green;
 11. record/dispatch/subset/DataFrame idempotence and total-consumer proofs;
@@ -1551,3 +1564,14 @@ Revision 1a:
   documenting the `spec-30` analyzer/adapter split; and
 - records executed none-flip counts `0/25` corpus-correct, `0/45` opened negatives, and `0/39` new
   correct fixtures, with retro recall unchanged at `5/6, 6/6, 6/6, 4/6, 4/6`.
+
+### Revision 1b — prototype/final fidelity asymmetry
+
+Revision 1b folds MJ-3 before implementation:
+
+- records that the executable shadow models may be looser than the final implementation, naming
+  the prototype store-after-consumer gap against section 6.4's unconditional refusal;
+- states why the looser model's none-flip results transfer to a stricter implementation while its
+  positive movements do not; and
+- makes final strict re-demonstration of E12 P5, E14 P2, E14 P4, and E14 P5 a two-direction
+  section-17 stop gate rather than accepting a conservative reason substitution.

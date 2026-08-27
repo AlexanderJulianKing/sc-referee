@@ -169,6 +169,37 @@ MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST = semantic_digest(
     }
 )
 
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_ID = (
+    "method-conflict-finding:code-csv-complete-family-correction-requirement-conflict-v2"
+)
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_VERSION = "2.0.0"
+_MULTIPLE_TESTING_V2_SUMMARY_TEMPLATE = (
+    "The frozen requirement for `{CSV_PATH}` names the ordered outcome columns "
+    "{OUTCOME_COLUMNS} under group column `{GROUP_COLUMN}` as one complete-correction family "
+    "with {AUTHORIZED_COUNT} members. In `analysis.py`, static analysis maps every named outcome "
+    "to exactly one registered two-group test call, for {PERFORMED_COUNT} calls in all. For "
+    "{UNCORRECTED_COUNT} registered family p-value results, p-derived conclusions reach a "
+    "supported code sink without entering a recognized correction anywhere in the analyzed "
+    "source; {CORRECTED_COUNT} registered family p-value results enter a recognized correction. "
+    "This conflicts with the frozen complete-family-correction requirement."
+)
+_MULTIPLE_TESTING_V2_SLOT_SCHEMA = {
+    key: value for key, value in _MULTIPLE_TESTING_SLOT_SCHEMA.items() if key != "TEST_API"
+}
+MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_DIGEST = semantic_digest(
+    {
+        "profile_id": MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_ID,
+        "profile_version": MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_VERSION,
+        "title": _MULTIPLE_TESTING_TITLE,
+        "summary_template": _MULTIPLE_TESTING_V2_SUMMARY_TEMPLATE,
+        "slot_schema": _MULTIPLE_TESTING_V2_SLOT_SCHEMA,
+        "issue_class": "x-review-scoped-analysis-method-requirement-mismatch",
+        "severity_rationale": _MULTIPLE_TESTING_SEVERITY_RATIONALE,
+        "non_inferences": list(_MULTIPLE_TESTING_NON_INFERENCES),
+        "next_action": _MULTIPLE_TESTING_NEXT_ACTION,
+    }
+)
+
 
 def _is_registered_code_dependence_binding(binding: MethodConflictBinding) -> bool:
     from sc_referee.scientific_checks.profiles import scientific_check_release_registry
@@ -221,9 +252,9 @@ def _is_registered_code_multiple_testing_binding(binding: MethodConflictBinding)
         len(matches) == 1
         and matches[0].binding_digest == binding.binding_digest
         and binding.check_id == _MULTIPLE_TESTING_CHECK_ID
-        and binding.check_version == "2.3.0"
+        and binding.check_version == "3.0.0"
         and binding.detector_id == "detector:bounded-code-csv-multiple-testing-conflict"
-        and binding.detector_version == "2.3.0"
+        and binding.detector_version == "3.0.0"
         and binding.required_evidence_planes == ("static_source",)
         and not binding.production_finding_permitted
     )
@@ -490,7 +521,7 @@ def draft_method_conflict_finding(
                 "multiple-testing result lacks one exact contract-bound code fact"
             )
         draft["title"] = _MULTIPLE_TESTING_TITLE
-        draft["summary"] = _multiple_testing_summary(facts)
+        draft["summary"] = _multiple_testing_v2_summary(facts)
         draft["publication_materiality"] = {
             "state": "unassessed",
             "reason": "no_selected_publication_surface",
@@ -504,10 +535,10 @@ def draft_method_conflict_finding(
         draft["coverage_limitations"] = list(_MULTIPLE_TESTING_NON_INFERENCES)
         draft["next_action"] = _MULTIPLE_TESTING_NEXT_ACTION
         draft["extensions"]["x-finding-wording-profile-id"] = (
-            MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID
+            MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_ID
         )
         draft["extensions"]["x-finding-wording-profile-digest"] = (
-            MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST
+            MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_DIGEST
         )
         draft["extensions"]["x-code-csv-multiple-testing-evidence-digest"] = facts["fact_digest"]
     return draft
@@ -803,7 +834,8 @@ def _multiple_testing_code_facts(
         "performed_count",
         "corrected_count",
         "uncorrected_count",
-        "registered_test_api",
+        "registered_test_apis_by_position",
+        "registered_test_api_set",
         "correction_classification",
         "corrected_positions",
         "conclusion_positions",
@@ -819,7 +851,7 @@ def _multiple_testing_code_facts(
     fact_without_digest = dict(fact)
     fact_digest = fact_without_digest.pop("fact_digest", None)
     if (
-        fact.get("profile") != "code_csv_multiple_testing_evidence_v1"
+        fact.get("profile") != "code_csv_multiple_testing_evidence_v2"
         or not isinstance(fact_digest, str)
         or semantic_digest(fact_without_digest) != fact_digest
         or not isinstance(evidence_digest, str)
@@ -898,8 +930,14 @@ def _valid_multiple_testing_fact_shape(fact: Mapping[str, Any]) -> bool:
         or outcomes != list(dict.fromkeys(outcomes))
         or group in outcomes
         or any(not isinstance(value, str) or _SHA256.fullmatch(value) is None for value in digests)
-        or fact.get("registered_test_api")
-        not in {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"}
+        or not isinstance(fact.get("registered_test_apis_by_position"), list)
+        or len(fact["registered_test_apis_by_position"]) != len(outcomes)
+        or any(
+            item not in {"scipy.stats.ttest_ind", "scipy.stats.mannwhitneyu"}
+            for item in fact["registered_test_apis_by_position"]
+        )
+        or fact.get("registered_test_api_set")
+        != sorted(set(fact["registered_test_apis_by_position"]))
         or fact.get("correction_classification") not in {"none", "strict_subset"}
     ):
         return False
@@ -1392,6 +1430,20 @@ def _multiple_testing_summary(facts: Mapping[str, Any]) -> str:
         CORRECTED_COUNT=int(facts["corrected_count"]),
         UNCORRECTED_COUNT=int(facts["uncorrected_count"]),
         TEST_API=_json_slot(str(facts["registered_test_api"])),
+    )
+
+
+def _multiple_testing_v2_summary(facts: Mapping[str, Any]) -> str:
+    return _MULTIPLE_TESTING_V2_SUMMARY_TEMPLATE.format(
+        CSV_PATH=_json_slot(str(facts["material_input_path"])),
+        GROUP_COLUMN=_json_slot(str(facts["group_contrast_column"])),
+        OUTCOME_COLUMNS=json.dumps(
+            facts["outcome_columns"], ensure_ascii=True, separators=(",", ":")
+        ),
+        AUTHORIZED_COUNT=int(facts["authorized_count"]),
+        PERFORMED_COUNT=int(facts["performed_count"]),
+        CORRECTED_COUNT=int(facts["corrected_count"]),
+        UNCORRECTED_COUNT=int(facts["uncorrected_count"]),
     )
 
 

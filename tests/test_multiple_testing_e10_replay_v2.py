@@ -177,7 +177,7 @@ def _historical_v1_1_registry(lock: dict[str, Any]) -> ScientificCheckRegistry:
         (
             Path("evaluation/development/blind-envelope-11-2026-08-25"),
             "114782f595d9c24b923d",
-            "unresolved-pvalue-consumer",
+            "candidate:strict_subset",
         ),
         (
             Path("evaluation/development/blind-envelope-11-2026-08-25"),
@@ -347,14 +347,14 @@ def test_envelope_10_adapter_oracle_and_replay(
 @pytest.mark.parametrize(
     ("case_id", "expected"),
     [
-        ("f9ce4de5e21d9015ecd9", "unresolved-pvalue-consumer"),
+        ("f9ce4de5e21d9015ecd9", "candidate:none"),
         ("e07a6f2a895079b53b8c", "candidate:none"),
         ("e28a9537b07c74d21838", "candidate:none"),
         ("0ec89f70a9776d1a1931", "candidate:none"),
-        ("54667dd7c39067c8c2c8", "pvalue-family-collection-unresolved"),
+        ("54667dd7c39067c8c2c8", "candidate:strict_subset"),
         ("68d1a6f5b1ab70f2650a", "candidate:strict_subset"),
-        ("45c4b9a19d0a630f1cb0", "unresolved-pvalue-consumer"),
-        ("f256af2f5c5d98f37e65", "unresolved-pvalue-consumer"),
+        ("45c4b9a19d0a630f1cb0", "covered:complete"),
+        ("f256af2f5c5d98f37e65", "unresolved-decision-threshold"),
         ("678e94e79226936fd647", "unresolved-manual-correction-present"),
         ("c37c0fa6e462a22cb6d5", "authorized-family-test-census-incomplete"),
         ("6108263527580cd01608", "test-battery-cardinality-unresolved"),

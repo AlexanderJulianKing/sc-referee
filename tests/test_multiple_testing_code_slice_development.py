@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from copy import deepcopy
 from dataclasses import asdict
 from pathlib import Path
 from typing import Any
@@ -15,8 +16,9 @@ from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
 from sc_referee.detectors.method_conflict_finding import (
     CODE_CSV_DEPENDENCE_FINDING_PROFILE_DIGEST,
     CODE_CSV_DEPENDENCE_FINDING_PROFILE_V2_DIGEST,
-    MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST,
-    MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+    MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_DIGEST,
+    MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_ID,
+    _multiple_testing_code_facts,
     draft_method_conflict_finding,
 )
 from sc_referee.detectors.method_conflict_grant_pins import GRANT_PINS
@@ -140,7 +142,13 @@ def test_development_candidate_replays_without_finding(schema_root: Path, tmp_pa
     assert fact["authorized_count"] == fact["performed_count"] == 3
     assert fact["corrected_count"] == 0
     assert fact["uncorrected_count"] == 3
-    assert fact["registered_test_api"] == "scipy.stats.ttest_ind"
+    assert fact["profile"] == "code_csv_multiple_testing_evidence_v2"
+    assert fact["registered_test_apis_by_position"] == [
+        "scipy.stats.ttest_ind",
+        "scipy.stats.ttest_ind",
+        "scipy.stats.ttest_ind",
+    ]
+    assert fact["registered_test_api_set"] == ["scipy.stats.ttest_ind"]
     assert fact["conclusion_positions"] == [0, 1, 2]
 
     replayed = replay(audit / "semantic.lock.json", tmp_path / "replay", schema_root)
@@ -192,12 +200,16 @@ def test_evaluation_candidate_uses_only_versioned_multiple_testing_wording(
         "Analysis code contradicts the frozen complete-family correction requirement"
     )
     assert draft["extensions"]["x-finding-wording-profile-id"] == (
-        MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_ID
     )
     assert draft["extensions"]["x-finding-wording-profile-digest"] == (
-        MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_V2_DIGEST
     )
-    assert "3 matching `scipy.stats.ttest_ind` calls" in draft["summary"]
+    assert (
+        "maps every named outcome to exactly one registered two-group test call" in draft["summary"]
+    )
+    assert "3 calls in all" in draft["summary"]
+    assert "scipy.stats.ttest_ind" not in draft["summary"]
     assert (
         "without entering a recognized correction anywhere in the analyzed source"
         in draft["summary"]
@@ -211,6 +223,54 @@ def test_evaluation_candidate_uses_only_versioned_multiple_testing_wording(
         "The detector does not establish runtime p-values, test assumptions, effect sizes, inflated error rates, statistical invalidity, selection, publication use, interpretation, or reliance.",
         "The detector does not establish that the named outcomes should scientifically form one family.",
     ]
+
+
+def test_evidence_v2_rejects_each_inconsistent_api_position_and_count_shape(
+    schema_root: Path, tmp_path: Path
+) -> None:
+    _, lock, _ = _run_case(tmp_path, schema_root)
+    evaluation = next(
+        item
+        for item in evaluate_registered_method_conflicts(lock)
+        if item.binding.binding_id == BINDING_ID
+    )
+    mutations = (
+        lambda fact: fact.__setitem__(
+            "registered_test_apis_by_position",
+            fact["registered_test_apis_by_position"][:-1],
+        ),
+        lambda fact: fact.__setitem__(
+            "registered_test_api_set",
+            ["scipy.stats.mannwhitneyu", "scipy.stats.ttest_ind"],
+        ),
+        lambda fact: fact["registered_test_apis_by_position"].__setitem__(0, "custom.test"),
+        lambda fact: fact.__setitem__("performed_count", 2),
+        lambda fact: fact.__setitem__("conclusion_positions", [1, 0, 2]),
+        lambda fact: fact.update(
+            {
+                "correction_classification": "strict_subset",
+                "corrected_count": 2,
+                "uncorrected_count": 1,
+                "corrected_positions": [0, 0],
+            }
+        ),
+        lambda fact: fact.__setitem__("corrected_count", 1),
+    )
+    for mutate in mutations:
+        packet = deepcopy(evaluation.work_packet)
+        assertion = next(
+            item
+            for item in packet["semantic_assertions"]
+            if "x-code-csv-multiple-testing-evidence" in item["extensions"]
+        )
+        extensions = assertion["extensions"]
+        fact = extensions["x-code-csv-multiple-testing-evidence"]
+        mutate(fact)
+        fact_without_digest = dict(fact)
+        fact_without_digest.pop("fact_digest")
+        fact["fact_digest"] = semantic_digest(fact_without_digest)
+        extensions["x-code-csv-multiple-testing-evidence-digest"] = semantic_digest(fact)
+        assert _multiple_testing_code_facts(packet) is None
 
 
 def _contains_value(value: object, needle: str) -> bool:

@@ -9,12 +9,11 @@ from typing import Any, cast
 
 import pytest
 
-import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2_3 as adapter_module
-import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2_3 as dataflow
+import sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3 as adapter_module
+import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3 as dataflow
 from sc_referee.core.ids import canonical_json, sha256_digest
-from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v2_3 import _CLOSED_REASONS
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3 import _CLOSED_REASONS
 from sc_referee.scientific_checks.core import (
-    CanonicalOperand,
     FrozenBaseRecord,
     FrozenInspectionContext,
     InspectionDocument,
@@ -98,7 +97,7 @@ def _run(source: str) -> dataflow.MultipleTestingDataflowResult:
         ),
         (
             _source().replace("r2 = stats.ttest_ind", "r2 = stats.mannwhitneyu"),
-            "mixed-test-api-family",
+            "family-test-api-dispatch-unresolved",
         ),
         (
             _source().replace(
@@ -262,18 +261,9 @@ def _adapter() -> adapter_module.CodeCsvMultipleTestingAdapter:
         for item in registry.modules_for_lane("development")
         if item.manifest.check_id == _CHECK_ID
     )
-    return adapter_module.CodeCsvMultipleTestingAdapter(
-        check_manifest=module.manifest,
-        adapter_manifest=module.adapter_manifests[0],
-        complete_operand=CanonicalOperand.scalar(adapter_module.COMPLETE_FAMILY_CORRECTION_OPERAND),
-        none_operand=CanonicalOperand.scalar(
-            adapter_module.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND
-        ),
-        strict_subset_operand=CanonicalOperand.scalar(
-            adapter_module.STRICT_SUBSET_FAMILY_CORRECTION_OPERAND
-        ),
-        role_bindings=adapter_module.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
-    )
+    adapter = module.adapters[0]
+    assert isinstance(adapter, adapter_module.CodeCsvMultipleTestingAdapter)
+    return adapter
 
 
 def test_verified_authority_unavailable_is_the_first_adapter_reason() -> None:
@@ -313,7 +303,7 @@ def test_x4_fixture_matrix_equals_the_closed_helper_registry() -> None:
 
 def test_fixture_emissions_plus_documented_unreachable_annex_equal_closed_reasons() -> None:
     observed: set[str] = set()
-    for path in Path("tests").glob("*multiple_testing*v2_3.py"):
+    for path in Path("tests").glob("*multiple_testing*v3.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         observed.update(
             str(node.value)
