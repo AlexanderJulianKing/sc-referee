@@ -1317,6 +1317,48 @@ def main() -> None:
         "docs/implementation/MULTITEST-CODE-SLICE-2.2-DESIGN-2026-08-26.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v2_2)
+    multiple_testing_v2_3 = deepcopy(multiple_testing_v2_2)
+    multiple_testing_v2_3["detector_version"] = "2.3.0"
+    multiple_testing_v2_3["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.3.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_3["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_3.py"
+    )
+    multiple_testing_resource_v2_3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_3.py"
+    )
+    multiple_testing_v2_3["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_3:"
+            "BoundedCodeCsvMultipleTestingConflictV2_3Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_3.read_bytes()),
+    }
+    multiple_testing_v2_3["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_a_refusal_matrix"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_b_adversary_matrix"
+        ],
+        "positive": ["tests/test_multiple_testing_e13_replay_v2_3.py::test_e13_adapter_oracle"],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_a_refusal_matrix"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_3.py::test_open_corpus_is_byte_identical_to_v2_1"
+        ],
+    }
+    multiple_testing_v2_3["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.3-DESIGN-2026-08-27.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_3)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

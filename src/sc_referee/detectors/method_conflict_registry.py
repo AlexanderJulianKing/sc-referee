@@ -41,6 +41,9 @@ from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_1 import
 from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_2 import (
     BoundedCodeCsvMultipleTestingConflictV2_2Detector,
 )
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_3 import (
+    BoundedCodeCsvMultipleTestingConflictV2_3Detector,
+)
 from sc_referee.scientific_checks.core import (
     EvidencePlane,
     MethodConflictBinding,
@@ -194,6 +197,7 @@ def _detector_class(
         BoundedCodeCsvMultipleTestingConflictV2Detector,
         BoundedCodeCsvMultipleTestingConflictV2_1Detector,
         BoundedCodeCsvMultipleTestingConflictV2_2Detector,
+        BoundedCodeCsvMultipleTestingConflictV2_3Detector,
     )
     matches = [
         item
