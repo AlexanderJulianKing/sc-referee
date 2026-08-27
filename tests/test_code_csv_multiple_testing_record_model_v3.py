@@ -45,6 +45,110 @@ _ADAPTER = cast(
     _ADAPTER_HARNESS["adapter_envelope"],
 )
 _CASES = {case.key: case for case in _ALL_CASES()}
+_AUDIT_FIX_R1_ORACLE_PATH = Path(
+    "evaluation/development/multitest-code-slice-v3_0/audit-fix-r1-oracle/EXPECTED_ROWS.json"
+)
+_AUDIT_FIX_R1_ORACLE = json.loads(_AUDIT_FIX_R1_ORACLE_PATH.read_text(encoding="utf-8"))
+_AUDIT_FIX_R1_EXPECTED_ROWS = cast(list[dict[str, Any]], _AUDIT_FIX_R1_ORACLE["rows"])
+_AUDIT_FIX_R1_SOURCES = (
+    {
+        "name": "correct-record-p-field-hand-bonferroni-augassign",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["p_value"] *= 7\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-alias-field-hand-bonferroni",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": "        alias = result\n"
+        '        alias["p_value"] = min(1.0, result["p_value"] * 7)\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-unresolved-in-place-call",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": "        adjust_in_place(result)\n"
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-update-receiver-call",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result.update({"p_value": min(1.0, result["p_value"] * 7)})\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-pop-receiver-call",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result.pop("difference")\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-p-field-augassign",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["p_value"] += 0.5\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-field-delete",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        del result["difference"]\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-store-after-p-consumer",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        _seen = result["p_value"]\n'
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-store-after-append-consumer",
+        "anchor": "        results.append((label, result))\n",
+        "replacement": '        results.append((label, result))\n        result["extra"] = 1\n',
+    },
+    {
+        "name": "correct-record-two-position-field-merge",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = (\n'
+        '            (results[0][1]["p_value"] if results else result["p_value"]) < ALPHA\n'
+        "        )\n",
+    },
+    {
+        "name": "correct-record-raw-adjusted-decision-merge",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = (\n'
+        '            (result["p_value"] < ALPHA)\n'
+        "            if column == OUTCOMES[0][0]\n"
+        '            else (min(1.0, result["p_value"] * 7) < ALPHA)\n'
+        "        )\n",
+    },
+    {
+        "name": "correct-record-incompatible-decision-polarity-merge",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = (\n'
+        '            (result["p_value"] < ALPHA)\n'
+        "            if column == OUTCOMES[0][0]\n"
+        '            else (result["p_value"] > ALPHA)\n'
+        "        )\n",
+    },
+    {
+        "name": "correct-record-unresolved-decision-merge",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = (\n'
+        '            (result["p_value"] < ALPHA)\n'
+        "            if unresolved_choice(column)\n"
+        '            else unresolved_decision(result["p_value"])\n'
+        "        )\n",
+    },
+    {
+        "name": "correct-record-two-threshold-decision-merge",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = (\n'
+        '            (result["p_value"] < ALPHA)\n'
+        "            if column == OUTCOMES[0][0]\n"
+        '            else (result["p_value"] < 0.01)\n'
+        "        )\n",
+    },
+)
 
 
 class _PresentationTextMutation(ast.NodeTransformer):
@@ -75,6 +179,16 @@ def _run(case_key: str, source: bytes) -> list[object]:
         list[object],
         _CLASSIFY(analyze_code_csv_multiple_testing_dataflow(content, **values)).as_json(),
     )
+
+
+def _audit_fix_r1_source(fixture_name: str) -> tuple[str, bytes]:
+    row = next(item for item in _AUDIT_FIX_R1_SOURCES if item["name"] == fixture_name)
+    base = next(
+        item for item in _RESULTS["fixtures"] if item["name"] == "positive-record-dict-flag-fold"
+    )
+    source = (_ROOT / base["source_path"]).read_text(encoding="utf-8")
+    assert source.count(row["anchor"]) == 1, fixture_name
+    return cast(str, base["case_key"]), source.replace(row["anchor"], row["replacement"]).encode()
 
 
 def _adapter_case(case: Any, source: bytes) -> dict[str, Any]:
@@ -196,6 +310,70 @@ def test_store_after_same_p_field_consumer_is_refused_even_without_position_over
         "abstain",
         "record-family-mutation-unresolved",
     ]
+
+
+@pytest.mark.parametrize(
+    "row",
+    _AUDIT_FIX_R1_EXPECTED_ROWS,
+    ids=lambda row: row["fixture_name"],
+)
+def test_all_14_audit_fix_round_1_record_refusals_execute(row: dict[str, Any]) -> None:
+    case_key, source = _audit_fix_r1_source(row["fixture_name"])
+    assert f"sha256:{hashlib.sha256(source).hexdigest()}" == row["fixture_source_sha256"]
+    assert _run(case_key, source) == [row["expected_outcome"], row["expected_reason"]]
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r1_adapter_rows() -> dict[str, dict[str, Any]]:
+    observed: dict[str, dict[str, Any]] = {}
+    for row in _AUDIT_FIX_R1_EXPECTED_ROWS:
+        case_key, source = _audit_fix_r1_source(row["fixture_name"])
+        assert f"sha256:{hashlib.sha256(source).hexdigest()}" == row["fixture_source_sha256"]
+        observed[row["fixture_name"]] = _adapter_case(_CASES[case_key], source)
+    return observed
+
+
+def test_all_14_audit_fix_round_1_refusals_execute_through_real_adapter(
+    audit_fix_r1_adapter_rows: dict[str, dict[str, Any]],
+) -> None:
+    assert len(_AUDIT_FIX_R1_EXPECTED_ROWS) == 14
+    for row in _AUDIT_FIX_R1_EXPECTED_ROWS:
+        actual = audit_fix_r1_adapter_rows[row["fixture_name"]]
+        assert actual["outcome"] == [
+            row["expected_outcome"],
+            row["expected_reason"],
+        ], row["fixture_name"]
+        assert actual["candidate_records"] == 0, row["fixture_name"]
+        assert actual["finding_count"] == 0, row["fixture_name"]
+
+
+def test_fixture_matrix_names_all_62_fixtures_and_recounts_correct_analyses() -> None:
+    matrix = json.loads(
+        Path("evaluation/development/multitest-code-slice-v3/FIXTURE_MATRIX.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    old_names = [row["name"] for row in _RESULTS["fixtures"]]
+    new_names = [row["fixture_name"] for row in _AUDIT_FIX_R1_EXPECTED_ROWS]
+    source_names = [row["name"] for row in _AUDIT_FIX_R1_SOURCES]
+    assert source_names == new_names
+    assert {row["expected_outcome"] for row in _AUDIT_FIX_R1_EXPECTED_ROWS} == {"abstain"}
+    for row in _AUDIT_FIX_R1_EXPECTED_ROWS:
+        derivation = row["derivation"]
+        assert derivation["design_clause"].startswith(("§4.1", "§6.4"))
+        assert derivation["design_text"]
+        assert derivation["audit_probe_shape"]
+    assert matrix["fixture_names"] == old_names + new_names
+    assert matrix["audit_fix_round_1_expected_rows_source"] == {
+        "path": str(_AUDIT_FIX_R1_ORACLE_PATH),
+        "sha256": f"sha256:{hashlib.sha256(_AUDIT_FIX_R1_ORACLE_PATH.read_bytes()).hexdigest()}",
+    }
+    assert _AUDIT_FIX_R1_ORACLE["provenance"]["implementation_output_used"] is False
+    assert _AUDIT_FIX_R1_ORACLE["provenance"]["design_revision"] == "1b"
+    assert matrix["audit_fix_round_1_fixture_count"] == 14
+    assert matrix["fixture_count"] == 62
+    assert matrix["correct_fixture_count"] == 53
+    assert matrix["positive_control_count"] == 9
 
 
 def test_v3_closed_reason_registry_has_61_exact_members() -> None:

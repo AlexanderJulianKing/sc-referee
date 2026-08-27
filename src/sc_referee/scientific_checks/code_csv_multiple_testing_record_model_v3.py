@@ -1257,6 +1257,54 @@ def _store_positions(
     return positions
 
 
+def _root_name(node: ast.expr) -> str | None:
+    cursor = node
+    while isinstance(cursor, (ast.Attribute, ast.Subscript)):
+        cursor = cursor.value
+    return cursor.id if isinstance(cursor, ast.Name) else None
+
+
+def _enclosing_statement(
+    node: ast.AST,
+    parents: Mapping[ast.AST, ast.AST],
+) -> ast.stmt | None:
+    cursor: ast.AST | None = node
+    while cursor is not None and not isinstance(cursor, ast.stmt):
+        cursor = parents.get(cursor)
+    return cursor
+
+
+def _enclosing_iteration(
+    node: ast.AST,
+    parents: Mapping[ast.AST, ast.AST],
+    owner: ast.Module | ast.FunctionDef,
+) -> ast.For | ast.ListComp | None:
+    cursor: ast.AST | None = node
+    while cursor is not None and cursor is not owner:
+        cursor = parents.get(cursor)
+        if isinstance(cursor, (ast.For, ast.ListComp)):
+            return cursor
+    return None
+
+
+def _builder_record_names(
+    builder: _RecordBuilder,
+    functions: Mapping[str, ast.FunctionDef],
+) -> frozenset[str]:
+    """Return only names whose value is the builder's proved record expression."""
+
+    if builder.append is None or not builder.append.args:
+        return frozenset()
+    names: set[str] = set()
+    for node in ast.walk(builder.append.args[0]):
+        if not isinstance(node, ast.Name) or not isinstance(node.ctx, ast.Load):
+            continue
+        resolved = _resolve_record_expr(node, owner=builder.owner, functions=functions)
+        if resolved is not None and _record_schema(resolved) is not None:
+            names.add(node.id)
+    return frozenset(names)
+
+
 def _record_boundary_reason(
     tree: ast.Module,
     builders: Sequence[_RecordBuilder],
@@ -1267,6 +1315,8 @@ def _record_boundary_reason(
     functions = _functions(tree)
     calls = _calls_of(functions, tree)
     for builder in builders:
+        record_names = _builder_record_names(builder, functions)
+        tracked_names = record_names | {builder.collection}
         if builder.append is not None:
             cursor: ast.AST | None = builder.append
             while cursor is not None and cursor is not builder.loop:
@@ -1290,10 +1340,17 @@ def _record_boundary_reason(
         initial = collection_bindings[0].value
         if not isinstance(initial, ast.List) or initial.elts:
             return "record-family-mutation-unresolved"
+        direct_record_bindings: dict[str, list[ast.Assign | ast.AnnAssign]] = defaultdict(list)
         for node in ast.walk(builder.owner):
-            if isinstance(node, (ast.AugAssign, ast.Delete)) and any(
-                isinstance(item, ast.Name) and item.id == builder.collection
-                for item in ast.walk(node)
+            if isinstance(node, (ast.Assign, ast.AnnAssign)):
+                targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+                for target in targets:
+                    if isinstance(target, ast.Name) and target.id in record_names:
+                        direct_record_bindings[target.id].append(node)
+            if isinstance(node, ast.AugAssign) and _root_name(node.target) in tracked_names:
+                return "record-family-mutation-unresolved"
+            if isinstance(node, ast.Delete) and any(
+                _root_name(target) in tracked_names for target in node.targets
             ):
                 return "record-family-mutation-unresolved"
             if (
@@ -1301,18 +1358,19 @@ def _record_boundary_reason(
                 and node not in collection_bindings
                 and node.value is not None
                 and isinstance(node.value, ast.Name)
-                and node.value.id == builder.collection
+                and node.value.id in tracked_names
             ):
                 return "record-family-mutation-unresolved"
             if (
                 isinstance(node, ast.Call)
                 and isinstance(node.func, ast.Attribute)
                 and isinstance(node.func.value, ast.Name)
-                and node.func.value.id == builder.collection
-                and node.func.attr in _RECORD_MUTATORS
+                and node.func.value.id in tracked_names
                 and node is not builder.append
             ):
                 return "record-family-mutation-unresolved"
+        if any(len(bindings) != 1 for bindings in direct_record_bindings.values()):
+            return "record-family-mutation-unresolved"
         # Every crossing of a helper boundary is one exact X4 call site.
         if (
             isinstance(builder.owner, ast.FunctionDef)
@@ -1368,23 +1426,97 @@ def _record_boundary_reason(
                 left & right for index, left in enumerate(proved) for right in proved[index + 1 :]
             ):
                 return "correction-family-lineage-unresolved"
-        # Section 6.4 is intentionally stricter than the executed shadow: once a p/flag/table
-        # field on a record name has been consumed, no later reaching store to that field is
-        # admitted, even when separate position proofs would make the stores non-overlapping.
-        _p_names, p_keys = _p_lineage(tree, resolver)
-        for (record_name, key), store_nodes in stores.items():
-            if key not in p_keys:
-                continue
-            consumer_lines = [
-                node.lineno
-                for node in ast.walk(builder.owner)
-                if isinstance(node, ast.Subscript)
+        # Section 6.4 is intentionally stricter than the executed shadow: within one proved
+        # record-binding phase, any p/flag/table consumer closes the record to every later store.
+        # The statement boundary matters: a p load on the RHS of the admitted store is evaluated
+        # as part of that store, not as a preceding consumer.
+        closed_fold_nodes: set[ast.AST] = set()
+        for conditional in (node for node in ast.walk(builder.owner) if isinstance(node, ast.If)):
+            test = conditional.test
+            admitted_selector = (
+                isinstance(test, ast.Subscript) and _literal_key(test.slice) is not None
+            ) or (
+                isinstance(test, ast.UnaryOp)
+                and isinstance(test.op, ast.Not)
+                and isinstance(test.operand, ast.Subscript)
+                and _literal_key(test.operand.slice) is not None
+            )
+            if admitted_selector:
+                closed_fold_nodes.update(ast.walk(conditional))
+        consumers: list[tuple[tuple[int, int, int, int], ast.For | ast.ListComp | None]] = []
+        for node in ast.walk(builder.owner):
+            is_record_field = (
+                isinstance(node, (ast.Subscript, ast.Attribute))
                 and isinstance(node.ctx, ast.Load)
-                and isinstance(node.value, ast.Name)
-                and node.value.id == record_name
-                and _literal_key(node.slice) == key
-            ]
-            if consumer_lines and any(store.lineno > min(consumer_lines) for store in store_nodes):
+                and _root_name(node) in record_names
+            )
+            is_collection_load = (
+                isinstance(node, ast.Name)
+                and isinstance(node.ctx, ast.Load)
+                and node.id == builder.collection
+            )
+            if not (is_record_field or is_collection_load):
+                continue
+            if node in closed_fold_nodes:
+                # Section 6.5 checks the exact static raw/adjusted or flag fold. Its selector is
+                # not a terminal consumer of the record it selects.
+                continue
+            statement = _enclosing_statement(node, parents)
+            if statement is None:
+                continue
+            if isinstance(statement, (ast.Assign, ast.AnnAssign)) and any(
+                _root_name(target) in record_names
+                for target in (
+                    statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                )
+            ):
+                # A closed record-to-record field fold remains one construction operation; its
+                # value lattice is checked below. Only a consumer outside that store closes it.
+                continue
+            consumers.append(
+                (
+                    _position(statement),
+                    _enclosing_iteration(statement, parents, builder.owner),
+                )
+            )
+        if builder.append is not None:
+            statement = _enclosing_statement(builder.append, parents)
+            if statement is not None:
+                consumers.append(
+                    (
+                        _position(statement),
+                        _enclosing_iteration(statement, parents, builder.owner),
+                    )
+                )
+        for node in ast.walk(builder.owner):
+            if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+                continue
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            store_roots = {
+                root for target in targets if (root := _root_name(target)) in tracked_names
+            }
+            if not store_roots:
+                continue
+            statement = _enclosing_statement(node, parents)
+            if statement is None:
+                continue
+            store_position = _position(statement)
+            store_iteration = _enclosing_iteration(statement, parents, builder.owner)
+            iteration_targets = (
+                frozenset(_target_names(store_iteration.target) or ())
+                if isinstance(store_iteration, ast.For)
+                else frozenset()
+            )
+            record_rebound = bool(store_roots & record_names & iteration_targets)
+            if any(
+                consumer_position < store_position
+                and (
+                    builder.collection in store_roots
+                    or not record_rebound
+                    or consumer_iteration is store_iteration
+                )
+                for consumer_position, consumer_iteration in consumers
+            ):
                 return "record-family-mutation-unresolved"
         if builder.wrapper_depth > 2:
             return "record-family-lineage-unresolved"
@@ -1393,19 +1525,25 @@ def _record_boundary_reason(
         # A record/collection passed to an unresolved external call is an escape. Calls to one
         # closed local helper are left to unchanged X4; known sinks/corrections/transports are okay.
         for node in ast.walk(builder.owner):
-            if not isinstance(node, ast.Name) or not isinstance(node.ctx, ast.Load):
+            if not isinstance(node, ast.Call) or node is builder.append:
                 continue
-            if node.id != builder.collection:
+            arguments = [*node.args, *(keyword.value for keyword in node.keywords)]
+            if not any(
+                isinstance(argument, ast.Name) and argument.id in tracked_names
+                for argument in arguments
+            ):
                 continue
-            parent = parents.get(node)
-            if isinstance(parent, (ast.For, ast.Subscript, ast.Return, ast.comprehension)):
+            api = resolver.qualified(node.func)
+            local = node.func.id if isinstance(node.func, ast.Name) else None
+            if (
+                api
+                in _CORRECTION_APIS
+                | _REGISTERED_APIS
+                | {"len", "enumerate", "list", "tuple", "zip", "print"}
+                or local in functions
+            ):
                 continue
-            if isinstance(parent, ast.Call):
-                api = resolver.qualified(parent.func)
-                local = parent.func.id if isinstance(parent.func, ast.Name) else None
-                if api in {"len", "enumerate", "list", "tuple", "zip"} or local in functions:
-                    continue
-                return "record-family-mutation-unresolved"
+            return "record-family-mutation-unresolved"
     return None
 
 
@@ -1695,6 +1833,112 @@ def _p_derived(node: ast.expr, p_names: frozenset[str], p_keys: frozenset[str | 
     )
 
 
+def _p_origin_tokens(
+    node: ast.expr,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+) -> frozenset[str]:
+    tokens: set[str] = set()
+    for item in ast.walk(node):
+        if isinstance(item, ast.Subscript) and _literal_key(item.slice) in p_keys:
+            tokens.add(ast.dump(item, annotate_fields=True, include_attributes=False))
+        elif isinstance(item, ast.Name) and isinstance(item.ctx, ast.Load) and item.id in p_names:
+            tokens.add(f"name:{item.id}")
+        elif isinstance(item, ast.Attribute) and item.attr == "pvalue":
+            tokens.add(ast.dump(item, annotate_fields=True, include_attributes=False))
+    return frozenset(tokens)
+
+
+def _manual_p_transform(
+    node: ast.expr,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+) -> bool:
+    return any(
+        (isinstance(item, ast.BinOp) and _p_derived(item, p_names, p_keys))
+        or (
+            isinstance(item, ast.Call)
+            and _p_derived(item, p_names, p_keys)
+            and (
+                (isinstance(item.func, ast.Name) and item.func.id in {"min", "max"})
+                or (
+                    isinstance(item.func, ast.Attribute)
+                    and item.func.attr in {"minimum", "maximum"}
+                )
+            )
+        )
+        for item in ast.walk(node)
+    )
+
+
+def _decision_signature(
+    node: ast.expr,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+) -> tuple[str, ast.expr, ast.expr] | None:
+    if not isinstance(node, ast.Compare) or len(node.ops) != 1 or len(node.comparators) != 1:
+        return None
+    left, right = node.left, node.comparators[0]
+    left_p = _p_derived(left, p_names, p_keys)
+    right_p = _p_derived(right, p_names, p_keys)
+    if left_p == right_p:
+        return None
+    op = node.ops[0]
+    if left_p:
+        polarity = type(op).__name__
+        return polarity, left, right
+    reversed_polarity = {
+        ast.Lt: "Gt",
+        ast.LtE: "GtE",
+        ast.Gt: "Lt",
+        ast.GtE: "LtE",
+    }
+    reversed_operator = reversed_polarity.get(type(op))
+    return (reversed_operator, right, left) if reversed_operator is not None else None
+
+
+def _record_merge_reason(
+    tree: ast.Module,
+    resolver: Any,
+) -> str | None:
+    """Enforce the section-4.1 component merge lattice before coverage."""
+
+    p_names, p_keys = _p_lineage(tree, resolver)
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.IfExp):
+            continue
+        body_p = _p_derived(node.body, p_names, p_keys)
+        else_p = _p_derived(node.orelse, p_names, p_keys)
+        if not (body_p and else_p):
+            continue
+        body_signature = _decision_signature(node.body, p_names, p_keys)
+        else_signature = _decision_signature(node.orelse, p_names, p_keys)
+        if body_signature is not None and else_signature is not None:
+            body_polarity, body_value, body_threshold = body_signature
+            else_polarity, else_value, else_threshold = else_signature
+            if body_polarity != else_polarity:
+                return "record-decision-polarity-unresolved"
+            if ast.dump(body_threshold, include_attributes=False) != ast.dump(
+                else_threshold, include_attributes=False
+            ):
+                return "unresolved-decision-threshold"
+        else:
+            body_value, else_value = node.body, node.orelse
+        body_origins = _p_origin_tokens(body_value, p_names, p_keys)
+        else_origins = _p_origin_tokens(else_value, p_names, p_keys)
+        if (
+            not body_origins
+            or not else_origins
+            or len(body_origins) != 1
+            or len(else_origins) != 1
+            or body_origins != else_origins
+            or _manual_p_transform(body_value, p_names, p_keys)
+            != _manual_p_transform(else_value, p_names, p_keys)
+        ):
+            return "record-family-lineage-unresolved"
+    return None
+
+
 def _p_hierarchy_gate(tree: ast.Module, resolver: Any) -> int | None:
     p_names, p_keys = _p_lineage(tree, resolver)
     owners = _owners(tree)
@@ -1890,6 +2134,13 @@ def _record_decision(
     reason = _record_boundary_reason(tree, builders, resolver, outcome_columns)
     if reason is not None:
         return _ModelDecision(_Outcome("abstain", reason), ("record",), {"builders": len(builders)})
+    merge_reason = _record_merge_reason(tree, resolver)
+    if merge_reason is not None:
+        return _ModelDecision(
+            _Outcome("abstain", merge_reason),
+            ("record",),
+            {"builders": len(builders)},
+        )
     # Exact competing p origins and unresolved post-construction p fields do not merge merely
     # because the enclosing record has a recognized schema.
     p_names, p_keys = _p_lineage(tree, resolver)
