@@ -28,3 +28,13 @@ satisfiable from later-lane literals) is carried forward deliberately: every
 later lane's gate is correctly scoped, and retro-scoping a frozen 1.0 test file
 is not worth touching a frozen surface. Recorded here so the carry-forward is a
 decision, not an oversight.
+
+## 2.3 audit carry-forwards (2026-08-27)
+
+The 2.3 audit (APPROVE-COMMIT, commits c251bcc + a33200c) carried two minors, both deliberate:
+
+- m1: test_multiple_testing_e10_replay_v2.py keeps its stale _v2 name while correctly running the
+  ACTIVE binding (now 2.3) against the E10/E11/E12 45-row expectations. The content is the right
+  gate; the rename to an "active-binding" name is deferred to the next audited build rather than
+  applied post-audit by the custodian, because test-file renames touch suite collection.
+- m2: the 1.0 closed-set gate glob (documented above) remains as recorded.
