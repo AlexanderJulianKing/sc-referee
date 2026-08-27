@@ -1,0 +1,56 @@
+{
+  "profile": "multitest-recall-recon-e14-artifacts-v1",
+  "created_utc": "2026-08-27T00:00:00Z",
+  "detector_version": "2.3.0",
+  "sealed_e14_audit_results_sha256": "921804b0c8407f9460e1a8b898b527a13ef16b9ca703a04d09c757950ef7b045",
+  "execution_counts": {
+    "untouched_census_rows": 15,
+    "real_adapter_ladder_rungs": 18,
+    "none_flip_cases_per_variant": 98,
+    "analyzer_variants": 2,
+    "historical_fa_fixtures": 22,
+    "d14_fa_fixtures": 6
+  },
+  "files": {
+    "census.py": {
+      "bytes": 1536,
+      "sha256": "78ad95d35582973bc2c78901f0e850d83b0a0f3a266a313fd20fbd0b568aaf99"
+    },
+    "census_results.json": {
+      "bytes": 1878,
+      "sha256": "80cd5402d4a527e8d93fd1e840a9113b0349b0af267319947379d1fe778bb4df"
+    },
+    "fa_e14.py": {
+      "bytes": 8568,
+      "sha256": "0d12b5d85de46fd65bc2b634232df67ee9b6cfa90c01f0c7d9364d5628d9a9b6"
+    },
+    "h.py": {
+      "bytes": 7597,
+      "sha256": "1cdeb7cb777f4547a234da44ee6c2dcb470a45e6bd9ecf60f7134a952af6a526"
+    },
+    "ladder_results.json": {
+      "bytes": 1603,
+      "sha256": "f72d92e26587f57ae880d120a257775a2ae39e5073d6dbbeb66fc2b9e4396187"
+    },
+    "ladders.py": {
+      "bytes": 10251,
+      "sha256": "6c7d2cb0810e9595652ecca559cc1b87ea31fffad11e34313ab27ad5ec1839a6"
+    },
+    "prototypes.py": {
+      "bytes": 4974,
+      "sha256": "3dad68373157038562b95948547a01d39281ffa26d95b78077b69a241c796de3"
+    },
+    "sweep.py": {
+      "bytes": 4772,
+      "sha256": "9238b34eb4f48c11f131e7561c797cdb4418ec83f8de7d14a6ad1321d2cd714f"
+    },
+    "sweep_results.json": {
+      "bytes": 1732,
+      "sha256": "45f0d2e36b77a79e4ad3224759a026e959da89783f6d69a24969eec3beca884f"
+    },
+    "verify.py": {
+      "bytes": 2347,
+      "sha256": "05d1509cc32e8bdc390839d289c388b34a384b52b980dca17e9110e041490a9f"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "adapter_version": "2.3.0",
+  "cases": [
+    ["P1", "9ed744e25f1f1c55f8ca", 5, 5, null, "candidate", "none"],
+    ["P2", "4fc0f5c1ef2d0e2cd5b6", 6, 6, null, "abstain", "pvalue-family-collection-unresolved"],
+    ["P3", "502687d9137dab93ff99", 4, null, "test-battery-cardinality-unresolved", "abstain", "test-battery-cardinality-unresolved"],
+    ["P4", "cccde3c60f936e077f80", 7, null, "authorized-family-test-census-incomplete", "abstain", "authorized-family-test-census-incomplete"],
+    ["P5", "5e33841b96d85ffe67be", 6, null, "authorized-family-test-census-incomplete", "abstain", "authorized-family-test-census-incomplete"],
+    ["P6", "94786af7eca95fff6d78", 8, 8, null, "abstain", "unresolved-manual-correction-present"],
+    ["N1", "aabf005414b9ae164c0b", 4, 1, null, "abstain", "authorized-family-test-census-incomplete"],
+    ["N2", "c83b4021527fa98dadf3", 5, 1, null, "abstain", "authorized-family-test-census-incomplete"],
+    ["N3", "2327c03c4ddd02a36b97", 6, 1, null, "abstain", "authorized-family-test-census-incomplete"],
+    ["N4", "f80bac8b4bd7442917c5", 5, 6, null, "abstain", "extra-registered-test-outside-authorized-family"],
+    ["N5", "e987fc7ceafb6acb7a75", 6, 0, null, "abstain", "test-battery-cardinality-unresolved"],
+    ["N6", "1baacbeace56bb5d7b0f", 5, null, "authorized-family-test-census-incomplete", "abstain", "authorized-family-test-census-incomplete"],
+    ["N7", "470aaf22deaf023aaae6", 5, 0, null, "abstain", "authorized-family-test-census-incomplete"],
+    ["N8", "c3191c18f72145cde01c", 5, 0, null, "abstain", "authorized-family-test-census-incomplete"],
+    ["N9", "5d5d4e0189d4f2c73f6a", 5, 5, null, "abstain", "unresolved-pvalue-consumer"]
+  ],
+  "row_schema": [
+    "role",
+    "case_id",
+    "authorized_count",
+    "resolved_call_count",
+    "census_reason",
+    "adapter_outcome",
+    "adapter_reason_or_classification"
+  ]
+}
