@@ -1,6 +1,6 @@
 # Multiple-testing code slice 3.0 record-model design — 2026-08-28
 
-**Status:** commissioned build-ready design, Revision 0; implementation is not authorized by this
+**Status:** commissioned build-ready design, Revision 1a; implementation is not authorized by this
 document until adversarial design review and the ADR-0079 amendment in section 2.4 are accepted  
 **Target:** detector/check/adapter `3.0.0`, development lane only  
 **Predecessor:** multiple-testing code slice `2.3.0`  
@@ -25,7 +25,10 @@ The evidence set is:
   `evaluation/development/multitest-recall-recon-e13/` and
   `evaluation/development/multitest-recall-recon-e14/`;
 - all sealed-then-opened adapter results for envelopes 10 through 14; and
-- the installed 2.3 source and its frozen replay/oracle tests.
+- the installed 2.3 source and its frozen replay/oracle tests; and
+- the strict executable 3.0 shadow models, 48 named fixture sources, all-125-case sweep, and
+  canonical results under
+  `evaluation/development/multitest-code-slice-v3_0/prototype-sweep/`.
 
 The following are **observed**:
 
@@ -40,12 +43,18 @@ The following are **observed**:
 7. D14-A moves exactly E14 P3 from `test-battery-cardinality-unresolved` to
    `unresolved-decision-threshold` in its executed prototype and moves no corpus row; and
 8. the corpus remains `0/25` correct candidates and `19/25` misstep candidates in 2.1, 2.2, and
-   2.3.
+   2.3; and
+9. the Revision-1a strict prototypes execute all four new models plus D14-A over all 125 pinned
+   cases, 39 correct adversaries, and nine positive controls. They produce the exact section-12/13
+   outcomes, including the one newly exposed safe E14 N9 hierarchy reason, with none-flip counts
+   `0/25`, `0/45`, and `0/39`.
 
-The 3.0 terminal outcomes for record, mixed-dispatch, positional-subset, and DataFrame cases are
-**design projections** until a 3.0 implementation executes the public adapter gates. They are
-nevertheless normative build oracles. A builder may not replace one with a different conservative
-reason merely because the case remains a noncandidate; disagreement is a section-17 stop.
+The shadow results are **executed observations**, not production-adapter results: the models import
+the frozen 2.3 analyzer, apply only the section-5-to-9 structural admissions, and retain adapter
+pins such as E10 N7. They close the design-evidence blocker and are normative build oracles. A 3.0
+builder must still execute the public adapter gates and may not replace one with a different
+conservative reason merely because the case remains a noncandidate; disagreement is a section-17
+stop.
 
 Terms used below:
 
@@ -582,7 +591,9 @@ resolving to such literals. Step is absent or literal `1`. Bounds satisfy
 index, omitted proof, arithmetic, `len` expression, runtime value, reverse, or nonunit step is
 admitted. The subset keeps source order and exact `RecordId`s.
 
-A literal integer `COLL[I]` is admitted as one record only when `0 <= I < N`; it is never by itself
+A slice of a slice (`COLL[A:B][C:D]`) is explicitly refused even when both individual slices have
+literal bounds; it abstains `record-subset-position-unresolved`. A literal integer `COLL[I]` is
+admitted as one record only when `0 <= I < N`; it is never by itself
 a correction family. Tuple-record field indexing is separately resolved against the record schema.
 
 ### 7.2 Closed outcome-table flag filters
@@ -687,10 +698,15 @@ Version 3.0 includes a minimal pandas row-table model. This is justified because
 second storage view of the same finite `RecordId` graph: row order is fixed, column keys are static,
 and every p-derived column consumer is total. It is not a general DataFrame evaluator.
 
-The strongest opened correct neighbors are E12 N1 (complete default-method `multipletests`) and E12
-N2 (hand Sidak). The required 3.0 outcomes are `covered/complete` and abstain
-`unresolved-decision-threshold`, respectively. E12 N1/N2 are load-bearing gates: if either becomes a
-candidate, the DataFrame model is withdrawn rather than broadened or relabeled.
+The complete DataFrame trigger population is pinned, not sampled: E10 N7; E11 P5 and N3; E12 P1,
+N1, N2, N3, and N9; and E14 N3. Their required outcomes are respectively
+`statistics-api-imported-outside-analysis-py`, candidate `strict_subset {0,1}/7`,
+`unresolved-manual-correction-present`, candidate `none`, covered `complete`,
+`unresolved-decision-threshold`, `unresolved-manual-correction-present`,
+`test-battery-cardinality-unresolved`, and `authorized-family-test-census-incomplete`. The seven
+negative/correct rows must never become candidates; either such candidate withdraws the DataFrame
+model rather than broadening or relabeling it. The two positive rows must reach their pinned
+candidates. Any other outcome on any of the nine is a section-17 regression.
 
 ### 9.2 Construction
 
@@ -706,6 +722,8 @@ For the first form, `RECORD_COLLECTION` already satisfies sections 6 and 7 and c
 records in order. For the second, `LITERAL_ROWS` is one List/Tuple of exactly `N` same-kind flat
 Tuple/List records, `STATIC_COLUMNS` is one same-length List/Tuple of unique literal str/int keys,
 and each row has one proved `POS` and independently classified p/scalar/`OPAQUE_NONP` fields.
+`POS` for this second form is proved only through section 4.2 route 2 (the complete immutable
+outcome-table row mapping); physical DataFrame row order by itself never proves position.
 `STATIC_COLUMNS` may occupy the second positional slot or the `columns=` slot, never both. No
 `index`, dtype, copy, data manager, `from_records`, dict-of-columns, Series, concat, or third
 positional argument is admitted.
@@ -917,6 +935,64 @@ The existing 22 historical FA fixtures remain exact. The combined noncandidate g
 correct fixtures = **131 executions, zero candidates and zero Findings**. Counts overlap by design
 only across source meaning, never by test execution; the gate reports each group separately.
 
+### 10.3 Revision-1a executed trigger-shape census
+
+The strict census contains exactly **41** baseline non-candidates with at least one new-model
+trigger: the nine DataFrame cases pinned in 9.1, corpus `spec-22` and `spec-44` with dispatch shapes,
+and the remaining record-accumulation shapes. Nine trigger rows move; 32 retain the named wall
+below. D14-A's E14 P3 movement is outside this trigger census, giving ten total section-12/13
+movements. Every row is recorded canonically in `prototype-sweep/results.json`.
+
+| Case | Trigger | Executed 3.0 shadow outcome | Status |
+|---|---|---|---|
+| `E10:N1:cb2e207276a0dc3247bb` | record | covered `complete` | surviving coverage |
+| `E10:N2:9be74afbe9659bd50580` | record | abstain `unresolved-decision-threshold` | surviving wall |
+| `E10:N4:60f96fabb7129d662b23` | record | abstain `extra-registered-test-outside-authorized-family` | surviving wall |
+| `E10:N5:8d83210468ecde012e4a` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E10:N7:6d2fdc67ab98bc0e0e6e` | DataFrame + record | abstain `statistics-api-imported-outside-analysis-py` | surviving adapter wall |
+| `E11:P5:114782f595d9c24b923d` | DataFrame + record | candidate `strict_subset {0,1}/7` | movement |
+| `E11:N3:479317f1706d4fb929e5` | DataFrame + record | abstain `unresolved-manual-correction-present` | surviving wall |
+| `E11:N4:10e0cfb0c7ba8d03ec52` | record | abstain `extra-registered-test-outside-authorized-family` | surviving wall |
+| `E11:N8:53c4753f38f9e253d541` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E11:N9:08565c720304eb6fd9d3` | record | abstain `unresolved-decision-threshold` | surviving wall |
+| `E12:P1:f9ce4de5e21d9015ecd9` | DataFrame | candidate `none` | movement |
+| `E12:P5:54667dd7c39067c8c2c8` | record | candidate `strict_subset {0,1}/7` | movement |
+| `E12:N1:45c4b9a19d0a630f1cb0` | DataFrame + record | covered `complete` | safe movement |
+| `E12:N2:f256af2f5c5d98f37e65` | DataFrame + record | abstain `unresolved-decision-threshold` | safe movement |
+| `E12:N3:678e94e79226936fd647` | DataFrame + record | abstain `unresolved-manual-correction-present` | surviving wall |
+| `E12:N5:6108263527580cd01608` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E12:N6:db193771248850b81b25` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E12:N9:62aa3748aa0c7c2607d3` | DataFrame + record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E13:N1:b7d38f6e9284abfd3ee6` | record | abstain `correction-family-lineage-unresolved` | surviving wall |
+| `E13:N3:c15f507ad59999fd9371` | record | abstain `unresolved-manual-correction-present` | surviving wall |
+| `E13:N4:cfbb5edfd1534e7419fd` | record | abstain `extra-registered-test-outside-authorized-family` | surviving wall |
+| `E13:N5:8f37c5176ab3c0a61e4d` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `E14:P2:4fc0f5c1ef2d0e2cd5b6` | record | candidate `none` | movement |
+| `E14:P4:cccde3c60f936e077f80` | mixed dispatch + record | candidate `none` | movement |
+| `E14:P5:5e33841b96d85ffe67be` | mixed dispatch + record | candidate `strict_subset {0,1}/6` | movement |
+| `E14:P6:94786af7eca95fff6d78` | record | abstain `unresolved-manual-correction-present` | surviving wall |
+| `E14:N3:2327c03c4ddd02a36b97` | DataFrame | abstain `authorized-family-test-census-incomplete` | surviving wall |
+| `E14:N4:f80bac8b4bd7442917c5` | record | abstain `extra-registered-test-outside-authorized-family` | surviving wall |
+| `E14:N6:1baacbeace56bb5d7b0f` | record | abstain `authorized-family-test-census-incomplete` | surviving wall |
+| `E14:N7:470aaf22deaf023aaae6` | record | abstain `authorized-family-test-census-incomplete` | surviving wall |
+| `E14:N8:c3191c18f72145cde01c` | record | abstain `authorized-family-test-census-incomplete` | surviving wall |
+| `E14:N9:5d5d4e0189d4f2c73f6a` | record | abstain `hierarchical-gatekeeping-present` | safe deeper-wall movement |
+| `corpus:spec-02` | record | abstain `correction-family-lineage-unresolved` | surviving wall |
+| `corpus:spec-04` | record | abstain `correction-family-lineage-unresolved` | surviving wall |
+| `corpus:spec-22` | mixed dispatch + record | abstain `authorized-family-test-census-incomplete` | surviving wall |
+| `corpus:spec-23` | record | abstain `pvalue-scalar-cast-or-rounding-unsupported` | surviving wall |
+| `corpus:spec-24` | record | abstain `correction-family-lineage-unresolved` | surviving wall |
+| `corpus:spec-29` | record | abstain `unresolved-decision-threshold` | surviving wall |
+| `corpus:spec-32` | record | abstain `extra-registered-test-outside-authorized-family` | surviving wall |
+| `corpus:spec-34` | record | abstain `test-battery-cardinality-unresolved` | surviving wall |
+| `corpus:spec-44` | mixed dispatch | abstain `authorized-family-test-census-incomplete` | surviving wall |
+
+`spec-22` and `spec-44` select APIs from input-derived values, so section 8.2 refuses a static
+dispatch plan. With no plan, fewer than `N` execution instances resolve and the earlier
+`authorized-family-test-census-incomplete` wall remains first. Their global statistics-prefix
+census is a second independent wall. This is the build gate that prevents a future implementation
+from treating data-dependent API selection as an admitted table dispatch.
+
 ## 11. Guard ownership, fail-closed reasons, and closed registry
 
 ### 11.1 Guard ownership
@@ -1032,12 +1108,12 @@ cannot satisfy v3.0 coverage.
 
 ## 12. Adapter oracle for all 75 opened envelope cases
 
-Exactly **nine** opened rows move from the active 2.3 classification/reason map. Six are positive
-misses becoming candidates; two are correct cases moving safely to covered/deeper abstention; one
-is D14-A's positive miss moving one wall deeper. Every other opened row is byte-semantically equal
+Exactly **ten** opened rows move from the active 2.3 classification/reason map. Six are positive
+misses becoming candidates; three are correct/negative cases moving safely to covered/deeper
+abstention; one is D14-A's positive miss moving one wall deeper. Every other opened row is byte-semantically equal
 in outcome, reason/classification, positions, and candidate count.
 
-### 12.1 Envelope 10 — 0 movements, projected recall 5/6
+### 12.1 Envelope 10 — 0 movements, executed shadow recall 5/6
 
 | Role / case | 3.0 adapter outcome |
 |---|---|
@@ -1057,7 +1133,7 @@ in outcome, reason/classification, positions, and candidate count.
 | N8 `dfc9f20a94ecefc7f7b5` | abstain `test-battery-cardinality-unresolved` |
 | N9 `e1bce32a32e3b2df475e` | abstain `unresolved-decision-threshold` |
 
-### 12.2 Envelope 11 — 1 movement, projected recall 6/6
+### 12.2 Envelope 11 — 1 movement, executed shadow recall 6/6
 
 | Role / case | 3.0 adapter outcome | Movement |
 |---|---|---|
@@ -1077,7 +1153,7 @@ in outcome, reason/classification, positions, and candidate count.
 | N8 `53c4753f38f9e253d541` | abstain `test-battery-cardinality-unresolved` | unchanged |
 | N9 `08565c720304eb6fd9d3` | abstain `unresolved-decision-threshold` | unchanged |
 
-### 12.3 Envelope 12 — 4 movements, projected recall 6/6
+### 12.3 Envelope 12 — 4 movements, executed shadow recall 6/6
 
 | Role / case | 3.0 adapter outcome | Movement |
 |---|---|---|
@@ -1097,7 +1173,7 @@ in outcome, reason/classification, positions, and candidate count.
 | N8 `7fd5f9dcd4097c1e5a03` | abstain `authorized-family-test-census-incomplete` | unchanged |
 | N9 `62aa3748aa0c7c2607d3` | abstain `test-battery-cardinality-unresolved` | unchanged |
 
-### 12.4 Envelope 13 — 0 movements, projected recall 4/6
+### 12.4 Envelope 13 — 0 movements, executed shadow recall 4/6
 
 | Role / case | 3.0 adapter outcome |
 |---|---|
@@ -1120,7 +1196,7 @@ in outcome, reason/classification, positions, and candidate count.
 E13 P2 remains `>N`; record duplicate-emission does not collapse duplicate **test calls**. E13 P6
 remains the proper-subset manual-factor residual.
 
-### 12.5 Envelope 14 — 4 movements, projected recall 4/6
+### 12.5 Envelope 14 — 5 movements, executed shadow recall 4/6
 
 | Role / case | 3.0 adapter outcome | Movement/full ladder |
 |---|---|---|
@@ -1138,7 +1214,7 @@ remains the proper-subset manual-factor residual.
 | N6 `1baacbeace56bb5d7b0f` | abstain `authorized-family-test-census-incomplete` | unchanged live stage gate |
 | N7 `470aaf22deaf023aaae6` | abstain `authorized-family-test-census-incomplete` | unchanged zero registered family |
 | N8 `c3191c18f72145cde01c` | abstain `authorized-family-test-census-incomplete` | unchanged zero registered family |
-| N9 `5d5d4e0189d4f2c73f6a` | abstain `unresolved-pvalue-consumer` | unchanged |
+| N9 `5d5d4e0189d4f2c73f6a` | abstain `hierarchical-gatekeeping-present` | **safe reason exposure** from `unresolved-pvalue-consumer`; its p-derived runtime filter remains a scientific control edge |
 
 The exact opened movement set is:
 
@@ -1152,11 +1228,17 @@ E14:P2:4fc0f5c1ef2d0e2cd5b6
 E14:P3:502687d9137dab93ff99
 E14:P4:cccde3c60f936e077f80
 E14:P5:5e33841b96d85ffe67be
+E14:N9:5d5d4e0189d4f2c73f6a
 ```
 
 Movement-set equality is a hard gate.
 
 ## 13. Open-corpus oracle — all 50 rows
+
+This table is **adapter-level**. In particular, `spec-30` is pinned
+`api-resolution-ambiguous` here even though the analyzer-only diagnostic reads
+`unresolved-manual-correction-present`; builders must not substitute the analyzer row for the
+adapter oracle.
 
 No corpus row moves. The 3.0 result map is exactly equal to the frozen 2.1/2.2/2.3 comparison map:
 
@@ -1257,7 +1339,7 @@ DataFrame consumer rule is a design regression, not an acceptable partial delta.
 
 The build executes at adapter level:
 
-1. all 75 opened cases twice, with the exact nine-row movement set;
+1. all 75 opened cases twice, with the exact ten-row movement set;
 2. all 50 corpus cases twice, with exact result-map equality to frozen 2.3;
 3. all 45 opened negatives with zero candidates;
 4. all 25 corpus-correct cases with zero candidates;
@@ -1265,6 +1347,11 @@ The build executes at adapter level:
 6. explicit frozen 1.0/1.1/2.0/2.1/2.2/2.3 adapters over their historical anchors; and
 7. a new frozen 2.3 replay anchor importing the four pinned 2.3 modules explicitly, never through
    the active development binding.
+
+The build also reruns the checked-in Revision-1a shadow sweep as a differential gate: exactly 125
+case rows, 48 fixture rows, 41 trigger rows, ten movements, the section-10.3 named walls, and
+none-flips `0/25`, `0/45`, `0/39`. The production adapter must be outcome-equal to the shadow
+oracle; the shadow code is evidence, not a production dependency.
 
 Candidate fixtures emit exactly one evaluation candidate and zero Findings. Covered fixtures emit
 zero candidates. Every audit replays byte-identically.
@@ -1327,9 +1414,9 @@ The following remain out of scope:
 5. **Parallel arrays and positional stores.** Corpus spec-39/spec-50 remain outside the model.
 6. **General DataFrame semantics.** Anything beyond section 9 remains fail-closed.
 
-### 15.2 Projected recall
+### 15.2 Executed shadow recall
 
-The exact projection is:
+The exact executed-shadow result is:
 
 ```text
 open corpus:  correct 0/25 candidates; misstep 19/25 candidates (unchanged)
@@ -1342,9 +1429,10 @@ opened total: 25/30 positive candidates
 ```
 
 Compared with active 2.3 (`5,5,4,4,1`), 3.0 adds six retrospective positive catches: E11 P5,
-E12 P1/P5, and E14 P2/P4/P5. It also makes three safe reason/state movements: E12 N1 becomes
-covered, E12 N2 exposes its threshold wall, and E14 P3 exposes the D14-A threshold wall. Total
-classification/reason movements over 75 opened plus 50 corpus cases are **9 of 125**.
+E12 P1/P5, and E14 P2/P4/P5. It also makes four safe reason/state movements: E12 N1 becomes
+covered, E12 N2 exposes its threshold wall, E14 P3 exposes the D14-A threshold wall, and E14 N9
+exposes `hierarchical-gatekeeping-present` after its record transport resolves. Total
+classification/reason movements over 75 opened plus 50 corpus cases are **10 of 125**.
 
 ### 15.3 E15 arrival expectation
 
@@ -1383,8 +1471,9 @@ Shared modules are copied, never edited.
 | `method_conflict_finding.py` | Add wording v2 beside byte-frozen v1 and select it only for the exact 3.0 binding. |
 | profiles/registry/controller development resources | Register historical 2.3 plus 3.0; advance only active development binding. |
 | New `evaluation/development/multitest-code-slice-v3/` | Fixture matrix, development ledger, graph/dispatch/DF oracle manifests; answer-visible only. |
+| Frozen Revision-1a prototype sweep | Replay `prototype-sweep/results.json`, all 48 fixture sources, and the 41-row trigger census; production must not import the shadow modules. |
 | Open-corpus replay harness | Add explicit 3.0 adapter comparison row; preserve frozen record bytes. |
-| E10-E14 replay tests | Add 75-row 3.0 adapter oracle and exact nine-movement assertion; no custody/source/audit edits. |
+| E10-E14 replay tests | Add 75-row 3.0 adapter oracle and exact ten-movement assertion; no custody/source/audit edits. |
 | New `_v3` test modules | Copy 2.3 suites; add D14-A, record, subset, mixed API, DataFrame, evidence-v2, wording-v2, tripwire, idempotence, set-equality, and frozen-2.3 anchors. Do not retarget old tests. |
 | Registry/ledger/source manifests | Regenerate after final change; manifest inventory follow-up follows repository custody rule. |
 
@@ -1403,7 +1492,7 @@ Build acceptance requires, after the final file change:
 5. all 39 new correct fixtures noncandidate, all nine positive controls at pinned outcomes, and all
    22 historical FA fixtures unchanged;
 6. the 131-execution none-flip gate;
-7. all 75 opened rows and exact nine-row movement set;
+7. all 75 opened rows and exact ten-row movement set plus the 41-row trigger census;
 8. E14 P4/P5 full ladders reaching the terminal candidate states, not merely a deeper wall;
 9. all 50 corpus rows equal and `0/25` correct / `19/25` misstep;
 10. frozen 2.3 component/replay anchors and every prior oracle green;
@@ -1442,3 +1531,23 @@ Revision 0:
   and retro recalls `5/6, 6/6, 6/6, 4/6, 4/6`; and
 - specifies frozen 2.3 anchors, 39 new correct fixtures, 131 none-flip executions, idempotence,
   prose, closed-reason, replay, differential, and stop-and-report gates.
+
+### Revision 1a — executed prototype sweep and adversarial-review closure
+
+Revision 1a:
+
+- closes BL-1 with strict executable shadow models for record accumulation, positional subsets,
+  mixed registered-API dispatch, and DataFrame p tables, combined with D14-A, over all 125 pinned
+  cases and all 48 new fixtures; the canonical replay is `prototype-sweep/results.json`;
+- re-pins the design to the executed ten-row movement set. All nine Revision-0 movements are
+  confirmed, and E14 N9 is added as a safe reason-exposure movement from
+  `unresolved-pvalue-consumer` to `hierarchical-gatekeeping-present`;
+- adopts MJ-1's exact 41-row trigger-shape census: nine trigger movements and 32 named surviving
+  walls, including the explicit input-derived-dispatch account for `spec-22` and `spec-44`;
+- adopts MJ-2 by pinning all nine DataFrame-constructing cases and making every unexpected
+  candidate on the seven correct/negative rows a withdrawal condition;
+- applies m1 by binding literal-row DataFrame `POS` to section 4.2 route 2, m2 by explicitly
+  refusing slice-of-slice, and m3 by identifying the section-13 corpus table as adapter-level and
+  documenting the `spec-30` analyzer/adapter split; and
+- records executed none-flip counts `0/25` corpus-correct, `0/45` opened negatives, and `0/39` new
+  correct fixtures, with retro recall unchanged at `5/6, 6/6, 6/6, 4/6, 4/6`.
