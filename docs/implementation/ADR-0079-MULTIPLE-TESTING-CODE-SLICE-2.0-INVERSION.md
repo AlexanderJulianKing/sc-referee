@@ -113,3 +113,25 @@ decision/correction evidence in the executed recon; repeating the closed transfo
 ordering equivalent. The complete hand-Bonferroni D3 fixture and complete frozen-set D5 fixture
 resolve covered/complete, which are deliberate safe removals of conservative abstentions rather
 than new candidate surfaces.
+
+## Delta 2.3 amendment
+
+The accepted delta design
+`docs/implementation/MULTITEST-CODE-SLICE-2.3-DESIGN-2026-08-27.md`, Revision 1a,
+has raw SHA-256 `4cfed92169acd51154fd110c351a23421454501e090aaf9c2ed662b8a4feb5e5`
+and advances only the development check, adapter, and detector to `2.3.0`. D13-A adds one exact
+function-local reader-path value edge for the closed `os.path` and `pathlib` productions. The
+module-wide unique-binding, no-alias, no-mutation, no-escape proof is mandatory; the binding is
+never a frame root and the reader APIs, keyword grammar, and row proofs remain unchanged.
+
+D13-B closes provenance only between an already-recognized terminal rendering and one jointly
+matched final sink clone. The immutable composite relation includes source position, complete AST
+structure, singleton family position, transport-to-decision containment, ordered occurrence
+multiplicity, and one-to-one clone ownership. One map is shared by off-grammar exclusion,
+hierarchy exclusion, and conclusion credit. It runs after the successful 2.2 D6 second-pass
+equality check, mutates no AST, and is idempotent including descriptor multiplicity.
+
+The combined implementation retains the executed `0/25`, `0/36`, and `0/6` none-flip gates. P2's
+exact `2N` call count and P6's proper-subset manual factor remain deliberate residuals requiring
+separate evidence/wording and correction-policy review. The only opened row movements are E13 P5
+to `strict_subset {0,1}/7` and E13 P6/N1/N9 to their specified deeper abstention walls.
