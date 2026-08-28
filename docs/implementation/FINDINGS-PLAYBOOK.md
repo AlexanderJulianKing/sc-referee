@@ -356,3 +356,46 @@ design-targeted) cases vs 2/25 on the corpus nobody designed against. The corpus
 estimator; the opened-case oracle is a regression floor. Next-delta input is the auditor's
 50-case reason table (misstep miss histogram led by unresolved-pvalue-consumer 6 and
 hierarchical-gatekeeping-present 4). Envelope 12 is deferred until corpus recall justifies it.
+
+## Addendum, 2026-08-29: the 2.1-through-3.0 arc (envelopes 12-14, the record model, and the four-round audit)
+
+What the deltas and envelopes measured. Corpus-first development held its promise: 2.1 reached
+19/25 on the open corpus and stayed there through 2.2, 2.3, and 3.0 (byte-identity became the
+gate). Blind first contact ran 2/6, 3/6, 1/6 across envelopes 12-14. Every delta verifiably
+closed the prior envelope's walls (E14 had zero reader-lineage abstentions after 2.3 closed that
+wall) and the next envelope arrived with different ones. The lesson is now measured three times:
+recall grows only when a delta admits a structural FAMILY of author idioms; single-wall deltas
+move one case one wall with zero new catches (D14-A executed exactly that). The 3.0 record model
+is the family-level step; its executed retro is 25/30 over the five envelopes, earning zero
+promotion credit by rule.
+
+The E12-recon D4 lesson generalized. Inlining presentation helpers manufactured evidence in the
+E12 recon; the 3.0 audit found the same physics five more times (B1-B5): every false-accusation
+surface was an ADMISSION whose disqualifier list was narrower than the design clause. The safe
+direction is always the same: the conservative branch (abstain) conforms; recognition (AP folds,
+correction crediting) is its own design with its own oracle.
+
+Three audit rounds, one meta-bug. Rounds 1, 2, and 3 each found the fixture set covering the
+reported probe SHAPE while the auditor probed the design CLAUSE. Fixtures authored alongside an
+implementation inherit its blind spots; so do fixtures authored alongside a fix. Standing rules
+earned: (a) fixture expectations come from an independent oracle artifact deriving each row from
+the design clause, with implementation_output_used recorded false; (b) every oracle must contain
+at least one CANDIDATE positive control, or a refuse-everything fix passes it; (c) fix-round
+briefs demand clause-width fixtures, not probe-width.
+
+Prototype fidelity has a direction. A shadow model looser than the final implementation transfers
+none-flip results soundly (a stricter final cannot create candidates a looser shadow did not) and
+transfers positive movements NOT AT ALL. Both 3.0 review rounds turned on this. Rule: every
+pinned positive movement is re-demonstrated by the final strict implementation, and a final
+abstention on a pinned candidate is a stop in both directions.
+
+Operational rules that earned their place this arc: never run the validation suite while a
+builder is still editing manifest-covered sources (a mid-run hash flip produced a 533-failure
+false alarm that cost an audit pass); the auditor audits a git-archive clean tree, never the
+live working copy; macOS " 2" duplicate files recur after TCC incidents and are checked for
+before every commit sweep.
+
+Promotion arithmetic, honestly. The sealed window after E14 is 6/18. E15+E16 must contribute
+8/12 for promotion, against a sealed-window mean of 2/6 - a bet on the record model changing the
+arrival distribution, which the retro numbers support but do not prove. §15.4's rule stands:
+retrospection never buys blind credit.
