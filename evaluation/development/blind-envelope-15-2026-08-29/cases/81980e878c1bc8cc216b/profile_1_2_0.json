@@ -1,0 +1,24 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "data.csv",
+      "group_contrast_column": "exposure",
+      "outcome_columns": [
+        "mean_lifespan_d",
+        "total_brood_size_eggs",
+        "pumping_rate_pumps_per_min",
+        "thrashing_rate_bends_per_min",
+        "body_length_um",
+        "age_at_first_egg_h",
+        "defecation_interval_s",
+        "crawling_speed_um_per_s"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

@@ -1,0 +1,30 @@
+You are authoring one complete, self-contained small analysis project. Write it into the current working directory. The project has exactly three files at the top level: a data file named data.csv, a Python analysis script named analysis.py, and a short report named report.md. Do not create any other files, folders, or notebooks.
+
+SCENARIO
+
+A veterinary husbandry trial on ultraviolet lighting for captive bred juvenile bearded dragons. Forty juveniles of the same hatch cohort are the subjects, each housed in its own vivarium of identical size, diet and temperature gradient for twelve weeks. Twenty were kept under a compact fluorescent ultraviolet B lamp and twenty under a linear T5 high output ultraviolet B lamp, with lamps at the manufacturer's stated distance and replaced on schedule. Every animal was measured at the end of week twelve. The five outcome variables below were declared in the trial protocol, in this order, before the animals were allocated.
+
+Declared outcome family, in this fixed order:
+1. Plasma 25-hydroxyvitamin D3, in nanomoles per litre. T5 animals average roughly 155 and compact fluorescent animals roughly 98, with animal-to-animal spread of about 40.
+2. Plasma ionised calcium, in millimoles per litre. Roughly 1.52 and 1.44, spread about 0.10.
+3. Body mass gain over twelve weeks, in grams. Roughly 68 and 59, spread about 14.
+4. Snout to vent length gain over twelve weeks, in millimetres. Roughly 41 and 37, spread about 6.
+5. Radiographic humeral cortical thickness ratio, a unitless ratio of cortical to total bone width. Roughly 0.34 and 0.30, spread about 0.05.
+
+DATA FILE
+
+data.csv holds one row per animal and nothing else: no repeated rows, no summary rows, no blank cells. The columns, in this order, are an animal identifier, the lamp group, then one column per declared outcome in the declared family order. Column naming scheme: every column name is lower case with underscores; the identifier column is a short scenario-specific prefix followed by a zero-padded number; the group column is named for the lamp type and holds exactly two short text labels, one for each lamp; each outcome column name states the measured quantity and ends with its unit abbreviation, except the cortical thickness ratio, whose name simply states the quantity. Every animal has a value for every outcome.
+
+Invent realistic values consistent with the typical values and spreads given above, rounded the way a veterinary laboratory and a radiology workstation would round them. Keep the realistic mixed picture those numbers imply: two or three outcomes clearly separated between the lamp groups and the rest only slightly separated. data.csv is a fixed data file. analysis.py must read it and must never generate, simulate, or overwrite it.
+
+ANALYSIS
+
+analysis.py is a single Python script at the project root. It reads data.csv, reports the group sizes and the per-group summary values for each declared outcome, and compares the two lamp groups on each declared outcome with one appropriate two-sample significance test per outcome.
+
+The protocol fixed the per-outcome significance threshold at 0.01 in advance for this trial, and the script simply compares each of the five p-values to 0.01 and states the verdict for each outcome on that basis. The script does no correction arithmetic of any kind and contains no derivation of that threshold; 0.01 is the protocol threshold and the script treats it as given. No verdict is taken against any other level. The script prints its numbers and verdicts so a reader can follow them.
+
+REPORT
+
+report.md is short plain prose, a few hundred words. It includes a brief data description that lists every column with its meaning and unit and states what a single row represents; the design and the pre-declared outcome family of five outcomes in order; a plain statement of the multiplicity position, namely that with five declared outcomes and a family-wise error rate of 0.05 the Bonferroni corrected per-outcome level is 0.01, that the protocol fixed 0.01 in advance for exactly that reason, and that every verdict in this report was judged against 0.01; the per-outcome numbers and the per-outcome conclusion; and a closing statement of what the trial found about the two lamp types. The correction arithmetic appears in the report only, never in the script. Numbers in the report must match what the script produces.
+
+Do not refer to this prompt, to any evaluation, or to any auditing tool anywhere in the project.

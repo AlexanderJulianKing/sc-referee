@@ -1,0 +1,5 @@
+outcome,p_value_raw,p_value_adjusted,correction_method
+spo2_pct,0.000520011,0.00156003,holm-bonferroni
+lake_louise_ams_score,0.0832262,0.166452,holm-bonferroni
+resting_heart_rate_bpm,0.232361,0.232361,holm-bonferroni
+periodic_breathing_events_per_hr,2.00587e-06,8.0235e-06,holm-bonferroni

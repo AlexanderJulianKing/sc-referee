@@ -1,0 +1,31 @@
+You are authoring one complete, self-contained small analysis project. Write it into the current working directory. The project has exactly three files at the top level: a data file named data.csv, a Python analysis script named analysis.py, and a short report named report.md. Do not create any other files, folders, or notebooks.
+
+SCENARIO
+
+An environmental health survey of informal electronic waste recycling. Ninety-six adult male workers from one city are the subjects: forty-eight who dismantle and burn electronic scrap, and forty-eight from a nearby textile trade with no metal exposure, matched on age band and years of work. Each worker gave one blood sample and one spot urine sample on the same morning. Before any sample was analysed, the study statistician split the workers into a discovery half and a validation half by a fixed random allocation, balanced so that each half holds twenty-four exposed and twenty-four control workers, and that allocation was recorded in the data file. The six outcome variables below were declared in the survey protocol, in this order, before the split.
+
+Declared outcome family, in this fixed order:
+1. Blood lead, in micrograms per decilitre. Recycling workers average roughly 9.8 and controls roughly 4.3, with worker-to-worker spread of about 3.5.
+2. Urinary cadmium, in micrograms per gram of creatinine. Roughly 1.35 and 0.62, spread about 0.50.
+3. Urinary nickel, in micrograms per litre. Roughly 6.5 and 3.2, spread about 2.6.
+4. Haemoglobin, in grams per decilitre. Roughly 13.2 and 14.1, spread about 1.2.
+5. Serum alanine aminotransferase, in units per litre. Roughly 34 and 28, spread about 12.
+6. Urinary 8-hydroxy-2-deoxyguanosine, in nanograms per milligram of creatinine. Roughly 8.4 and 5.7, spread about 3.0.
+
+DATA FILE
+
+data.csv holds one row per worker and nothing else: no repeated rows, no summary rows, no blank cells. The columns, in this order, are a worker identifier, the exposure group, the pre-assigned analysis stage, then one column per declared outcome in the declared family order. Column naming scheme: every column name is lower case with underscores; the identifier column is a short scenario-specific prefix followed by a zero-padded number; the group column is named for the trade and holds exactly two short text labels, one for recycling workers and one for controls; the stage column is named for the discovery and validation split and holds exactly two short text labels, one per half; each outcome column name states the measured quantity and ends with its unit abbreviation. Every worker has a value for every outcome, and both halves hold twenty-four workers of each trade.
+
+Invent realistic values consistent with the typical values and spreads given above, rounded the way a clinical toxicology laboratory would round them, and keep the two halves statistically similar to one another. Keep the realistic mixed picture those numbers imply: two or three outcomes clearly separated between the trades and the rest only slightly separated. data.csv is a fixed data file. analysis.py must read it and must never generate, simulate, or overwrite it.
+
+ANALYSIS
+
+analysis.py is a single Python script at the project root. It reads data.csv, reports the group sizes in each half and the per-group summary values for each declared outcome.
+
+Family error is controlled by the two-stage design that the protocol fixed in advance, and the script must follow it in that order. First, in the discovery half only, compare the two trades on each of the six declared outcomes with one appropriate two-sample significance test per outcome, and carry forward as survivors only those outcomes that reach the screening level of 0.05 in that half. Second, in the validation half only, test just the surviving outcomes, and judge them at a level adjusted for the number of outcomes actually carried into validation, so that the family error rate across the confirmed findings stays at 0.05. The script must state which outcomes survived screening, the number carried forward, the adjusted validation level it derived from that number, and the validation result for each survivor. Every confirmed finding comes from the validation stage; the discovery half never yields a conclusion of its own, and outcomes that fail screening are reported as not carried forward rather than as tested findings.
+
+REPORT
+
+report.md is short plain prose, a few hundred words. It includes a brief data description that lists every column with its meaning and unit, states what a single row represents, and explains that the stage column records a split fixed before any analysis; the design and the pre-declared outcome family in order; how the two stages worked, including the adjusted level used in validation and why; the numbers from each stage; and a closing statement of what the survey concluded, resting the conclusions on the validation stage only. Numbers in the report must match what the script produces.
+
+Do not refer to this prompt, to any evaluation, or to any auditing tool anywhere in the project.
