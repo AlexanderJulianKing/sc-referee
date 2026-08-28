@@ -1305,6 +1305,36 @@ def _builder_record_names(
     return frozenset(names)
 
 
+def _builder_record_initial_fields(
+    builder: _RecordBuilder,
+    functions: Mapping[str, ast.FunctionDef],
+) -> Mapping[str, frozenset[str | int]]:
+    """Map each proved local record to fields created at its construction site."""
+
+    if builder.append is None or not builder.append.args:
+        return {}
+    result: dict[str, frozenset[str | int]] = {}
+    for node in ast.walk(builder.append.args[0]):
+        if not isinstance(node, ast.Name) or not isinstance(node.ctx, ast.Load):
+            continue
+        resolved = _resolve_record_expr(node, owner=builder.owner, functions=functions)
+        schema = _record_schema(resolved) if resolved is not None else None
+        if schema is not None and schema[1] == 1:
+            result[node.id] = frozenset(schema[0])
+    return result
+
+
+def _direct_record_field(node: ast.expr) -> tuple[str, str | int] | None:
+    """Return one direct local-record field access; nested paths remain unresolved."""
+
+    if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+        key = _literal_key(node.slice)
+        return (node.value.id, key) if key is not None else None
+    if isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name):
+        return node.value.id, node.attr
+    return None
+
+
 def _record_boundary_reason(
     tree: ast.Module,
     builders: Sequence[_RecordBuilder],
@@ -1316,6 +1346,7 @@ def _record_boundary_reason(
     calls = _calls_of(functions, tree)
     for builder in builders:
         record_names = _builder_record_names(builder, functions)
+        initial_fields = _builder_record_initial_fields(builder, functions)
         tracked_names = record_names | {builder.collection}
         if builder.append is not None:
             cursor: ast.AST | None = builder.append
@@ -1389,6 +1420,11 @@ def _record_boundary_reason(
                 key = _literal_key(target.slice)
                 if key is None:
                     return "record-family-mutation-unresolved"
+                if key in initial_fields.get(target.value.id, frozenset()):
+                    # The resolved literal/tuple constructor is the first reaching store even
+                    # when it lives in an expanded helper. Any later store to that field is the
+                    # duplicate reaching store refused by section 6.4.
+                    return "record-family-mutation-unresolved"
                 stores[(target.value.id, key)].append(node)
                 store_cursor: ast.AST = node
                 while (
@@ -1443,7 +1479,13 @@ def _record_boundary_reason(
             )
             if admitted_selector:
                 closed_fold_nodes.update(ast.walk(conditional))
-        consumers: list[tuple[tuple[int, int, int, int], ast.For | ast.ListComp | None]] = []
+        consumers: list[
+            tuple[
+                tuple[int, int, int, int],
+                ast.For | ast.ListComp | None,
+                tuple[str, str | int] | None,
+            ]
+        ] = []
         for node in ast.walk(builder.owner):
             is_record_field = (
                 isinstance(node, (ast.Subscript, ast.Attribute))
@@ -1464,19 +1506,41 @@ def _record_boundary_reason(
             statement = _enclosing_statement(node, parents)
             if statement is None:
                 continue
-            if isinstance(statement, (ast.Assign, ast.AnnAssign)) and any(
-                _root_name(target) in record_names
-                for target in (
+            loaded_field = _direct_record_field(cast(ast.expr, node)) if is_record_field else None
+            closed_field: tuple[str, str | int] | None = None
+            if isinstance(statement, (ast.Assign, ast.AnnAssign)) and statement.value is node:
+                targets = (
                     statement.targets if isinstance(statement, ast.Assign) else [statement.target]
                 )
-            ):
-                # A closed record-to-record field fold remains one construction operation; its
-                # value lattice is checked below. Only a consumer outside that store closes it.
-                continue
+                target_fields = tuple(
+                    field
+                    for target in targets
+                    if (field := _direct_record_field(target)) is not None
+                )
+                if (
+                    loaded_field is not None
+                    and loaded_field[0] in record_names
+                    and len(target_fields) == 1
+                    and target_fields[0][0] == loaded_field[0]
+                ):
+                    # Only an exact RHS field-to-field transport on the same proved record is
+                    # one closed construction fold. A comparison such as p -> significant is a
+                    # consumer and therefore closes the record to later stores.
+                    continue
+            elif isinstance(statement, (ast.Assign, ast.AnnAssign)):
+                targets = (
+                    statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+                )
+                if any(_direct_record_field(target) is not None for target in targets):
+                    # A p/flag load used to construct a different record field closes its loaded
+                    # field. Loads in standalone assignments, sinks, and other statements remain
+                    # record-wide consumers, as does every collection/table consumer.
+                    closed_field = loaded_field
             consumers.append(
                 (
                     _position(statement),
                     _enclosing_iteration(statement, parents, builder.owner),
+                    closed_field,
                 )
             )
         if builder.append is not None:
@@ -1486,6 +1550,7 @@ def _record_boundary_reason(
                     (
                         _position(statement),
                         _enclosing_iteration(statement, parents, builder.owner),
+                        None,
                     )
                 )
         for node in ast.walk(builder.owner):
@@ -1494,6 +1559,9 @@ def _record_boundary_reason(
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             store_roots = {
                 root for target in targets if (root := _root_name(target)) in tracked_names
+            }
+            store_fields = {
+                field for target in targets if (field := _direct_record_field(target)) is not None
             }
             if not store_roots:
                 continue
@@ -1515,7 +1583,8 @@ def _record_boundary_reason(
                     or not record_rebound
                     or consumer_iteration is store_iteration
                 )
-                for consumer_position, consumer_iteration in consumers
+                and (closed_field is None or closed_field in store_fields)
+                for consumer_position, consumer_iteration, closed_field in consumers
             ):
                 return "record-family-mutation-unresolved"
         if builder.wrapper_depth > 2:
