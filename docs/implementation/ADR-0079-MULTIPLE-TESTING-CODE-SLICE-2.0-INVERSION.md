@@ -135,3 +135,37 @@ The combined implementation retains the executed `0/25`, `0/36`, and `0/6` none-
 exact `2N` call count and P6's proper-subset manual factor remain deliberate residuals requiring
 separate evidence/wording and correction-policy review. The only opened row movements are E13 P5
 to `strict_subset {0,1}/7` and E13 P6/N1/N9 to their specified deeper abstention walls.
+
+## Record-model 3.0 amendment
+
+The accepted record-model design
+`docs/implementation/MULTITEST-CODE-SLICE-3.0-RECORD-MODEL-DESIGN-2026-08-28.md`, Revision 1b,
+has raw SHA-256 `e950b6015198c92e7f7f16d30f901be9f131c0145e96524a22df4e33ed6ec166`
+and advances only the development check, adapter, and detector to `3.0.0`. It adds one closed
+symbolic record graph for exact list-appended Dict/Tuple/R4 records, exact positional subsets, a
+minimal bounded DataFrame row table, and static table-selected dispatch between the two registered
+two-group APIs. D14-A adds only the exact singleton projection-binding cardinality normalization.
+
+The frozen family-member rule already requires one registered two-group test per authorized
+outcome; it does not require API uniformity. Version 3.0 therefore replaces the pre-3.0 uniformity
+guard with an exact one-call-per-position dispatch plan. Unresolved, input-derived, unregistered,
+double-call, or operand-inconsistent dispatch abstains. Evidence profile
+`code_csv_multiple_testing_evidence_v2` records the ordered API identity at every family position
+and its derived sorted set. Wording profile
+`method-conflict-finding:code-csv-complete-family-correction-requirement-conflict-v2` deletes the
+singular `TEST_API` slot and states only the proved per-position registered-call count. All other
+wording bytes and non-inferences are retained.
+
+Record, subset, and DataFrame admissions are transports, not correction or threshold recognizers.
+Whole-module registered-call, correction-terminal, statistics-prefix, dynamic-execution,
+API-rebinding, repeated-construct, and prevention censuses remain authoritative. Every unresolved
+p/record/table consumer abstains, and section 6.4's final implementation refuses any store after a
+p/flag/table field consumer. `mixed-test-api-family` is retired only in 3.0; its pre-3.0 uses are
+not comparable to the eight new closed record-model reasons. Zip write-back, proper-subset manual
+factors, and `p < ALPHA/K` correction coverage remain excluded.
+
+The Revision-1a shadow sweep is a build oracle, not a production dependency. Its admission may be
+looser than the final grammar, so none-flip evidence transfers to a stricter implementation but
+positive movements do not. Revision 1b consequently requires the final strict implementation to
+re-demonstrate E12 P5 and E14 P2/P4/P5; either a missing pinned candidate or a new candidate on a
+pinned noncandidate is a stop-and-report regression.

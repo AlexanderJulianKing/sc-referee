@@ -1,0 +1,89 @@
+{
+  "profile": "multitest-v3-audit-fix-r3-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-28",
+    "audit_identity": "MT 3.0 audit fix round 3 B5 and section-6.4 probe table",
+    "design_document": "docs/implementation/MULTITEST-CODE-SLICE-3.0-RECORD-MODEL-DESIGN-2026-08-28.md",
+    "design_revision": "1b",
+    "implementation_output_used": false
+  },
+  "rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_adj\"] = min(1.0, result[\"p_value\"] * len(OUTCOMES)); result[\"significant\"] = result[\"p_adj\"] < ALPHA",
+        "design_clause": "§6.5 — exact raw/adjusted field fold",
+        "design_text": "If a position could take both, neither, or an unresolved value, abstain record-family-lineage-unresolved."
+      },
+      "expected_candidate_records": 0,
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-cross-field-min-capped-bonferroni",
+      "fixture_source_sha256": "sha256:6ea443b24714fc35246bec5869c05cc00cbf17abd45e5c704d63e617f2118918"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_adjusted\"] = result[\"p_value\"] * 6; result[\"significant\"] = result[\"p_adjusted\"] < ALPHA",
+        "design_clause": "§6.5 — exact raw/adjusted field fold",
+        "design_text": "If a position could take both, neither, or an unresolved value, abstain record-family-lineage-unresolved."
+      },
+      "expected_candidate_records": 0,
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-cross-field-bare-multiply",
+      "fixture_source_sha256": "sha256:5698bf19971de8c91f3e1b97441109f7e4bf05a23e674d5a522db32524c4d724"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "helper return dict contains p_corrected = min(1.0, float(result.pvalue) * len(OUTCOMES)); verdict consumes p_corrected",
+        "design_clause": "§6.5 — exact raw/adjusted field fold",
+        "design_text": "For one POS, a p_used-like field may resolve only as one statically selected branch of AP(C, POS) or P(POS)."
+      },
+      "expected_candidate_records": 0,
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-helper-dict-literal-correction",
+      "fixture_source_sha256": "sha256:b8aa1803d89a2317d3d3c56adb8677c90c9dacd88cba73094206910b14044efe"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_bonferroni\"] = result[\"p_value\"] * len(OUTCOMES); result[\"p_used\"] = result[\"p_bonferroni\"]; verdict consumes p_used",
+        "design_clause": "§6.5 — exact raw/adjusted field fold",
+        "design_text": "If a position could take both, neither, or an unresolved value, abstain record-family-lineage-unresolved."
+      },
+      "expected_candidate_records": 0,
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-two-field-chained-correction",
+      "fixture_source_sha256": "sha256:147ca009248dddb14de1f27248a51d0327493f60056f5578d7d551386c0068b2"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"significant\"] = result[\"p_value\"] < ALPHA; result[\"p_adj\"] = min(1.0, result[\"p_value\"] * len(OUTCOMES))",
+        "design_clause": "§6.4 — post-consumer-store refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: any store after a p/flag/table consumer."
+      },
+      "expected_candidate_records": 0,
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-store-new-field-after-flag-fold",
+      "fixture_source_sha256": "sha256:c884fd022541175badb52f4c240a9fd897478a6f98efefe4471deed1613898ba"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "row[\"p_used\"] = row[\"p_raw\"] for the uncorrected positions; the corrected positions receive recognized multipletests output",
+        "design_clause": "§6.5 — exact raw/adjusted field fold positive control",
+        "design_text": "For one POS, a p_used-like field may resolve only as one statically selected branch of AP(C, POS) for POS in exact correction positions or P(POS) for every other POS."
+      },
+      "expected_authorized_count": 6,
+      "expected_candidate_records": 1,
+      "expected_corrected_positions": [
+        0,
+        1
+      ],
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "fixture_name": "positive-record-prefix-holm-strict-subset",
+      "fixture_source_sha256": "sha256:146d9101314b67a83f12a1d0a8c8bdb190a1d3908aa771a94a45246e03e793e4"
+    }
+  ]
+}

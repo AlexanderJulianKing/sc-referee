@@ -1,0 +1,86 @@
+{
+  "profile": "multitest-v3-audit-fix-r2-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-28",
+    "audit_identity": "MT 3.0 audit fix round 2 B3/B4 probe table",
+    "design_document": "docs/implementation/MULTITEST-CODE-SLICE-3.0-RECORD-MODEL-DESIGN-2026-08-28.md",
+    "design_revision": "1b",
+    "implementation_output_used": false
+  },
+  "rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"significant\"] = result[\"p_value\"] < ALPHA; result[\"p_value\"] = <anything>",
+        "design_clause": "§6.4 — post-consumer-store refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: any store after a p/flag/table consumer."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-store-after-flag-fold",
+      "fixture_source_sha256": "sha256:85cd11fca46fc49db13cf9f9b1a5be09826018676239bc60e7a06df6cdb347be"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_value\"] = min(1.0, result[\"p_value\"] * len(OUTCOMES))",
+        "design_clause": "§6.4 — duplicate-reaching-store refusal",
+        "design_quotes": [
+          {
+            "source_line": 522,
+            "text": "One reaching definition must exist for each final field and position."
+          },
+          {
+            "source_lines": "525-529",
+            "text": "The following refuse record-family-mutation-unresolved: duplicate reaching store."
+          }
+        ],
+        "design_text_paraphrase": "The record-construction field is the first reaching definition, so a later assignment to that field is the refused duplicate reaching store."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-inline-min-capped-bonferroni",
+      "fixture_source_sha256": "sha256:13650bb897978195fb32735d9a1d96fbcd53067675fa105dd369033aa27f515d"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_value\"] = result[\"p_value\"] * 6",
+        "design_clause": "§6.4 — duplicate-reaching-store refusal",
+        "design_quotes": [
+          {
+            "source_line": 522,
+            "text": "One reaching definition must exist for each final field and position."
+          },
+          {
+            "source_lines": "525-529",
+            "text": "The following refuse record-family-mutation-unresolved: duplicate reaching store."
+          }
+        ],
+        "design_text_paraphrase": "The record-construction field is the first reaching definition, so a later assignment to that field is the refused duplicate reaching store."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-inline-bare-multiply",
+      "fixture_source_sha256": "sha256:c93e433d2ff9e2f1f23efc098136d0875263435fb5aa1457d1ed7e7d65672917"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_value\"] = result[\"p_value\"] * len(OUTCOMES)",
+        "design_clause": "§6.4 — duplicate-reaching-store refusal",
+        "design_quotes": [
+          {
+            "source_line": 522,
+            "text": "One reaching definition must exist for each final field and position."
+          },
+          {
+            "source_lines": "525-529",
+            "text": "The following refuse record-family-mutation-unresolved: duplicate reaching store."
+          }
+        ],
+        "design_text_paraphrase": "The record-construction field is the first reaching definition, so a later assignment to that field is the refused duplicate reaching store."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-inline-len-multiply",
+      "fixture_source_sha256": "sha256:8e3e4ae0016316df4f3ce060c1396d225f413e75e0d714e5ce92c3633bafb810"
+    }
+  ]
+}

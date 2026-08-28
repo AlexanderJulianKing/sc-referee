@@ -38,3 +38,17 @@ The 2.3 audit (APPROVE-COMMIT, commits c251bcc + a33200c) carried two minors, bo
   gate; the rename to an "active-binding" name is deferred to the next audited build rather than
   applied post-audit by the custodian, because test-file renames touch suite collection.
 - m2: the 1.0 closed-set gate glob (documented above) remains as recorded.
+
+## 3.0 audit carry-forwards (2026-08-29)
+
+The 3.0 build cleared audit on round 4 (APPROVE-COMMIT at b5b04a4 + 143c3ec) after five
+false-accusation surfaces (B1-B5) were found by constructed probes and closed as narrowings.
+Two items carried for the record:
+
+- The §6.5 AP(C, POS) branch (recognizing an in-record hand correction as a COMPLETE correction)
+  is absent, not just deferred: every in-loop hand-correction shape abstains. Safe direction. A
+  future round that builds AP recognition reopens exactly the surface that produced B1, B4, and
+  B5 and must carry probe coverage at least as wide as this build's cumulative set.
+- Three round-3 oracle rows join §6.5 prose to its code block (the round-1 convention). A
+  stricter reading of the quote-vs-paraphrase split would mark them paraphrase; faithful either
+  way, recorded for the next oracle edit.
