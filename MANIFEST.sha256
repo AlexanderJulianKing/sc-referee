@@ -30947,6 +30947,8 @@ d3376525fa208c01b03efb7832d56ee2aa5ac939c299ceeeef35ed894ff6abb7  evaluation/dev
 962aec343e661eb7b0a88764522a0b2c4670b1a99b58f8aa097bc0671691c025  evaluation/development/multitest-code-slice-v3_0/audit-fix-r1-oracle/README.md
 c189f2bb59bb8e84a59016dbaca1fd8315963551053523743eb56060c8a4f111  evaluation/development/multitest-code-slice-v3_0/audit-fix-r2-oracle/EXPECTED_ROWS.json
 b219437722dd0c41150a74ac2233cc9f6284b9567e34b9f17dd291a7b262a9b3  evaluation/development/multitest-code-slice-v3_0/audit-fix-r2-oracle/README.md
+99a1a3d39f4956fbd95dc710ff3aa03496920ddf32e94c32ef5f5d2ec4365d2a  evaluation/development/multitest-code-slice-v3_0/audit-fix-r3-oracle/EXPECTED_ROWS.json
+9e40db8d2582d16eb929a3bd7e0b66be4569586aabeddc0aa4a51ba88ffc32ef  evaluation/development/multitest-code-slice-v3_0/audit-fix-r3-oracle/README.md
 ed1752e2d5421bea9d1fe0fcc3b1410281992550a4451cf69e76fb6bb6563d43  evaluation/development/multitest-code-slice-v3_0/prototype-sweep/MANIFEST.json
 1ac5d652908e108d4c38ecf44cb52fe60207d0cdfb07053e2e75cc322fab8aaf  evaluation/development/multitest-code-slice-v3_0/prototype-sweep/fixture_catalog.py
 6c707a7bc3b872b4e00a996b812e825af2953ecb3b50fb37792f7dd2e6d0364b  evaluation/development/multitest-code-slice-v3_0/prototype-sweep/fixtures/correct-d14-a-arithmetic-component-refused.py
