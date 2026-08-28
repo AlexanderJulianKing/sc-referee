@@ -55,6 +55,11 @@ _AUDIT_FIX_R2_ORACLE_PATH = Path(
 )
 _AUDIT_FIX_R2_ORACLE = json.loads(_AUDIT_FIX_R2_ORACLE_PATH.read_text(encoding="utf-8"))
 _AUDIT_FIX_R2_EXPECTED_ROWS = cast(list[dict[str, Any]], _AUDIT_FIX_R2_ORACLE["rows"])
+_AUDIT_FIX_R3_ORACLE_PATH = Path(
+    "evaluation/development/multitest-code-slice-v3_0/audit-fix-r3-oracle/EXPECTED_ROWS.json"
+)
+_AUDIT_FIX_R3_ORACLE = json.loads(_AUDIT_FIX_R3_ORACLE_PATH.read_text(encoding="utf-8"))
+_AUDIT_FIX_R3_EXPECTED_ROWS = cast(list[dict[str, Any]], _AUDIT_FIX_R3_ORACLE["rows"])
 _AUDIT_FIX_R1_SOURCES = (
     {
         "name": "correct-record-p-field-hand-bonferroni-augassign",
@@ -180,6 +185,43 @@ _AUDIT_FIX_R2_SOURCES = (
         '        result["significant"] = result["p_value"] < ALPHA\n',
     },
 )
+_AUDIT_FIX_R3_SOURCES = (
+    {
+        "name": "correct-record-cross-field-min-capped-bonferroni",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["p_adj"] = min(\n'
+        '            1.0, result["p_value"] * len(OUTCOMES)\n'
+        "        )\n"
+        '        result["significant"] = result["p_adj"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-cross-field-bare-multiply",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["p_adjusted"] = result["p_value"] * 6\n'
+        '        result["significant"] = result["p_adjusted"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-helper-dict-literal-correction",
+        "anchor": '        "p_value": float(result.pvalue),\n',
+        "replacement": '        "p_value": float(result.pvalue),\n'
+        '        "p_corrected": min(1.0, float(result.pvalue) * len(OUTCOMES)),\n',
+        "anchor_2": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement_2": '        result["significant"] = result["p_corrected"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-two-field-chained-correction",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["p_bonferroni"] = result["p_value"] * len(OUTCOMES)\n'
+        '        result["p_used"] = result["p_bonferroni"]\n'
+        '        result["significant"] = result["p_used"] < ALPHA\n',
+    },
+    {
+        "name": "correct-record-store-new-field-after-flag-fold",
+        "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+        "replacement": '        result["significant"] = result["p_value"] < ALPHA\n'
+        '        result["p_adj"] = min(1.0, result["p_value"] * len(OUTCOMES))\n',
+    },
+)
 
 
 class _PresentationTextMutation(ast.NodeTransformer):
@@ -222,7 +264,11 @@ def _audit_fixture_source(
     )
     source = (_ROOT / base["source_path"]).read_text(encoding="utf-8")
     assert source.count(row["anchor"]) == 1, fixture_name
-    return cast(str, base["case_key"]), source.replace(row["anchor"], row["replacement"]).encode()
+    source = source.replace(row["anchor"], row["replacement"])
+    if "anchor_2" in row:
+        assert source.count(row["anchor_2"]) == 1, fixture_name
+        source = source.replace(row["anchor_2"], row["replacement_2"])
+    return cast(str, base["case_key"]), source.encode()
 
 
 def _audit_fix_r1_source(fixture_name: str) -> tuple[str, bytes]:
@@ -231,6 +277,13 @@ def _audit_fix_r1_source(fixture_name: str) -> tuple[str, bytes]:
 
 def _audit_fix_r2_source(fixture_name: str) -> tuple[str, bytes]:
     return _audit_fixture_source(fixture_name, _AUDIT_FIX_R2_SOURCES)
+
+
+def _audit_fix_r3_source(fixture_name: str) -> tuple[str, bytes]:
+    if fixture_name == "positive-record-prefix-holm-strict-subset":
+        row = next(item for item in _RESULTS["fixtures"] if item["name"] == fixture_name)
+        return cast(str, row["case_key"]), (_ROOT / row["source_path"]).read_bytes()
+    return _audit_fixture_source(fixture_name, _AUDIT_FIX_R3_SOURCES)
 
 
 def _adapter_case(case: Any, source: bytes) -> dict[str, Any]:
@@ -424,6 +477,99 @@ def test_all_4_audit_fix_round_2_refusals_execute_through_real_adapter(
         assert actual["finding_count"] == 0, row["fixture_name"]
 
 
+def _audit_expected_analyzer_row(row: dict[str, Any]) -> list[object]:
+    expected: list[object] = [row["expected_outcome"], row["expected_reason"]]
+    if row["expected_outcome"] in {"candidate", "covered"}:
+        expected.append(
+            {
+                "authorized_count": row["expected_authorized_count"],
+                "corrected_positions": row["expected_corrected_positions"],
+            }
+        )
+    return expected
+
+
+@pytest.mark.parametrize(
+    "row",
+    _AUDIT_FIX_R3_EXPECTED_ROWS,
+    ids=lambda row: row["fixture_name"],
+)
+def test_all_6_audit_fix_round_3_rows_execute(row: dict[str, Any]) -> None:
+    case_key, source = _audit_fix_r3_source(row["fixture_name"])
+    assert f"sha256:{hashlib.sha256(source).hexdigest()}" == row["fixture_source_sha256"]
+    assert _run(case_key, source) == _audit_expected_analyzer_row(row)
+
+
+@pytest.mark.parametrize(
+    "field_name",
+    ("p_adj", "p_adjusted", "p_corrected", "p_bonferroni", "p_used", "adjusted_p", "p"),
+)
+@pytest.mark.parametrize(
+    "expression",
+    (
+        'min(1.0, result["p_value"] * len(OUTCOMES))',
+        'result["p_value"] * 6',
+        'result["p_value"] * len(OUTCOMES)',
+        'len(OUTCOMES) * result["p_value"]',
+        'result["p_value"] / (1 / len(OUTCOMES))',
+        'result["p_value"] + result["p_value"]',
+        'max(result["p_value"], 0.0)',
+        'float(result["p_value"])',
+        'round(result["p_value"], 4)',
+    ),
+)
+def test_all_b5_cross_field_spellings_and_expression_forms_fail_closed(
+    field_name: str,
+    expression: str,
+) -> None:
+    oracle = next(
+        row
+        for row in _AUDIT_FIX_R3_EXPECTED_ROWS
+        if row["fixture_name"] == "correct-record-cross-field-min-capped-bonferroni"
+    )
+    recipe = (
+        {
+            "name": "b5-variant",
+            "anchor": '        result["significant"] = result["p_value"] < ALPHA\n',
+            "replacement": f'        result["{field_name}"] = {expression}\n'
+            f'        result["significant"] = result["{field_name}"] < ALPHA\n',
+        },
+    )
+    case_key, source = _audit_fixture_source("b5-variant", recipe)
+    assert _run(case_key, source) == [oracle["expected_outcome"], oracle["expected_reason"]]
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r3_adapter_rows() -> dict[str, dict[str, Any]]:
+    observed: dict[str, dict[str, Any]] = {}
+    for row in _AUDIT_FIX_R3_EXPECTED_ROWS:
+        case_key, source = _audit_fix_r3_source(row["fixture_name"])
+        assert f"sha256:{hashlib.sha256(source).hexdigest()}" == row["fixture_source_sha256"]
+        observed[row["fixture_name"]] = _adapter_case(_CASES[case_key], source)
+    return observed
+
+
+def test_all_6_audit_fix_round_3_rows_execute_through_real_adapter(
+    audit_fix_r3_adapter_rows: dict[str, dict[str, Any]],
+) -> None:
+    assert len(_AUDIT_FIX_R3_EXPECTED_ROWS) == 6
+    for row in _AUDIT_FIX_R3_EXPECTED_ROWS:
+        actual = audit_fix_r3_adapter_rows[row["fixture_name"]]
+        assert actual["outcome"] == [
+            row["expected_outcome"],
+            row["expected_reason"],
+        ], row["fixture_name"]
+        assert actual["candidate_records"] == row["expected_candidate_records"], row["fixture_name"]
+        assert actual["finding_count"] == 0, row["fixture_name"]
+        if row["expected_outcome"] in {"candidate", "covered"}:
+            assert actual["corrected_positions"] == row["expected_corrected_positions"], row[
+                "fixture_name"
+            ]
+            assert actual["authorized_count"] == row["expected_authorized_count"], row[
+                "fixture_name"
+            ]
+
+
 def test_existing_direct_record_field_transport_remains_a_positive_control(
     fixture_adapter_rows: dict[str, dict[str, Any]],
 ) -> None:
@@ -446,7 +592,7 @@ def test_existing_direct_record_field_transport_remains_a_positive_control(
     assert fixture_adapter_rows[row["name"]]["finding_count"] == 0
 
 
-def test_fixture_matrix_names_all_66_fixtures_and_recounts_correct_analyses() -> None:
+def test_fixture_matrix_names_all_71_fixtures_and_recounts_correct_analyses() -> None:
     matrix = json.loads(
         Path("evaluation/development/multitest-code-slice-v3/FIXTURE_MATRIX.json").read_text(
             encoding="utf-8"
@@ -455,16 +601,29 @@ def test_fixture_matrix_names_all_66_fixtures_and_recounts_correct_analyses() ->
     old_names = [row["name"] for row in _RESULTS["fixtures"]]
     round_1_names = [row["fixture_name"] for row in _AUDIT_FIX_R1_EXPECTED_ROWS]
     round_2_names = [row["fixture_name"] for row in _AUDIT_FIX_R2_EXPECTED_ROWS]
+    round_3_new_names = [row["name"] for row in _AUDIT_FIX_R3_SOURCES]
     assert [row["name"] for row in _AUDIT_FIX_R1_SOURCES] == round_1_names
     assert [row["name"] for row in _AUDIT_FIX_R2_SOURCES] == round_2_names
-    expected_rows = [*_AUDIT_FIX_R1_EXPECTED_ROWS, *_AUDIT_FIX_R2_EXPECTED_ROWS]
-    assert {row["expected_outcome"] for row in expected_rows} == {"abstain"}
+    assert [
+        row["fixture_name"]
+        for row in _AUDIT_FIX_R3_EXPECTED_ROWS
+        if row["expected_outcome"] == "abstain"
+    ] == round_3_new_names
+    expected_rows = [
+        *_AUDIT_FIX_R1_EXPECTED_ROWS,
+        *_AUDIT_FIX_R2_EXPECTED_ROWS,
+        *_AUDIT_FIX_R3_EXPECTED_ROWS,
+    ]
     for row in expected_rows:
         derivation = row["derivation"]
-        assert derivation["design_clause"].startswith(("§4.1", "§6.4"))
-        assert derivation["design_text"]
+        assert derivation["design_clause"].startswith(("§4.1", "§6.4", "§6.5"))
+        direct_text = derivation.get("design_text")
+        paraphrase = derivation.get("design_text_paraphrase")
+        assert bool(direct_text) != bool(paraphrase)
+        if paraphrase:
+            assert len(derivation["design_quotes"]) >= 2
         assert derivation["audit_probe_shape"]
-    assert matrix["fixture_names"] == old_names + round_1_names + round_2_names
+    assert matrix["fixture_names"] == old_names + round_1_names + round_2_names + round_3_new_names
     assert matrix["audit_fix_round_1_expected_rows_source"] == {
         "path": str(_AUDIT_FIX_R1_ORACLE_PATH),
         "sha256": f"sha256:{hashlib.sha256(_AUDIT_FIX_R1_ORACLE_PATH.read_bytes()).hexdigest()}",
@@ -473,14 +632,22 @@ def test_fixture_matrix_names_all_66_fixtures_and_recounts_correct_analyses() ->
         "path": str(_AUDIT_FIX_R2_ORACLE_PATH),
         "sha256": f"sha256:{hashlib.sha256(_AUDIT_FIX_R2_ORACLE_PATH.read_bytes()).hexdigest()}",
     }
+    assert matrix["audit_fix_round_3_expected_rows_source"] == {
+        "path": str(_AUDIT_FIX_R3_ORACLE_PATH),
+        "sha256": f"sha256:{hashlib.sha256(_AUDIT_FIX_R3_ORACLE_PATH.read_bytes()).hexdigest()}",
+    }
     assert _AUDIT_FIX_R1_ORACLE["provenance"]["implementation_output_used"] is False
     assert _AUDIT_FIX_R1_ORACLE["provenance"]["design_revision"] == "1b"
     assert _AUDIT_FIX_R2_ORACLE["provenance"]["implementation_output_used"] is False
     assert _AUDIT_FIX_R2_ORACLE["provenance"]["design_revision"] == "1b"
+    assert _AUDIT_FIX_R3_ORACLE["provenance"]["implementation_output_used"] is False
+    assert _AUDIT_FIX_R3_ORACLE["provenance"]["design_revision"] == "1b"
     assert matrix["audit_fix_round_1_fixture_count"] == 14
     assert matrix["audit_fix_round_2_fixture_count"] == 4
-    assert matrix["fixture_count"] == 66
-    assert matrix["correct_fixture_count"] == 57
+    assert matrix["audit_fix_round_3_fixture_count"] == 5
+    assert matrix["audit_fix_round_3_positive_control_count"] == 1
+    assert matrix["fixture_count"] == 71
+    assert matrix["correct_fixture_count"] == 62
     assert matrix["positive_control_count"] == 9
 
 

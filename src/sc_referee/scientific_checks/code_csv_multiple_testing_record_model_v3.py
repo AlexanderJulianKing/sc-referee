@@ -1335,6 +1335,43 @@ def _direct_record_field(node: ast.expr) -> tuple[str, str | int] | None:
     return None
 
 
+def _record_decision_fold(node: ast.expr) -> bool:
+    """Return whether one field value has the closed section-6.5 decision wrapper shape."""
+
+    if isinstance(node, ast.Compare):
+        return True
+    if isinstance(node, ast.IfExp):
+        return _record_decision_fold(node.body) and _record_decision_fold(node.orelse)
+    return bool(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "bool"
+        and len(node.args) == 1
+        and not node.keywords
+        and isinstance(node.args[0], ast.Compare)
+    )
+
+
+def _unresolved_record_p_call(node: ast.expr, resolver: Any) -> bool:
+    """Return whether a p-derived field expression crosses an unresolved call."""
+
+    for item in ast.walk(node):
+        if not isinstance(item, ast.Call):
+            continue
+        api = resolver.qualified(item.func)
+        local = item.func.id if isinstance(item.func, ast.Name) else None
+        if api in _CORRECTION_APIS | _REGISTERED_APIS or local in {
+            "bool",
+            "float",
+            "len",
+            "max",
+            "min",
+        }:
+            continue
+        return True
+    return False
+
+
 def _record_boundary_reason(
     tree: ast.Module,
     builders: Sequence[_RecordBuilder],
@@ -1344,6 +1381,7 @@ def _record_boundary_reason(
     parents = _parents(tree)
     functions = _functions(tree)
     calls = _calls_of(functions, tree)
+    p_names, p_keys = _p_lineage(tree, resolver)
     for builder in builders:
         record_names = _builder_record_names(builder, functions)
         initial_fields = _builder_record_initial_fields(builder, functions)
@@ -1408,8 +1446,11 @@ def _record_boundary_reason(
             and len(calls.get(builder.owner.name, ())) != 1
         ):
             return "helper-call-site-reentry-unsupported"
-        # Dynamic/unconditional stores and duplicate reaching stores are refused.
+        # Dynamic/unconditional stores and duplicate reaching stores are refused. A same-record
+        # cross-field p transport remains closed only when the RHS is the bare source-field load;
+        # all derived transports are retained for the ordered section-6.4/6.5 decision below.
         stores: dict[tuple[str, str | int], list[ast.Assign | ast.AnnAssign]] = defaultdict(list)
+        derived_cross_field_stores: set[ast.Assign | ast.AnnAssign] = set()
         for node in ast.walk(builder.owner):
             if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
                 continue
@@ -1426,6 +1467,28 @@ def _record_boundary_reason(
                     # duplicate reaching store refused by section 6.4.
                     return "record-family-mutation-unresolved"
                 stores[(target.value.id, key)].append(node)
+                loaded_fields = tuple(
+                    field
+                    for item in ast.walk(node.value)
+                    if isinstance(item, (ast.Subscript, ast.Attribute))
+                    and isinstance(item.ctx, ast.Load)
+                    and (field := _direct_record_field(cast(ast.expr, item))) is not None
+                    and field[0] == target.value.id
+                    and field[1] in p_keys
+                )
+                direct_source = _direct_record_field(node.value)
+                bare_transport = bool(
+                    len(targets) == 1
+                    and direct_source is not None
+                    and direct_source[0] == target.value.id
+                    and direct_source[1] != key
+                )
+                if loaded_fields and not bare_transport and not _record_decision_fold(node.value):
+                    # An unresolved external transformer is already a section-6.5 lineage failure;
+                    # preserve that first reason even when the store follows a decision consumer.
+                    if _unresolved_record_p_call(node.value, resolver):
+                        return "record-family-lineage-unresolved"
+                    derived_cross_field_stores.add(node)
                 store_cursor: ast.AST = node
                 while (
                     parent := parents.get(store_cursor)
@@ -1462,6 +1525,32 @@ def _record_boundary_reason(
                 left & right for index, left in enumerate(proved) for right in proved[index + 1 :]
             ):
                 return "correction-family-lineage-unresolved"
+
+        # A record constructor is a reaching definition too. Direct p projections and the exact
+        # float wrapper remain eligible; arithmetic/min/max over a p origin in a helper-return
+        # Dict is an unresolved adjusted lineage, never raw-p evidence.
+        constructors = [builder.record]
+        for record_name in sorted(record_names):
+            resolved_record = _resolve_record_expr(
+                ast.Name(id=record_name, ctx=ast.Load()),
+                owner=builder.owner,
+                functions=functions,
+            )
+            if resolved_record is not None:
+                constructors.append(resolved_record)
+        constructor_members = tuple(
+            member
+            for constructor in constructors
+            for member in (
+                tuple(constructor.values)
+                if isinstance(constructor, ast.Dict)
+                else tuple(constructor.elts)
+                if isinstance(constructor, ast.Tuple)
+                else ()
+            )
+        )
+        if any(_manual_p_transform(member, p_names, p_keys) for member in constructor_members):
+            return "record-family-lineage-unresolved"
         # Section 6.4 is intentionally stricter than the executed shadow: within one proved
         # record-binding phase, any p/flag/table consumer closes the record to every later store.
         # The statement boundary matters: a p load on the RHS of the admitted store is evaluated
@@ -1479,13 +1568,7 @@ def _record_boundary_reason(
             )
             if admitted_selector:
                 closed_fold_nodes.update(ast.walk(conditional))
-        consumers: list[
-            tuple[
-                tuple[int, int, int, int],
-                ast.For | ast.ListComp | None,
-                tuple[str, str | int] | None,
-            ]
-        ] = []
+        consumers: list[tuple[tuple[int, int, int, int], ast.For | ast.ListComp | None]] = []
         for node in ast.walk(builder.owner):
             is_record_field = (
                 isinstance(node, (ast.Subscript, ast.Attribute))
@@ -1507,7 +1590,6 @@ def _record_boundary_reason(
             if statement is None:
                 continue
             loaded_field = _direct_record_field(cast(ast.expr, node)) if is_record_field else None
-            closed_field: tuple[str, str | int] | None = None
             if isinstance(statement, (ast.Assign, ast.AnnAssign)) and statement.value is node:
                 targets = (
                     statement.targets if isinstance(statement, ast.Assign) else [statement.target]
@@ -1522,25 +1604,16 @@ def _record_boundary_reason(
                     and loaded_field[0] in record_names
                     and len(target_fields) == 1
                     and target_fields[0][0] == loaded_field[0]
+                    and target_fields[0][1] != loaded_field[1]
                 ):
                     # Only an exact RHS field-to-field transport on the same proved record is
                     # one closed construction fold. A comparison such as p -> significant is a
                     # consumer and therefore closes the record to later stores.
                     continue
-            elif isinstance(statement, (ast.Assign, ast.AnnAssign)):
-                targets = (
-                    statement.targets if isinstance(statement, ast.Assign) else [statement.target]
-                )
-                if any(_direct_record_field(target) is not None for target in targets):
-                    # A p/flag load used to construct a different record field closes its loaded
-                    # field. Loads in standalone assignments, sinks, and other statements remain
-                    # record-wide consumers, as does every collection/table consumer.
-                    closed_field = loaded_field
             consumers.append(
                 (
                     _position(statement),
                     _enclosing_iteration(statement, parents, builder.owner),
-                    closed_field,
                 )
             )
         if builder.append is not None:
@@ -1550,18 +1623,22 @@ def _record_boundary_reason(
                     (
                         _position(statement),
                         _enclosing_iteration(statement, parents, builder.owner),
-                        None,
                     )
                 )
-        for node in ast.walk(builder.owner):
+        assignments = sorted(
+            (
+                node
+                for node in ast.walk(builder.owner)
+                if isinstance(node, (ast.Assign, ast.AnnAssign))
+            ),
+            key=_position,
+        )
+        for node in assignments:
             if not isinstance(node, (ast.Assign, ast.AnnAssign)):
                 continue
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
             store_roots = {
                 root for target in targets if (root := _root_name(target)) in tracked_names
-            }
-            store_fields = {
-                field for target in targets if (field := _direct_record_field(target)) is not None
             }
             if not store_roots:
                 continue
@@ -1576,17 +1653,19 @@ def _record_boundary_reason(
                 else frozenset()
             )
             record_rebound = bool(store_roots & record_names & iteration_targets)
-            if any(
+            has_prior_consumer = any(
                 consumer_position < store_position
                 and (
                     builder.collection in store_roots
                     or not record_rebound
                     or consumer_iteration is store_iteration
                 )
-                and (closed_field is None or closed_field in store_fields)
-                for consumer_position, consumer_iteration, closed_field in consumers
-            ):
+                for consumer_position, consumer_iteration in consumers
+            )
+            if has_prior_consumer:
                 return "record-family-mutation-unresolved"
+            if node in derived_cross_field_stores:
+                return "record-family-lineage-unresolved"
         if builder.wrapper_depth > 2:
             return "record-family-lineage-unresolved"
         if len(builder.schema) != len(set(builder.schema)):
