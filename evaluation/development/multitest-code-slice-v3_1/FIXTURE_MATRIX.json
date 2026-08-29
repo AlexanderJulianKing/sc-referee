@@ -1,0 +1,137 @@
+{
+  "schema": "multiple-testing-scope-question-fixture-matrix-v1",
+  "design_revision": "Revision 1a",
+  "implementation_output_used": false,
+  "derivation": "Expected rows are transcribed from design sections 4, 11, 12.1, and 15.2. Source digests bind the independently checked-in fixture bytes.",
+  "outcome_columns": ["m1", "m2", "m3", "m4", "m5"],
+  "rows": [
+    {
+      "name": "question-default-multipletests-unresolved",
+      "source_path": "question-fixtures/question_default_multipletests_unresolved.py",
+      "source_sha256": "sha256:116b74a870bce2c89e2cf970d9043d578bee6f16ba2969fa17ec38bc9ffabf7f",
+      "reason": "correction-family-lineage-unresolved",
+      "expected_witness_kind": "registered-correction-call",
+      "design_clause": "4.2"
+    },
+    {
+      "name": "question-off-registry-multicomp",
+      "source_path": "question-fixtures/question_off_registry_multicomp.py",
+      "source_sha256": "sha256:68db9b20e12ff6415716ea0dc8d21bca6523d3283a5117454b01a28f7408d38c",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": "closed-terminal-correction-call",
+      "design_clause": "4.3"
+    },
+    {
+      "name": "question-hand-sidak-threshold",
+      "source_path": "question-fixtures/question_hand_sidak_threshold.py",
+      "source_sha256": "sha256:13c49d18721be4a1d5e09148de8170a91701ad86abd429f83d3bf240e9b4ae4b",
+      "reason": "unresolved-decision-threshold",
+      "expected_witness_kind": "manual-decision-threshold-arithmetic",
+      "design_clause": "4.5"
+    },
+    {
+      "name": "question-hand-bonferroni-p-multiply",
+      "source_path": "question-fixtures/question_hand_bonferroni_p_multiply.py",
+      "source_sha256": "sha256:e06851b223927e5c1b84a99439fc400c570263381a85245c1eecec7a59e5d371",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": "manual-adjusted-p-arithmetic",
+      "design_clause": "4.4"
+    },
+    {
+      "name": "question-record-partial-correction-store",
+      "source_path": "question-fixtures/question_record_partial_correction_store.py",
+      "source_sha256": "sha256:dc10c5ba32f6ed0f61fd52f83751b78d70a77efdd2fb076756cf249c051f5592",
+      "reason": "record-family-mutation-unresolved",
+      "expected_witness_kind": "record-correction-store",
+      "design_clause": "4.6"
+    },
+    {
+      "name": "question-record-cross-field-correction",
+      "source_path": "question-fixtures/question_record_cross_field_correction.py",
+      "source_sha256": "sha256:3bd27acac662ffbf3b03c71fdbae95aee631a97911fb98db63f21be5080a2feb",
+      "reason": "record-family-lineage-unresolved",
+      "expected_witness_kind": "record-correction-store",
+      "design_clause": "4.6"
+    },
+    {
+      "name": "no-question-e15-p3-summary-len",
+      "source_path": "../blind-envelope-15-2026-08-29/cases/afe47b2a7ea87ed21a69/project/analysis.py",
+      "source_sha256": "sha256:db2fbe393c5fda392ba8f13ef1a5176549194559c3fd104737331e72471eba4a",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": null,
+      "design_clause": "11.3"
+    },
+    {
+      "name": "no-question-generic-record-update",
+      "source_path": "question-fixtures/no_question_generic_record_update.py",
+      "source_sha256": "sha256:174f0f95064a4081d84cdd1cdc7eca662e2f19ad2f6154a79a42e2303ebaa36c",
+      "reason": "record-family-mutation-unresolved",
+      "expected_witness_kind": null,
+      "design_clause": "4.6"
+    },
+    {
+      "name": "no-question-bare-001-threshold",
+      "source_path": "question-fixtures/no_question_bare_001_threshold.py",
+      "source_sha256": "sha256:277918986a85d4feb76b59050f3158a3ae6c37c81904d03d3fc36e13aa03a85b",
+      "reason": "unresolved-decision-threshold",
+      "expected_witness_kind": null,
+      "design_clause": "4.5"
+    },
+    {
+      "name": "no-question-computed-call-threshold",
+      "source_path": "question-fixtures/no_question_computed_call_threshold.py",
+      "source_sha256": "sha256:86eebf266960dc0986accb8b828465112053587544d42d60aff58c9dc40a8207",
+      "reason": "unresolved-decision-threshold",
+      "expected_witness_kind": null,
+      "design_clause": "4.5"
+    },
+    {
+      "name": "no-question-file-loaded-adjusted-p",
+      "source_path": "question-fixtures/no_question_file_loaded_adjusted_p.py",
+      "source_sha256": "sha256:fea78c400958871efb2dcb8a798c06b509b9e8353f184e0a00cf6d7857573da9",
+      "reason": "upstream-correction-lineage-unresolved",
+      "expected_witness_kind": null,
+      "design_clause": "11.9"
+    },
+    {
+      "name": "no-question-unresolved-imported-correction-helper",
+      "source_path": "question-fixtures/no_question_unresolved_imported_correction_helper.py",
+      "source_sha256": "sha256:5ddd0479d01bdc2add2e2459da36b4d73f487c4d28d5a07216ded13d853b278a",
+      "reason": "unresolved-pvalue-consumer",
+      "expected_witness_kind": null,
+      "design_clause": "11.9"
+    },
+    {
+      "name": "no-question-unused-correction-import",
+      "source_path": "question-fixtures/no_question_unused_correction_import.py",
+      "source_sha256": "sha256:2a16f3ffb79edf554a0f5c4d556e037b76b705091466027c8b74dbb7cd447f42",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": null,
+      "design_clause": "11.2"
+    },
+    {
+      "name": "no-question-noncallee-correction-renames",
+      "source_path": "question-fixtures/no_question_noncallee_correction_renames.py",
+      "source_sha256": "sha256:995ed42abc780e7d055b529f802b566bd1bf886cc856b7041d39755294d021a6",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": null,
+      "design_clause": "11.2"
+    },
+    {
+      "name": "no-question-report-correction-prose",
+      "source_path": "question-fixtures/no_question_report_correction_prose.py",
+      "source_sha256": "sha256:b5722c1d2282d752157054e9e36baf076d9872f0451781f6a04883dbb585d7b4",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": null,
+      "design_clause": "11.2"
+    },
+    {
+      "name": "no-question-two-distinct-correction-occurrences",
+      "source_path": "question-fixtures/no_question_two_distinct_correction_occurrences.py",
+      "source_sha256": "sha256:1dea7b3b8f7b7769e1b1c70915082a29d9ea3d0d1b792b41b12c66de629840ee",
+      "reason": "unresolved-manual-correction-present",
+      "expected_witness_kind": null,
+      "design_clause": "4.7"
+    }
+  ]
+}

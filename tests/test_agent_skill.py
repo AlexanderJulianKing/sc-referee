@@ -84,6 +84,25 @@ def test_repository_skill_preserves_epistemic_and_execution_boundaries(
     assert "cannot select that option for the scientist" in typed_interaction
 
 
+def test_agentic_skill_documents_the_asymmetric_correction_scope_flow(
+    project_root: Path,
+) -> None:
+    guide = (project_root / "docs" / "AGENTIC_SKILL.md").read_text(encoding="utf-8")
+    for required in (
+        "multiple_testing_correction_scope",
+        "--attestations <external-answer.json>",
+        "without suggesting one",
+        "never answers on the author's behalf",
+        "Never infer a choice from code, comments, reports",
+        "exact correction source span",
+        "leaves the question open",
+        "Author attestations are reported separately from tool Findings.",
+        "A completeness attestation was used only to guide structural verification.",
+        "Findings, ConditionalConcerns, MaterialQuestions, Answers, and Disclosures separately",
+    ):
+        assert required in guide
+
+
 def test_method_contract_skill_is_separate_claimless_and_human_authorized(
     project_root: Path,
 ) -> None:

@@ -704,6 +704,16 @@ def audit(
             "matching analysis-scoped scientific-check question."
         ),
     ),
+    attestations: Path | None = typer.Option(
+        None,
+        "--attestations",
+        exists=True,
+        dir_okay=False,
+        help=(
+            "External digest-bound multiple-testing correction-scope attestations file; "
+            "development lane only."
+        ),
+    ),
     material_input: list[str] | None = typer.Option(
         None,
         "--material-input",
@@ -738,17 +748,19 @@ def audit(
             mode=active_mode,
             deadline=active_deadline,
             method_contract_lock=method_contract_lock,
+            attestations=attestations,
             material_inputs=tuple(material_input or ()),
             scientific_check_lane="development" if development_lane else "qualified",
         )
     except (FileExistsError, ValueError) as error:
         raise typer.BadParameter(str(error)) from error
     coverage_status = bundle["coverage_records"][0]["overall_status"]
+    answer_summary = f", {len(bundle['answers'])} answer(s)" if bundle["answers"] else ""
     typer.echo(
         f"Wrote {output} ({coverage_status}): {len(bundle['findings'])} finding(s), "
         f"{len(bundle['conditional_concerns'])} conditional concern(s), "
-        f"{len(bundle['material_questions'])} question(s), "
-        f"{len(bundle['disclosures'])} disclosure(s)"
+        f"{len(bundle['material_questions'])} question(s)"
+        f"{answer_summary}, {len(bundle['disclosures'])} disclosure(s)"
     )
 
 

@@ -273,6 +273,8 @@ def test_opened_envelope_adapter_oracle_and_replay(
         item
         for item in bundle["detector_results"]
         if item["detector_id"] == "detector:bounded-code-csv-multiple-testing-conflict"
+        and item.get("extensions", {}).get("x-question-purpose")
+        != "multiple_testing_correction_scope"
     ]
     observation = module["observations"][0]
     if expected.startswith("candidate:"):

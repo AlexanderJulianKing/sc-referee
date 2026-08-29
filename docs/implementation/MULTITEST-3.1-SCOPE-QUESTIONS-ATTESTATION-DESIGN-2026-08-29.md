@@ -1,6 +1,6 @@
 # Multiple-testing 3.1 correction-scope questions and asymmetric attestation design — 2026-08-29
 
-**Status:** proposed build-ready design, Revision 0  
+**Status:** approved build design, Revision 1a
 **Target:** detector/check/adapter `3.1.0`, development lane only  
 **Predecessor:** multiple-testing record-model slice `3.0.0`  
 **Authority:** accepted schema package `0.21.0`, `MASTER_SPEC.md`, the frozen scientific-requirement contract profile `1.2.0`, and the existing 3.0 structural detector  
@@ -49,9 +49,7 @@ The following are **observed**:
 3. E15 P3 does **not** contain correction arithmetic. Its reason is caused by a summary
    `len(results)` consumer while all verdicts use raw p-values at `0.05`. A reason string alone is
    therefore not evidence that a section-4 correction witness was located.
-4. Across the 90 opened envelope cases, exactly 14 have both a qualifying first abstention reason
-   and the closed witness required by section 4. Across the 50 open-corpus cases, exactly 10 do.
-5. The 3.0 adapter classifications for all 140 cases are already pinned. Version 3.1 does not
+4. The 3.0 adapter classifications for all 140 cases are already pinned. Version 3.1 does not
    change any no-attestation detector classification, corrected-position set, Finding, or
    covered/complete result.
 
@@ -62,10 +60,16 @@ The following are **design decisions**, not observations:
    `ConditionalConcern`, not as a Finding and not as a fifth public assessment type;
 3. an author answer that correction is complete is self-serving and is never classification
    evidence; it is only a pointer for the unchanged structural proof; and
-4. a failed answer-guided proof yields a Disclosure and leaves the MaterialQuestion open.
+4. a failed answer-guided proof yields a Disclosure and leaves the MaterialQuestion open; and
+5. the section-10 census of `14/90` opened cases plus `10/50` corpus cases (`24/140`) is a
+   **hand-derived projection**, not an observation. Section 17.12's executed 140-case census is
+   authoritative. If it differs, the implementation is not changed toward this projection: the
+   section-10 table and its totals are re-pinned from executed output and the delta is reported.
 
-Any build evidence that changes the 14/10 question census, exposes a correction witness outside
-the closed grammar, or requires a new correction-recognition admission invokes section 17.
+Any build evidence that exposes a correction witness outside the closed grammar or requires a new
+correction-recognition admission invokes section 17. A difference from the 14/10 projection is
+handled only by the executed-census rule above; it is never a reason to widen or tune the witness
+grammar.
 
 ## 1. Decision and load-bearing asymmetric rule
 
@@ -1109,7 +1113,12 @@ wording it would have received without an answer had the proof start been known.
 `answer-guided` proof receipt containing the Answer digest, claimed span digest, and the unchanged
 grammar/result digest. The receipt is provenance, not a scientific premise. Removing the Answer
 and invoking the same existing proof at the now-known node in a controlled test must yield the same
-corrected-position set.
+corrected-position set. This is the named **answer-removal equivalence** obligation. Every
+`answer-b-proves-*` row has a companion
+`answer-b-proves-answer-removal-equivalence-<row>` fixture that deletes the Answer, supplies the
+same already-known source node directly to the unchanged proof entry point, and requires byte-equal
+corrected positions. A guided proof that establishes any position the companion unguided proof
+does not establish is answer laundering and invokes section 17.
 
 The pre-attestation abstention digest is retained in the receipt, but it is not emitted as a second
 active source assessment. The final attested adapter row is `covered/complete` only because the
@@ -1513,6 +1522,13 @@ closed wording, zero Findings, and one linked concern.
 | `answer-b-proves-e13-n1-default-multipletests` | Claimed line 79 guides the existing default-method call/input mapping; unchanged checks prove positions `[0,1,2,3,4]` and adjusted conclusions; existing `covered/complete` plus answer-guided receipt |
 | `answer-b-proves-complete-manual-grammar-control` | A synthetic question-triggering wrapper points to an expression already inside the 3.0 manual grammar; unchanged checks prove all N positions; existing `covered/complete` |
 
+For every row above, execute its named companion fixture:
+
+| Answer-removal equivalence fixture | Required equality |
+|---|---|
+| `answer-b-proves-answer-removal-equivalence-e13-n1-default-multipletests` | Removing the Answer and invoking the unchanged proof at the same line-79 node yields the identical corrected-position set `[0,1,2,3,4]` |
+| `answer-b-proves-answer-removal-equivalence-complete-manual-grammar-control` | Removing the Answer and invoking the unchanged proof at the same manual-grammar node yields the identical all-N corrected-position set |
+
 The first fixture is load-bearing. If the existing checks cannot prove E13 N1 at the claimed node
 without a new grammar, the build stops under section 17; the implementation may not weaken the
 proof or silently convert this row into a B-fails fixture.
@@ -1749,11 +1765,13 @@ and errors—not merely the top-level detector.
 
 ### 15.6 Corpus and envelope oracle gates
 
-1. Run the 90 opened cases at adapter/controller level; assert exact 3.0 source-result bytes and the
-   exact 14-row question set.
-2. Run all 50 corpus cases through the same level; assert exact frozen source-result bytes and the
-   exact 10-row question set.
-3. Assert question distribution `6/0/1/9/8` in section-10.5 reason order and total `24/140`.
+1. Run the 90 opened cases at adapter/controller level; assert exact 3.0 source-result bytes and
+   record the executed question set against the hand-derived 14-row projection.
+2. Run all 50 corpus cases through the same level; assert exact frozen source-result bytes and
+   record the executed question set against the hand-derived 10-row projection.
+3. Recount the executed reason distribution and total. The projected values are `6/0/1/9/8` and
+   `24/140`; an executed difference re-pins section 10 and is reported, never used to tune the
+   implementation.
 4. Assert each question row has exactly one question/concern and all other rows have zero.
 5. Assert E15 P3, E15 N9, corpus `spec-20`, `spec-42`, and `spec-50` are explicit no-question
    controls.
@@ -1858,27 +1876,42 @@ regenerated.
 Stop and report a design regression instead of adapting this design if any of the following occurs:
 
 1. a no-attestation 3.1 source result differs from 3.0 for any of the 140 pinned cases;
-2. the question set differs from exactly the 14 opened and 10 corpus rows in section 10;
+2. after any section-17.12 re-pin, the question set differs from the executed, checked-in oracle;
 3. E15 P3 emits a question without a section-4 witness;
 4. a correct question fixture emits a candidate or Finding;
 5. an A answer produces a Finding, severity, or detector catch;
 6. a B answer changes classification or corrected positions without unchanged structural proof;
 7. `answer-b-proves-e13-n1-default-multipletests` cannot prove complete coverage under existing
    grammar;
-8. any B-fails fixture closes the question or suppresses the Disclosure;
-9. stale/wrong bindings are accepted or partially applied;
-10. attested replay is not byte-identical `15/15`;
-11. a prose/non-callee mutation changes evidence or question classification;
-12. the 61-reason set, five-reason set, or `24/140` census differs;
-13. a qualified-lane, GrantPin, grant, qualification, metric, threshold-policy, or Finding byte
+8. any `answer-b-proves-answer-removal-equivalence-*` companion produces a corrected-position set
+   different from its answer-guided row, or the guided row proves a position that the same
+   unchanged proof cannot prove with the Answer removed;
+9. any B-fails fixture closes the question or suppresses the Disclosure;
+10. stale/wrong bindings are accepted or partially applied;
+11. attested replay is not byte-identical `15/15`;
+12. the 61-reason set or five-reason set differs, or the executed 140-case census is not
+    deterministic and exactly enumerable. The first executed census, rather than the `24/140`
+    projection, is authoritative and re-pins section 10 when necessary;
+13. a prose/non-callee mutation changes evidence or question classification;
+14. a qualified-lane, GrantPin, grant, qualification, metric, threshold-policy, or Finding byte
     changes; or
-14. implementation requires new correction, threshold, record, consumer, or AP grammar.
+15. implementation requires new correction, threshold, record, consumer, or AP grammar.
 
 Conservative refusal is not permission to relabel a pinned row or drop a required question. A
 failure in either direction is reported to the supervisor with the exact fixture, source digest,
 observed result, expected clause, and minimal structural cause.
 
 ## 18. Revision log
+
+### Revision 1a — 2026-08-29
+
+- **MJ-1:** reclassified the `14/90 + 10/50 = 24/140` question census as a hand-derived design
+  projection and made the executed section-17.12 census authoritative. A difference re-pins the
+  design table from executed output; it never licenses implementation tuning toward the projection.
+- **MJ-2:** promoted answer-removal equivalence to named companion fixtures for every
+  `answer-b-proves-*` row and to an explicit stop condition. An answer-guided proof may establish
+  no corrected position that the same unchanged proof cannot establish at the same known node
+  after the Answer is removed.
 
 ### Revision 0 — 2026-08-29
 
