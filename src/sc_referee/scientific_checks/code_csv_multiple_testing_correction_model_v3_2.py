@@ -1,23 +1,28 @@
-"""Strict non-production AP(C, POS) shadow recognizer for the MT 3.2 design.
+"""Strict AP(C, POS) correction recognizer for multiple-testing 3.2.
 
-The recognizer never executes project code.  It admits only two closed Bonferroni productions and
-then reruns the frozen analyzer on a structural surrogate in which the proved correction is replaced
-by its raw-p identity.  The surrogate must be candidate/none; otherwise no movement is permitted.
+The recognizer never executes project code and never classifies by itself.  It admits only the
+closed Bonferroni productions, subtracts one proved correction fold on a structural surrogate,
+and requires the frozen 3.0 analyzer to prove the remaining raw family independently.
 """
 
 from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any, cast
-
-from harness import Outcome, classify
 
 import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3 as mt
 import sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3 as rm
+from sc_referee.core.ids import sha256_digest
+
+CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST = sha256_digest(
+    Path(__file__).read_bytes()
+)
 
 _TARGET_REASONS = frozenset(
     {
@@ -46,9 +51,42 @@ _CORRECTION_TERMINALS = frozenset(
 
 
 @dataclass(frozen=True)
-class APResult:
-    outcome: Outcome
-    baseline: Outcome
+class _Outcome:
+    state: str
+    reason_or_classification: str
+    corrected_positions: tuple[int, ...] = ()
+    authorized_count: int | None = None
+
+    def as_json(self) -> list[object]:
+        value: list[object] = [self.state, self.reason_or_classification]
+        if self.state in {"candidate", "covered"}:
+            value.append(
+                {
+                    "authorized_count": self.authorized_count,
+                    "corrected_positions": list(self.corrected_positions),
+                }
+            )
+        return value
+
+
+def _classify(result: mt.MultipleTestingDataflowResult) -> _Outcome:
+    if result.reason is not None:
+        return _Outcome("abstain", result.reason)
+    if result.facts is None:
+        return _Outcome("abstain", "multiple-testing-code-inspection-exception")
+    state = "covered" if result.facts.correction_classification == "complete" else "candidate"
+    return _Outcome(
+        state,
+        result.facts.correction_classification,
+        result.facts.corrected_positions,
+        result.facts.family_size,
+    )
+
+
+@dataclass(frozen=True)
+class CorrectionModelResult:
+    outcome: _Outcome
+    baseline: _Outcome
     changed: bool
     attempted: bool
     model: str | None
@@ -457,7 +495,8 @@ def _static_bool(
         return node.value
     if isinstance(node, ast.Name):
         if node.id in row:
-            return row[node.id] if isinstance(row[node.id], bool) else None
+            row_value = row[node.id]
+            return row_value if isinstance(row_value, bool) else None
         if node.id in active:
             return None
         value = _resolve_bool_name(node.id, owner=owner)
@@ -473,8 +512,10 @@ def _static_bool(
             )
         )
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-        value = _static_bool(node.operand, row, owner=owner, sequences=sequences, active=active)
-        return None if value is None else not value
+        bool_value = _static_bool(
+            node.operand, row, owner=owner, sequences=sequences, active=active
+        )
+        return None if bool_value is None else not bool_value
     if isinstance(node, ast.BoolOp):
         values = [
             _static_bool(item, row, owner=owner, sequences=sequences, active=active)
@@ -726,7 +767,7 @@ def _folds(
             sequences=sequences,
             outcome_columns=outcome_columns,
         )
-        item = {
+        item: dict[str, object] = {
             "line": statement.lineno,
             "factor": factor,
             "positions": None if positions is None else list(positions),
@@ -821,7 +862,7 @@ def _threshold_fold(
     sequences = _module_sequences(tree)
     p_names, p_keys = rm._p_lineage(tree, resolver)
     candidates: list[_Fold] = []
-    assignments: list[tuple[ast.expr, ast.expr, ast.Module | ast.FunctionDef]] = []
+    assignments: list[tuple[ast.Name, ast.expr, ast.Module | ast.FunctionDef]] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
@@ -997,10 +1038,10 @@ class _Surrogate(ast.NodeTransformer):
             and raw_target != fold.target
         )
 
-    def visit(self, node: ast.AST) -> ast.AST:  # type: ignore[override]
+    def visit(self, node: ast.AST) -> ast.AST:
         if node is self.fold.node:
             return ast.copy_location(copy.deepcopy(self.fold.raw), node)
-        return super().visit(node)
+        return cast(ast.AST, super().visit(node))
 
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
         if (
@@ -1065,22 +1106,26 @@ def _surrogate_bytes(
     return (ast.unparse(value) + "\n").encode("utf-8")
 
 
-def analyze_ap(
+def _analyze_correction_outcome(
     content: bytes,
     *,
-    baseline: Outcome,
+    baseline: _Outcome,
     outcome_columns: tuple[str, ...],
     **kwargs: Any,
-) -> APResult:
+) -> CorrectionModelResult:
     if baseline.state != "abstain" or baseline.reason_or_classification not in _TARGET_REASONS:
-        return APResult(baseline, baseline, False, False, None, (), {"gate": "first-reason"})
+        return CorrectionModelResult(
+            baseline, baseline, False, False, None, (), {"gate": "first-reason"}
+        )
     try:
         tree = mt._bounded_parse(content)
         resolver, reason = mt._resolver(
             tuple(item for item in tree.body if not mt._is_docstring(item))
         )
         if resolver is None or reason is not None:
-            return APResult(baseline, baseline, False, False, None, (), {"gate": reason})
+            return CorrectionModelResult(
+                baseline, baseline, False, False, None, (), {"gate": reason}
+            )
         folds, rejected = _folds(
             tree,
             source=content,
@@ -1096,7 +1141,7 @@ def analyze_ap(
         if threshold is not None:
             folds.append(threshold)
         if _has_correction_terminal(tree):
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1106,7 +1151,7 @@ def analyze_ap(
                 {"gate": "correction-terminal-present", "rejected": rejected},
             )
         if len(folds) != 1:
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1119,7 +1164,7 @@ def analyze_ap(
         if fold.target[0] == "field" and _record_cross_function(
             fold, tree=tree, resolver=resolver, outcome_columns=outcome_columns
         ):
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1130,7 +1175,7 @@ def analyze_ap(
             )
         merge = rm._record_merge_reason(tree, resolver)
         if merge is not None:
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1157,9 +1202,9 @@ def analyze_ap(
             outcome_columns=outcome_columns,
             **kwargs,
         )
-        downstream = classify(surrogate_result)
+        downstream = _classify(surrogate_result)
         if downstream.state != "candidate" or downstream.reason_or_classification != "none":
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1174,13 +1219,11 @@ def analyze_ap(
             )
         positions = fold.positions
         outcome = (
-            Outcome("covered", "complete", positions, len(outcome_columns))
+            _Outcome("covered", "complete", positions, len(outcome_columns))
             if positions == tuple(range(len(outcome_columns)))
-            else Outcome("candidate", "strict_subset", positions, len(outcome_columns))
+            else _Outcome("candidate", "strict_subset", positions, len(outcome_columns))
         )
-        import hashlib
-
-        return APResult(
+        return CorrectionModelResult(
             outcome,
             baseline,
             outcome != baseline,
@@ -1189,18 +1232,43 @@ def analyze_ap(
             positions,
             {
                 "line": fold.source_line,
+                "source_position": list(_position(fold.node)),
                 "transport_count": len(transports),
                 "surrogate_outcome": downstream.as_json(),
             },
             "sha256:" + hashlib.sha256(surrogate).hexdigest(),
         )
-    except Exception as exc:  # prototype evidence localizes, never invents a movement
-        return APResult(
+    except (ArithmeticError, RecursionError, SyntaxError, UnicodeError, ValueError) as exc:
+        return CorrectionModelResult(
             baseline,
             baseline,
             False,
             True,
             None,
             (),
-            {"gate": "prototype-exception", "exception": type(exc).__name__},
+            {"gate": "correction-model-exception", "exception": type(exc).__name__},
         )
+
+
+def analyze_correction_model(
+    content: bytes,
+    *,
+    baseline: mt.MultipleTestingDataflowResult,
+    outcome_columns: tuple[str, ...],
+    **kwargs: Any,
+) -> CorrectionModelResult:
+    """Return an immutable AP delta or preserve the frozen source result."""
+
+    return _analyze_correction_outcome(
+        content,
+        baseline=_classify(baseline),
+        outcome_columns=outcome_columns,
+        **kwargs,
+    )
+
+
+__all__ = [
+    "CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST",
+    "CorrectionModelResult",
+    "analyze_correction_model",
+]

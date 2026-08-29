@@ -1,6 +1,6 @@
-# Multiple-testing 3.2 AP(C, POS) correction-recognition design — 2026-08-30
+# Multiple-testing 3.2 AP(C, POS) correction-recognition design — 2026-08-29
 
-**Status:** commissioned build-ready design, Revision 0  
+**Status:** approved build-ready design, Revision 1a  
 **Target:** detector/check/adapter `3.2.0`, development lane only  
 **Predecessor:** multiple-testing `3.1.0` question/attestation layer over the `3.0.0` record model  
 **Authority:** frozen scientific-requirement contract profile `1.2.0`; no prose-derived authority  
@@ -18,7 +18,7 @@ This design is based on:
 - all sealed-then-opened adapter evidence from envelopes E10 through E15;
 - all 50 cases in `multitest-open-corpus-v1`;
 - the frozen 71-row 3.0 fixture matrix; and
-- the strict, executable AP shadow, all-140-case sweep, 168-fixture sweep, canonical results, and
+- the strict, executable AP shadow, all-140-case sweep, 170-fixture sweep, canonical results, and
   self-verifying replay under
   `evaluation/development/multitest-code-slice-v3_2/prototype-sweep/`.
 
@@ -36,19 +36,21 @@ The following are **executed observations** from `results.json`:
 4. E13 P6's factor `3` for contract `N=5` and E14 P6's factor `4` for contract `N=8` remain
    `unresolved-manual-correction-present`;
 5. retro recall is E10 `5/6`, E11 `6/6`, E12 `6/6`, E13 `4/6`, E14 `4/6`, and E15 `3/6`;
-6. none-flip is `0/25` corpus-correct, `0/54` opened negatives, and `0/152` correct fixtures;
+6. none-flip is `0/25` corpus-correct, `0/54` opened negatives, and `0/154` correct fixtures
+   (the approved `0/152` population plus the two Revision-1a gate fixtures);
 7. every one of the cumulative 71 3.0 fixture rows is outcome-identical, including `0/62`
    correct-fixture candidates; all nine prior positive controls retain their pinned candidates;
 8. all 63 rows in the cumulative seven-field by nine-expression B5 grid remain noncandidates;
 9. all 16 independent 3.1 laundering-adjacent controls remain noncandidates;
-10. all 18 new AP fixtures reach their pinned result; and
+10. all 20 new AP fixtures reach their pinned result, including exact gate-name assertions for
+    `cross-function-record-flow` and `_record_merge_reason`; and
 11. the no-attestation question census changes from `14/90 + 10/50 = 24/140` to
     `13/90 + 9/50 = 22/140`, removing exactly E15 P6 and corpus spec-28.
 
 The canonical executed result is
-`sha256:330be120d69d0e23f857368c1442459e1c07ff32b62d62df4389112aace447ff`; the complete
-26-file prototype inventory is bound by manifest
-`sha256:e634625bdd441b694f9e6eea6e156697ff357c2ca957c7713a28143524f341cf`.
+`sha256:4a512d5e2cf007192430f3d0abacfd614535e2e23348245d4bc8ce8b9f07d80c`; the complete
+28-file prototype inventory is bound by manifest
+`sha256:c0fb427897a14841e3fc276b24da0932275759ed831d053b902b689bd089cd50`.
 
 The prototype implements the closed grammar in sections 4–6, never executes project code, and
 uses a structural surrogate only as a proof device: after an exact AP fold and its exact position
@@ -583,7 +585,7 @@ witness is not an AP proof; bare `0.01`, a computed call threshold, file-loaded 
 unresolved imported helper, unused correction import, non-callee correction renames, report prose,
 generic record update, and two correction occurrences remain outside AP.
 
-### 8.3 Eighteen AP-specific fixtures
+### 8.3 Twenty AP-specific fixtures
 
 | Fixture | Executed pin |
 |---|---|
@@ -605,6 +607,8 @@ generic record update, and two correction occurrences remain outside AP.
 | `correct-ap-unresolved-position-selector` | abstain `unresolved-manual-correction-present` |
 | `correct-ap-unresolved-correction-consumer` | abstain `unresolved-manual-correction-present`; surrogate exposes hierarchy refusal |
 | `correct-ap-correction-terminal-sibling` | abstain `unresolved-manual-correction-present`; global terminal gate blocks AP |
+| `correct-ap-cross-function-record-flow-gate` | abstain `record-family-lineage-unresolved`; detail gate exactly `cross-function-record-flow` |
+| `correct-ap-frozen-record-merge-gate` | abstain `unresolved-manual-correction-present`; detail gate exactly `_record_merge_reason`, returned reason `record-family-lineage-unresolved` |
 
 Fixture expectations are design-derived and checked before result serialization. The canonical
 sweep records source SHA-256, baseline, outcome, model, positions, gate detail, and surrogate digest
@@ -972,7 +976,7 @@ classifications, evidence spans, and errors. An already normalized `AP(C,POS)` i
 and cannot be adjusted again. The second pass finds zero new folds. Reordering exact input maps or
 deduplicating occurrences is forbidden.
 
-The prototype replay reruns all 140 cases and all 168 fixtures and compares canonical
+The prototype replay reruns all 140 cases and all 170 fixtures and compares canonical
 `results.json` bytes. The final implementation adds equivalent graph-idempotence tests for every
 positive form, including record cross-field and divided-threshold subset forms.
 
@@ -994,10 +998,11 @@ The checked-in sweep must remain self-verifying:
 2. exact movement set `{E15:P6:81980e878c1bc8cc216b, corpus:spec-28}`;
 3. exact classifications/positions from sections 9 and 10;
 4. retro recall `{E10:5/6,E11:6/6,E12:6/6,E13:4/6,E14:4/6,E15:3/6}`;
-5. none-flip `0/25`, `0/54`, and `0/152`;
+5. none-flip `0/25`, `0/54`, and `0/154`, with the historical `0/152` population and the two
+   Revision-1a gate fixtures also asserted separately;
 6. all 71 cumulative rows outcome-identical, all 63 B5 variants refused, and all 16 laundering
    controls noncandidates;
-7. all 18 new fixtures exact;
+7. all 20 new fixtures exact, including the two exact gate-name assertions;
 8. question delta exactly `24 -> 22` with the two named removals; and
 9. replay byte equality plus complete MANIFEST digest/size inventory.
 
@@ -1009,7 +1014,7 @@ The build must execute:
 - the 50-row section-10 oracle through the same adapter;
 - the frozen 3.1 adapter over all 140 cases, byte-equal to its anchor;
 - all E10–E15 frozen replay anchors under their frozen versions;
-- the 71 cumulative fixtures, 63 B5 expression variants, 16 laundering controls, and 18 AP
+- the 71 cumulative fixtures, 63 B5 expression variants, 16 laundering controls, and 20 AP
   fixtures;
 - direct factor mismatch controls at `3/5`, `4/8`, `7/6`, and same-length unrelated `N`;
 - every cap ordering, multiplication ordering, direct/bound factor, complete/subset, scalar/record/
@@ -1160,7 +1165,8 @@ following occurs:
 5. any cumulative 71-row outcome changes, any of its 62 correct rows becomes a candidate, or any
    of its nine positive controls loses its pin;
 6. any of the 63 B5 variants or 16 laundering controls becomes a candidate;
-7. any new AP fixture misses its exact section-8.3 pin;
+7. any new AP fixture misses its exact section-8.3 pin, including either Revision-1a fixture
+   reaching a different named gate;
 8. a factor other than exact `N`, a same-length unrelated container, factor alias, or computed
    factor is accepted;
 9. a B1–B5 mutation, duplicate, cross-function, merge, polarity, or post-consumer shape crosses AP;
@@ -1182,7 +1188,7 @@ the exact source digest, observed result, expected clause, and minimal structura
 
 ## 18. Revision log
 
-### Revision 0 — 2026-08-30
+### Revision 0 — 2026-08-29
 
 Initial commissioned design. It:
 
@@ -1196,3 +1202,15 @@ Initial commissioned design. It:
 - makes 3.1 B-guided AP available only after shipping and preserves answer-removal equivalence;
 - freezes 3.1 and every earlier/qualified lane; and
 - states the E16/E17 `>=7/12` promotion arithmetic without treating it as a forecast.
+
+### Revision 1a — 2026-08-29
+
+- Corrected the filename and internal design date from 2026-08-30 to 2026-08-29.
+- Added `correct-ap-cross-function-record-flow-gate`, which asserts the exact
+  `cross-function-record-flow` gate.
+- Added `correct-ap-frozen-record-merge-gate`, which asserts the exact `_record_merge_reason`
+  gate and its `record-family-lineage-unresolved` returned reason.
+- Re-executed all 140 source cases and the expanded 170-fixture population: movements, retro
+  recall, and the `24 -> 22` question census are unchanged; none-flip is now `0/154` correct
+  fixtures.
+- Re-pinned the canonical result and 28-file prototype-manifest digests from that execution.

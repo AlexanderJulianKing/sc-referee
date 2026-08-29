@@ -97,6 +97,19 @@ def _execute_fixture(fixture: Fixture) -> tuple[dict[str, Any], APResult]:
     if fixture.expected is None or result.outcome != fixture.expected:
         expected = None if fixture.expected is None else fixture.expected.as_json()
         raise AssertionError(f"fixture {fixture.name}: {result.outcome.as_json()} != {expected}")
+    if fixture.expected_gate is not None and result.detail.get("gate") != fixture.expected_gate:
+        raise AssertionError(
+            f"fixture {fixture.name}: gate {result.detail.get('gate')!r} "
+            f"!= {fixture.expected_gate!r}"
+        )
+    if (
+        fixture.expected_gate_reason is not None
+        and result.detail.get("gate_reason") != fixture.expected_gate_reason
+    ):
+        raise AssertionError(
+            f"fixture {fixture.name}: gate reason {result.detail.get('gate_reason')!r} "
+            f"!= {fixture.expected_gate_reason!r}"
+        )
     source_path: str | None = None
     if fixture.category == "ap-v3.2":
         FIXTURES.mkdir(parents=True, exist_ok=True)
@@ -114,6 +127,8 @@ def _execute_fixture(fixture: Fixture) -> tuple[dict[str, Any], APResult]:
             "source_path": source_path,
             "source_sha256": _sha256(source),
             "execution_mode": execution_mode,
+            "expected_gate": fixture.expected_gate,
+            "expected_gate_reason": fixture.expected_gate_reason,
             "baseline": baseline.as_json(),
             "outcome": result.outcome.as_json(),
             "changed": result.changed,

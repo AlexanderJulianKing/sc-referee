@@ -1462,6 +1462,52 @@ def main() -> None:
         ),
     ]
     _upsert(detector_collection, "detector_id", multiple_testing_v3_1)
+    multiple_testing_v3_2 = deepcopy(multiple_testing_v3_1)
+    multiple_testing_v3_2["detector_version"] = "3.2.0"
+    multiple_testing_v3_2["description"] = (
+        "Recognizes one closed AP(C, POS) family correction by subtracting its unique fold and "
+        "requiring the frozen multiple-testing 3.0 analyzer to prove the remaining source "
+        "independently."
+    )
+    multiple_testing_v3_2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_2.py"
+    )
+    multiple_testing_resource_v3_2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_2.py"
+    )
+    multiple_testing_v3_2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_2:"
+            "BoundedCodeCsvMultipleTestingConflictV3_2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_2.read_bytes()),
+    }
+    multiple_testing_v3_2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_ap_correct_refusal_fixtures_are_exact"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_cumulative_false_accusation_sweeps_remain_non_candidates"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_2.py::test_final_adapter_movement_set_is_exact"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_ap_gate_name_fixtures_are_exact"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_2.py::test_open_corpus_v3_2_has_one_covered_movement_and_no_correct_candidates"
+        ],
+    }
+    multiple_testing_v3_2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_2)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )
