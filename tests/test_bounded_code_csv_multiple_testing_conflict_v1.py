@@ -83,7 +83,7 @@ def test_detector_identity_is_pinned_to_manifest_and_development_binding(
     assert detector.manifest_digest == semantic_digest(manifest)
     assert detector.manifest_digest == binding.detector_manifest_digest
     assert binding.check_version == "1.0.0"
-    assert _active_binding().detector_version == "3.0.0"
+    assert _active_binding().detector_version == "3.1.0"
     assert binding not in scientific_check_release_registry().development_method_conflict_bindings
 
 

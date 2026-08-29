@@ -224,6 +224,7 @@
   {% for item in bundle.conditional_concerns %}
   <article class="card" id="concern-{{ loop.index }}">
     {% set concern_index = loop.index %}<h3>{{ item.title }}</h3><p>{{ item.conditional_statement }}</p>
+    {% if item.extensions is defined and item.extensions['x-report-label'] is defined %}<p><strong>Record boundary:</strong> {{ item.extensions['x-report-label'] }}</p>{% endif %}
     <p><strong>Potential impact:</strong> {{ item.potential_impact.level|replace('_', ' ') }} — {{ item.potential_impact.rationale }}</p>
     <p><strong>Review priority:</strong> {{ item.review_priority }}</p>
     <p><a href="#question-{{ item.material_question_id|replace(':', '-') }}">Open the linked material question</a></p>
@@ -267,6 +268,20 @@
   </article>
   {% else %}<p>None recorded.</p>{% endfor %}
 </section>
+{% set answers_with_extensions = bundle.answers|selectattr('extensions', 'defined')|list %}
+{% set correction_scope_answers = answers_with_extensions|selectattr('extensions.x-attestation-profile', 'defined')|selectattr('extensions.x-attestation-profile', 'equalto', 'multiple_testing_correction_scope_attestations_v1')|list %}
+{% if correction_scope_answers %}
+<section>
+  <h2>Multiple-testing correction-scope author answers</h2>
+  {% for item in correction_scope_answers %}
+  <article class="card" id="answer-{{ loop.index }}">
+    <p><strong>Answer:</strong> <code>{{ item.selected_option_id }}</code>.</p>
+    <p><strong>Provenance:</strong> human actor <code>{{ item.respondent.actor_id }}</code>; source <code>{{ item.response_source }}</code>.</p>
+    <p>This Answer is distinct from a tool Finding. A complete-scope answer is only a pointer for structural recheck.</p>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
 <section>
   <h2>Coverage and trust disclosures</h2>
   {% set disclosure_summary = namespace(material_count=0) %}

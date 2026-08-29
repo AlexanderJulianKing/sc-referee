@@ -109,6 +109,47 @@ contract, that the method is universally correct, or that a result is numericall
 
 ## Expected agent report
 
+## Multiple-testing correction-scope attestation flow
+
+This development-only flow applies only to an open MaterialQuestion whose
+`x-question-purpose` is `multiple_testing_correction_scope`. The deterministic CLI remains
+authoritative, and the agent never answers on the author's behalf.
+
+1. Run the development-lane audit without `--attestations` and verify integrity before presenting
+   anything.
+2. Present the exact closed question, declared family size, and structured source location. Do not
+   paraphrase it as an accusation.
+3. Present all three exact options without suggesting one: incomplete scope is recorded only as an
+   author attestation; complete scope is only a pointer for unchanged structural recheck; unknown
+   leaves the question open.
+4. Ask the human to select one option. Never infer a choice from code, comments, reports, likely
+   intent, model judgment, or which choice appears to improve the result.
+5. For a complete-scope answer only, separately request the exact correction source span and the
+   human-supplied closed factor kind/value shown by the unanswered request. If the human cannot
+   supply both, retain unknown; never infer the span or factor.
+6. Keep the audit output root and answer JSON outside the audited project. Populate only the closed
+   digest-bound fields from the integrity-verified question plus the human's explicit response,
+   show those fields to the human, and obtain authorization before submission. Never copy an answer
+   forward to another snapshot.
+7. Rerun with the same development-lane options plus `--attestations <external-answer.json>`, then
+   verify integrity again.
+8. Report Findings, ConditionalConcerns, MaterialQuestions, Answers, and Disclosures separately.
+   State whether a complete-scope answer was structurally proved or remained unverified. Never call
+   an unverified answer cleared, and never call an incomplete-scope attestation a Finding.
+
+Use these exact interpretation boundaries:
+
+```text
+Author attestations are reported separately from tool Findings.
+A completeness attestation was used only to guide structural verification.
+An unverified completeness attestation remains an open MaterialQuestion and Disclosure.
+```
+
+The CLI is noninteractive. Generic `record-answer`, structured-answer, and scope-selection routes
+must not be used for this question subtype. The attestation file contains no suggested option and
+must be authored only after the human supplies the bounded values.
+
+
 An agent using `scientific-audit` should report, in order:
 
 1. the output directory and `report.html`;

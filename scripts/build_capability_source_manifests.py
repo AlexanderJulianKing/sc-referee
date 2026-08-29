@@ -1359,6 +1359,109 @@ def main() -> None:
         "docs/implementation/MULTITEST-CODE-SLICE-2.3-DESIGN-2026-08-27.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v2_3)
+    multiple_testing_v3 = deepcopy(
+        next(
+            item
+            for item in detector_collection["records"]
+            if item.get("detector_id") == "detector:bounded-code-csv-multiple-testing-conflict"
+            and item.get("detector_version") == "3.0.0"
+        )
+    )
+    multiple_testing_resource_v3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3.py"
+    )
+    multiple_testing_v3["implementation"]["implementation_digest"] = sha256_digest(
+        multiple_testing_resource_v3.read_bytes()
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3)
+    multiple_testing_v3_1 = deepcopy(multiple_testing_v3)
+    multiple_testing_v3_1["detector_version"] = "3.1.0"
+    multiple_testing_v3_1["description"] = (
+        "Asks a bounded correction-scope question after the frozen multiple-testing 3.0 source "
+        "outcome, then applies digest-bound human attestations asymmetrically without granting "
+        "Finding authority."
+    )
+    multiple_testing_v3_1["extensions"]["x-adr-ref"] = (
+        "docs/implementation/ADR-0080-MULTIPLE-TESTING-CORRECTION-SCOPE-QUESTIONS-AND-ATTESTATIONS.md"
+    )
+    multiple_testing_v3_1["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_1.py"
+    )
+    multiple_testing_resource_v3_1 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_1.py"
+    )
+    multiple_testing_v3_1["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_1:"
+            "BoundedCodeCsvMultipleTestingConflictV3_1Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_1.read_bytes()),
+    }
+    multiple_testing_v3_1["limitations"] = [
+        *multiple_testing_v3["limitations"],
+        (
+            "A MaterialQuestion, author attestation, ConditionalConcern, or Disclosure is not "
+            "a tool Finding and does not affect blind-envelope scoring."
+        ),
+        (
+            "A complete-scope attestation is only a pointer; it cannot add correction grammar "
+            "or corrected positions."
+        ),
+    ]
+    multiple_testing_v3_1["permitted_output_types"] = [
+        "conditional_concern",
+        "disclosure",
+        "material_question",
+    ]
+    multiple_testing_v3_1["supported_operations"] = sorted(
+        {
+            *multiple_testing_v3["supported_operations"],
+            "answer_guided_frozen_coverage_recheck_v1",
+            "digest_bound_asymmetric_attestation_v1",
+            "multiple_testing_correction_scope_question_v1",
+        }
+    )
+    multiple_testing_v3_1["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_e15_p3_reason_without_a_structural_witness_emits_no_question"
+        ],
+        "counterevidence": [
+            "tests/test_multiple_testing_scope_attestations_v1.py::test_b_fails_matrix_stays_open_and_nonaccusatory"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_scope_controller_v3_1.py::test_controller_adds_question_then_applies_b_without_changing_source_row"
+        ],
+        "unsupported_path": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_prose_and_noncallee_identifier_tripwire_does_not_create_a_witness"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_executed_140_case_question_census_matches_independent_oracle"
+        ],
+    }
+    multiple_testing_v3_1["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.1-SCOPE-QUESTIONS-ATTESTATION-DESIGN-2026-08-29.md"
+    )
+    multiple_testing_v3_1["wording_constraints"] = [
+        *multiple_testing_v3["wording_constraints"],
+        (
+            "Question wording may interpolate only the structured analysis.py location and "
+            "declared family count."
+        ),
+        (
+            "Label author attestations separately from tool Findings; never describe an "
+            "unverified completeness claim as clearance."
+        ),
+    ]
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_1)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

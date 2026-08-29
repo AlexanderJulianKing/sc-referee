@@ -52,3 +52,20 @@ Two items carried for the record:
 - Three round-3 oracle rows join §6.5 prose to its code block (the round-1 convention). A
   stricter reading of the quote-vs-paraphrase split would mark them paraphrase; faithful either
   way, recorded for the next oracle edit.
+
+## 3.1 audit carry-forwards (2026-08-29)
+
+The 3.1 audit (APPROVE-COMMIT at 8e41b78 + f73e5c2, sixteen laundering probes all refused
+pre-record, equivalence gate mutation-tested both directions) carried three minors:
+
+- M1: the build report said 8,487 tests; the committed tree collects and passes 8,488. The tree
+  is authoritative.
+- M2: design §8.2 said a proving B answer "becomes covered/complete"; the implementation is
+  narrower and safer - the module row stays byte-identical and the proof lives only in a receipt
+  with source_classification_changed=false. The implementation's behavior is normative; the
+  design text is corrected in the same merge (Revision 1b note in the 3.1 design).
+- M3: the receipt field answer_removal_equivalent is a hardcoded True; the property is enforced
+  by build-time mutation-tested gates, not per-run. Rename or compute it in the next 3.x round.
+- Observation: the E10 replay test filters question-purpose rows before comparing; question rows
+  are pinned by the question oracle instead. A future question-emission change will not surface
+  in that replay assertion - keep the question oracle in the audit scope of every future round.

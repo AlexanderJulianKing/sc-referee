@@ -1,0 +1,12 @@
+{
+  "profile_id": "material-question:multiple-testing-correction-scope-v1",
+  "profile_version": "1.0.0",
+  "question_template": "Does this correction cover all {AUTHORIZED_COUNT} declared outcomes?",
+  "why_template": "Static analysis located correction-related computation at {SOURCE_LOCATION}, but could not prove whether it covers all {AUTHORIZED_COUNT} outcomes in the declared family. The answer can change how this unresolved case is recorded; it cannot create a tool Finding by itself.",
+  "slots": [
+    "AUTHORIZED_COUNT",
+    "SOURCE_LOCATION"
+  ],
+  "source_text_allowed": false,
+  "semantic_digest": "sha256:9920e1e43726e73d18d308b14678c4f264b04d48fc2a6c07f68d6a9d2119192b"
+}
