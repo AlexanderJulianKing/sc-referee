@@ -1930,3 +1930,13 @@ Initial commissioned design. It:
   correction witness;
 - isolates blind scoring and promotion arithmetic; and
 - leaves AP/correction recognition to a separate future design.
+
+
+## Revision 1b (2026-08-29, post-audit correction, custodian)
+
+Audit minor M2: section 8.2's statement that a proving B answer "becomes the existing
+covered/complete outcome" overstated the implementation, which is narrower and is hereby made
+normative: a proving B answer leaves the module row byte-identical, sets
+source_classification_changed to false, and records the guided proof only in a receipt with
+answer-guided provenance. No attested run changes a source classification. This is the safe
+direction of the section 8 contract and supersedes the quoted sentence.
