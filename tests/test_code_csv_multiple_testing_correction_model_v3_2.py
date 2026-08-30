@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 from collections import Counter
@@ -34,6 +35,19 @@ finally:
 
 _RESULTS = json.loads((_SWEEP / "results.json").read_text(encoding="utf-8"))
 _EXPECTED_FIXTURES = {row["name"]: row for row in _RESULTS["fixtures"]}
+_CONSUMPTION_ORACLE = Path(
+    "evaluation/development/multitest-code-slice-v3_2/audit-fix-r1-oracle"
+).resolve()
+sys.path.insert(0, str(_CONSUMPTION_ORACLE))
+try:
+    from fixture_sources import fixture_sources as consumption_fixture_sources
+finally:
+    sys.path.remove(str(_CONSUMPTION_ORACLE))
+_CONSUMPTION_EXPECTED = json.loads(
+    (_CONSUMPTION_ORACLE / "EXPECTED_ROWS.json").read_text(encoding="utf-8")
+)
+_CONSUMPTION_ROWS = {row["fixture_name"]: row for row in _CONSUMPTION_EXPECTED["rows"]}
+_CONSUMPTION_SOURCES = consumption_fixture_sources()
 
 
 def _outcome(result: MultipleTestingDataflowResult) -> list[object]:
@@ -74,6 +88,53 @@ def _model(fixture: Fixture) -> Any:
 
 def test_closed_reason_set_remains_the_frozen_61_member_set() -> None:
     assert len(CLOSED_MULTIPLE_TESTING_ABSTENTION_REASONS) == 61
+
+
+def test_audit_fix_r1_oracle_has_independent_exact_provenance() -> None:
+    assert _CONSUMPTION_EXPECTED["profile"] == ("multitest-v3.2-audit-fix-r1-consumption-oracle-v1")
+    assert _CONSUMPTION_EXPECTED["provenance"] == {
+        "audit_date": "2026-08-29",
+        "audit_identity": "MT 3.2 audit fix round 1 conclusion-consumption probe table",
+        "design_document": (
+            "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md"
+        ),
+        "design_revision": "1a",
+        "implementation_output_used": False,
+    }
+    assert len(_CONSUMPTION_ROWS) == 7
+    assert set(_CONSUMPTION_ROWS) == set(_CONSUMPTION_SOURCES)
+
+
+@pytest.mark.parametrize("name", tuple(_CONSUMPTION_ROWS))
+def test_audit_fix_r1_conclusion_consumption_oracle_is_exact(name: str) -> None:
+    row = _CONSUMPTION_ROWS[name]
+    case_key, source = _CONSUMPTION_SOURCES[name]
+    assert "sha256:" + hashlib.sha256(source).hexdigest() == row["fixture_source_sha256"]
+    case = reference_case(case_key)
+    values = inputs(case, source)
+    content = values.pop("content")
+    baseline = frozen_v3_analyze(content, **values)
+    model = analyze_correction_model(content, baseline=baseline, **values)
+    final_outcome = _outcome(analyze_code_csv_multiple_testing_dataflow(content, **values))
+    if row["expected_outcome"] == "abstain":
+        expected = ["abstain", row["expected_reason"]]
+        assert model.outcome.as_json() == expected
+        assert final_outcome == expected
+        assert model.detail.get("gate") == row["expected_gate"]
+        assert not model.changed
+        assert model.corrected_positions == ()
+    else:
+        expected = [
+            row["expected_outcome"],
+            row["expected_reason"],
+            {
+                "authorized_count": row["expected_authorized_count"],
+                "corrected_positions": row["expected_corrected_positions"],
+            },
+        ]
+        assert model.outcome.as_json() == expected
+        assert final_outcome == expected
+        assert model.changed
 
 
 @pytest.mark.parametrize("fixture", all_fixtures(), ids=lambda item: item.name)

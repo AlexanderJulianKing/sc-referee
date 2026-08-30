@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import sys
 from pathlib import Path
@@ -34,6 +35,14 @@ finally:
 
 _RESULTS = json.loads((_SWEEP / "results.json").read_text(encoding="utf-8"))
 _EXPECTED_QUESTIONS = set(_RESULTS["question_census"]["removed"])
+_CONSUMPTION_ORACLE = Path(
+    "evaluation/development/multitest-code-slice-v3_2/audit-fix-r1-oracle"
+).resolve()
+sys.path.insert(0, str(_CONSUMPTION_ORACLE))
+try:
+    from fixture_sources import fixture_sources as consumption_fixture_sources
+finally:
+    sys.path.remove(str(_CONSUMPTION_ORACLE))
 
 
 def _context(values: dict[str, object]) -> APGuidedRecheckContext:
@@ -107,4 +116,44 @@ def test_ap_guided_recheck_is_answer_removed_and_temporally_versioned() -> None:
     )
     assert guided_pointer.status == "complete"
     assert guided_pointer.corrected_positions == (0, 1, 2, 3)
+    assert guided_pointer == answer_removed
+
+
+def test_ap_guided_recheck_cannot_clear_a_raw_consumer() -> None:
+    case_key, source = consumption_fixture_sources()["correct-ap-complete-raw-consumer"]
+    case = reference_case(case_key)
+    values = inputs(case, source)
+    content = values.pop("content")
+    baseline = analyze_code_csv_multiple_testing_dataflow(content, **values)
+    assert baseline.reason == "unresolved-manual-correction-present"
+    correction = next(
+        node
+        for node in ast.walk(ast.parse(content))
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Name)
+        and node.func.id == "min"
+        and any(isinstance(item, ast.BinOp) for item in ast.walk(node))
+    )
+    pointer = SourceSpan(
+        correction.lineno,
+        correction.col_offset + 1,
+        correction.end_lineno or correction.lineno,
+        (correction.end_col_offset or correction.col_offset + 1) + 1,
+    )
+    answer_removed = existing_complete_coverage_recheck(
+        content,
+        source_span=pointer,
+        authorized_count=len(values["outcome_columns"]),
+        outcome_columns=values["outcome_columns"],
+        ap_context=_context(values),
+    )
+    guided_pointer = existing_complete_coverage_recheck(
+        content,
+        source_span=pointer,
+        authorized_count=len(values["outcome_columns"]),
+        outcome_columns=values["outcome_columns"],
+        ap_context=_context(values),
+    )
+    assert guided_pointer.status == "unverified"
+    assert guided_pointer.corrected_positions == ()
     assert guided_pointer == answer_removed

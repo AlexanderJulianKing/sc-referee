@@ -106,6 +106,20 @@ class _Fold:
     source_line: int
 
 
+@dataclass(frozen=True)
+class _TransportProof:
+    target: tuple[str, object]
+    corrected_positions: tuple[int, ...]
+    raw_positions: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class _ConclusionConsumption:
+    corrected_positions: tuple[int, ...]
+    raw_positions: tuple[int, ...]
+    comparison_positions: tuple[tuple[int, int, int, int], ...]
+
+
 def _position(node: ast.AST) -> tuple[int, int, int, int]:
     return (
         getattr(node, "lineno", -1),
@@ -939,19 +953,40 @@ def _load_matches(node: ast.expr, target: tuple[str, object]) -> bool:
     return False
 
 
-def _transport_targets(
+def _transport_proofs(
     tree: ast.Module,
     fold: _Fold,
     *,
     p_names: frozenset[str],
     p_keys: frozenset[str | int],
     outcome_columns: tuple[str, ...],
-) -> tuple[tuple[str, object], ...]:
-    result: list[tuple[str, object]] = [fold.target]
+) -> tuple[_TransportProof, ...]:
     parents = _parents(tree)
     owners = _owners(tree)
     sequences = _module_sequences(tree)
     all_positions = set(range(len(outcome_columns)))
+    initial_raw: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        if (
+            len(targets) == 1
+            and _target(targets[0]) == fold.target
+            and node.value is not fold.node
+            and _raw_expr(node.value, p_names=p_names, p_keys=p_keys) is not None
+        ):
+            positions = _positions_for(
+                node,
+                tree=tree,
+                owner=owners.get(node, tree),
+                parents=parents,
+                sequences=sequences,
+                outcome_columns=outcome_columns,
+            )
+            if positions is not None:
+                initial_raw.update(positions)
+    result = [_TransportProof(fold.target, fold.positions, tuple(sorted(initial_raw)))]
     changed = True
     while changed:
         changed = False
@@ -959,7 +994,11 @@ def _transport_targets(
             if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
                 continue
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if len(targets) != 1 or (target := _target(targets[0])) is None or target in result:
+            if (
+                len(targets) != 1
+                or (target := _target(targets[0])) is None
+                or any(item.target == target for item in result)
+            ):
                 continue
             definitions: list[tuple[ast.Assign | ast.AnnAssign, ast.expr]] = []
             for candidate in ast.walk(tree):
@@ -976,18 +1015,22 @@ def _transport_targets(
                     definitions.append((candidate, candidate.value))
             if not definitions or any(isinstance(value, ast.IfExp) for _, value in definitions):
                 continue
-            classified: list[tuple[str, tuple[int, ...] | None]] = []
+            classified: list[tuple[str, tuple[int, ...] | None, _TransportProof | None]] = []
             valid = True
             for statement, value in definitions:
-                kind = (
-                    "corrected"
-                    if any(_load_matches(value, known) for known in result)
-                    else "raw"
-                    if _raw_expr(value, p_names=p_names, p_keys=p_keys) is not None
-                    else "none"
-                    if isinstance(value, ast.Constant) and value.value is None
-                    else "unknown"
-                )
+                known = [item for item in result if _load_matches(value, item.target)]
+                if len(known) == 1:
+                    kind = "transport"
+                    origin = known[0]
+                elif not known and _raw_expr(value, p_names=p_names, p_keys=p_keys) is not None:
+                    kind = "raw"
+                    origin = None
+                elif not known and isinstance(value, ast.Constant) and value.value is None:
+                    kind = "none"
+                    origin = None
+                else:
+                    kind = "unknown"
+                    origin = None
                 if kind == "unknown":
                     valid = False
                     break
@@ -1000,30 +1043,166 @@ def _transport_targets(
                     sequences=sequences,
                     outcome_columns=outcome_columns,
                 )
-                classified.append((kind, positions))
+                classified.append((kind, positions, origin))
             if not valid:
                 continue
+            corrected_positions: set[int] = set()
+            raw_positions: set[int] = set()
+            for kind, positions, origin in classified:
+                if positions is None:
+                    valid = False
+                    break
+                selected = set(positions)
+                if kind == "transport" and origin is not None:
+                    available = set(origin.corrected_positions) | set(origin.raw_positions)
+                    if not selected <= available:
+                        valid = False
+                        break
+                    corrected_positions.update(selected & set(origin.corrected_positions))
+                    raw_positions.update(selected & set(origin.raw_positions))
+                elif kind == "raw":
+                    raw_positions.update(selected)
+                elif kind != "none":
+                    valid = False
+                    break
+            if not valid or corrected_positions & raw_positions:
+                continue
             if len(classified) == 1:
-                kind, positions = classified[0]
-                if kind == "none" or positions is None:
+                kind, positions, _ = classified[0]
+                if (
+                    kind != "transport"
+                    or positions is None
+                    or set(positions) != corrected_positions | raw_positions
+                    or not corrected_positions
+                ):
                     continue
             elif len(classified) == 2:
-                corrected = [positions for kind, positions in classified if kind == "corrected"]
-                raw = [positions for kind, positions in classified if kind == "raw"]
-                if (
-                    len(corrected) != 1
-                    or len(raw) != 1
-                    or corrected[0] is None
-                    or raw[0] is None
-                    or set(corrected[0]) != set(fold.positions)
-                    or set(raw[0]) != all_positions - set(fold.positions)
-                ):
+                if corrected_positions != set(
+                    fold.positions
+                ) or raw_positions != all_positions - set(fold.positions):
                     continue
             else:
                 continue
-            result.append(target)
+            result.append(
+                _TransportProof(
+                    target,
+                    tuple(sorted(corrected_positions)),
+                    tuple(sorted(raw_positions)),
+                )
+            )
             changed = True
     return tuple(result)
+
+
+def _transport_targets(
+    tree: ast.Module,
+    fold: _Fold,
+    *,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+    outcome_columns: tuple[str, ...],
+) -> tuple[tuple[str, object], ...]:
+    return tuple(
+        item.target
+        for item in _transport_proofs(
+            tree,
+            fold,
+            p_names=p_names,
+            p_keys=p_keys,
+            outcome_columns=outcome_columns,
+        )
+    )
+
+
+def _same_expression(left: ast.expr, right: ast.expr) -> bool:
+    return ast.dump(left, include_attributes=False) == ast.dump(right, include_attributes=False)
+
+
+def _threshold_compare_uses_fold(compare: ast.Compare, fold: _Fold) -> bool:
+    if fold.target[0] == "threshold-direct":
+        return _position(compare) == fold.target[1]
+    if fold.target[0] != "threshold-binding" or not isinstance(fold.target[1], str):
+        return False
+    operands = (compare.left, *compare.comparators)
+    return any(
+        isinstance(operand, ast.Name)
+        and isinstance(operand.ctx, ast.Load)
+        and operand.id == fold.target[1]
+        for operand in operands
+    )
+
+
+def _conclusion_consumption(
+    tree: ast.Module,
+    fold: _Fold,
+    transports: Sequence[_TransportProof],
+    *,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+    outcome_columns: tuple[str, ...],
+) -> _ConclusionConsumption | None:
+    """Prove each conclusion's corrected/raw origin before AP classification."""
+
+    parents = _parents(tree)
+    owners = _owners(tree)
+    sequences = _module_sequences(tree)
+    origins: dict[int, set[str]] = {position: set() for position in range(len(outcome_columns))}
+    comparison_positions: list[tuple[int, int, int, int]] = []
+    for compare in (node for node in ast.walk(tree) if isinstance(node, ast.Compare)):
+        left_p = rm._p_derived(compare.left, p_names, p_keys)
+        right_p = any(rm._p_derived(item, p_names, p_keys) for item in compare.comparators)
+        if not left_p and not right_p:
+            continue
+        if left_p == right_p or len(compare.ops) != 1 or len(compare.comparators) != 1:
+            return None
+        positions = _positions_for(
+            compare,
+            tree=tree,
+            owner=owners.get(compare, tree),
+            parents=parents,
+            sequences=sequences,
+            outcome_columns=outcome_columns,
+        )
+        if positions is None or not positions:
+            return None
+        p_operand = compare.left if left_p else compare.comparators[0]
+        if fold.form == "family-alpha-division":
+            kind = "corrected" if _threshold_compare_uses_fold(compare, fold) else "raw"
+            for position in positions:
+                origins[position].add(kind)
+            comparison_positions.append(_position(compare))
+            continue
+
+        matching = [item for item in transports if _load_matches(p_operand, item.target)]
+        if len(matching) == 1:
+            proof = matching[0]
+            available = set(proof.corrected_positions) | set(proof.raw_positions)
+            if not set(positions) <= available:
+                return None
+            for position in positions:
+                if position in proof.corrected_positions:
+                    origins[position].add("corrected")
+                if position in proof.raw_positions:
+                    origins[position].add("raw")
+        elif not matching and _same_expression(p_operand, fold.raw):
+            for position in positions:
+                origins[position].add("raw")
+        else:
+            return None
+        comparison_positions.append(_position(compare))
+
+    corrected = set(fold.positions)
+    family = set(range(len(outcome_columns)))
+    if any(
+        origins[position] != ({"corrected"} if position in corrected else {"raw"})
+        for position in family
+    ):
+        return None
+    return _ConclusionConsumption(
+        tuple(sorted(corrected)),
+        tuple(sorted(family - corrected)),
+        tuple(sorted(comparison_positions)),
+    )
 
 
 class _Surrogate(ast.NodeTransformer):
@@ -1189,13 +1368,32 @@ def _analyze_correction_outcome(
                 },
             )
         p_names, p_keys = rm._p_lineage(tree, resolver)
-        transports = _transport_targets(
+        transport_proofs = _transport_proofs(
             tree,
             fold,
             p_names=p_names,
             p_keys=p_keys,
             outcome_columns=outcome_columns,
         )
+        transports = tuple(item.target for item in transport_proofs)
+        consumption = _conclusion_consumption(
+            tree,
+            fold,
+            transport_proofs,
+            p_names=p_names,
+            p_keys=p_keys,
+            outcome_columns=outcome_columns,
+        )
+        if consumption is None:
+            return CorrectionModelResult(
+                baseline,
+                baseline,
+                False,
+                True,
+                None,
+                (),
+                {"gate": "conclusion-consumption", "line": fold.source_line},
+            )
         surrogate = _surrogate_bytes(tree, fold, transports)
         surrogate_result = mt.analyze_code_csv_multiple_testing_dataflow(
             surrogate,
@@ -1234,6 +1432,11 @@ def _analyze_correction_outcome(
                 "line": fold.source_line,
                 "source_position": list(_position(fold.node)),
                 "transport_count": len(transports),
+                "consumption_comparisons": [
+                    list(position) for position in consumption.comparison_positions
+                ],
+                "consumption_corrected_positions": list(consumption.corrected_positions),
+                "consumption_raw_positions": list(consumption.raw_positions),
                 "surrogate_outcome": downstream.as_json(),
             },
             "sha256:" + hashlib.sha256(surrogate).hexdigest(),
