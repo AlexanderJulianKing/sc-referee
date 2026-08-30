@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -11,16 +10,16 @@ from sc_referee.capability_matrix import (
     load_capability_detector_manifest,
 )
 from sc_referee.core.ids import semantic_digest
-from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1_1 import (
-    BoundedCodeCsvMultipleTestingConflictV1_1Detector,
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_3 import (
+    BoundedCodeCsvMultipleTestingConflictV3_3Detector,
 )
-from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v1_1 import (
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_3 import (
     MULTIPLE_TESTING_CODE_CHECK_ID,
 )
 from sc_referee.scientific_checks.profiles import scientific_check_release_registry
 
 
-def _active_binding() -> Any:
+def _binding() -> Any:
     return next(
         item
         for item in scientific_check_release_registry().development_method_conflict_bindings
@@ -28,30 +27,19 @@ def _active_binding() -> Any:
     )
 
 
-def _binding(schema_root: Path) -> Any:
-    manifest = _manifest(schema_root)
-    return replace(
-        _active_binding(),
-        binding_id="method-conflict-binding:historical-multiple-testing-code-v1-1",
-        check_version="1.1.0",
-        detector_version="1.1.0",
-        detector_manifest_digest=semantic_digest(manifest),
-    )
-
-
 def _manifest(schema_root: Path) -> dict[str, Any]:
     return load_capability_detector_manifest(
         default_capability_manifest_root(),
         schema_root,
-        BoundedCodeCsvMultipleTestingConflictV1_1Detector.detector_id,
-        detector_version=BoundedCodeCsvMultipleTestingConflictV1_1Detector.detector_version,
+        BoundedCodeCsvMultipleTestingConflictV3_3Detector.detector_id,
+        detector_version=BoundedCodeCsvMultipleTestingConflictV3_3Detector.detector_version,
     )
 
 
-def _detector(schema_root: Path) -> BoundedCodeCsvMultipleTestingConflictV1_1Detector:
-    return BoundedCodeCsvMultipleTestingConflictV1_1Detector(
+def _detector(schema_root: Path) -> BoundedCodeCsvMultipleTestingConflictV3_3Detector:
+    return BoundedCodeCsvMultipleTestingConflictV3_3Detector(
         _manifest(schema_root),
-        (_binding(schema_root),),
+        (_binding(),),
     )
 
 
@@ -70,28 +58,27 @@ def test_detector_identity_is_pinned_to_manifest_and_development_binding(
     schema_root: Path,
 ) -> None:
     manifest = _manifest(schema_root)
-    binding = _binding(schema_root)
+    binding = _binding()
     detector = _detector(schema_root)
 
     assert detector.detector_id == "detector:bounded-code-csv-multiple-testing-conflict"
-    assert detector.detector_version == "1.1.0"
+    assert detector.detector_version == "3.3.0"
     assert detector.entry_point == (
-        "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1_1:"
-        "BoundedCodeCsvMultipleTestingConflictV1_1Detector"
+        "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_3:"
+        "BoundedCodeCsvMultipleTestingConflictV3_3Detector"
     )
     assert detector.implementation_digest() == manifest["implementation"]["implementation_digest"]
     assert detector.manifest_digest == semantic_digest(manifest)
     assert detector.manifest_digest == binding.detector_manifest_digest
-    assert binding.check_version == "1.1.0"
-    active_module = next(
+    assert binding.check_version == "3.3.0"
+    module = next(
         item
         for item in scientific_check_release_registry().modules_for_lane("development")
         if item.manifest.check_id == MULTIPLE_TESTING_CODE_CHECK_ID
     )
-    assert active_module.manifest.check_version == "3.3.0"
-    assert active_module.adapter_manifests[0].adapter_version == "3.3.0"
-    assert _active_binding().detector_version == "3.3.0"
-    assert binding not in scientific_check_release_registry().development_method_conflict_bindings
+    assert module.manifest.check_version == "3.3.0"
+    assert module.adapter_manifests[0].adapter_version == "3.3.0"
+    assert binding in scientific_check_release_registry().development_method_conflict_bindings
     assert binding not in scientific_check_release_registry().method_conflict_bindings
 
 

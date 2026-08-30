@@ -193,3 +193,31 @@ scope is structurally proved. From 3.2 onward a B-answer location may prioritize
 check, but the Answer and claimed factor never enter the proof; answer removal must produce the
 same corrected positions. Blind scoring, public record types, wording, and qualified lanes remain
 unchanged.
+
+## Terminal-presentation and helper-record 3.3 amendment
+
+The accepted design
+`docs/implementation/MULTITEST-3.3-TERMINAL-PRESENTATION-DESIGN-2026-08-30.md`, Revision 0,
+has raw SHA-256 `cbc37990e9a713c486bf903cefef03c08ad264e7b6112383330b56a0c3f6c224`
+and advances only the development check, adapter, and detector to `3.3.0`. Instrumented frozen-
+3.2 execution establishes that E16 P2 is blocked by its verdict `IfExp`, E16 P4 by its
+presentation `If`, and E16 P3 by unresolved helper-returned record consumption; terminal count
+syntax alone is not treated as the trigger.
+
+Version 3.3 adds two proof facts and no scientific classifier. The terminal proof excludes only
+one exact control occurrence after total downstream-consumer and execution-prevention checks.
+The helper proof admits only one top-level synchronous, single-call-site helper returning one
+flat literal record into one complete-family comprehension, with total p/conclusion consumer
+accounting. The hierarchy control universe remains global; only immutable proved occurrences are
+excluded. Global test, correction, statistics, repetition, dynamic-execution, API-rebinding, and
+outcome-mutation censuses always inspect the untouched source tree. The existing 3.2/3.0 analyzer
+alone re-proves operands, rows, family cardinality, thresholds, conclusions, correction/AP state,
+and classification.
+
+The executed movement set is exactly E16 P2/P3/P4 to uncorrected-family candidates at `N=6/5/7`.
+The final implementation must re-demonstrate all three, while every prior row and pinned
+noncandidate stays unchanged. The no-attestation correction-scope census is `25 -> 25`: those
+three cases carried publication-surface questions, not MT correction-scope questions, so no
+unrelated MaterialQuestion may be removed. Wording, contract profile, qualified lanes, blind
+scoring, and the asymmetric attestation rule remain unchanged; answer-guided proof may do nothing
+that the answer-removed path cannot reproduce.

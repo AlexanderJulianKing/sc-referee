@@ -1508,6 +1508,51 @@ def main() -> None:
         "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v3_2)
+    multiple_testing_v3_3 = deepcopy(multiple_testing_v3_2)
+    multiple_testing_v3_3["detector_version"] = "3.3.0"
+    multiple_testing_v3_3["description"] = (
+        "Proves one exact terminal-presentation control exclusion or one exact single-call-site "
+        "helper-record consumer graph before the unchanged multiple-testing 3.2 classifier runs."
+    )
+    multiple_testing_v3_3["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_3.py"
+    )
+    multiple_testing_resource_v3_3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_3.py"
+    )
+    multiple_testing_v3_3["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_3:"
+            "BoundedCodeCsvMultipleTestingConflictV3_3Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_3.read_bytes()),
+    }
+    multiple_testing_v3_3["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_new_adversary_matrix"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_all_203_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_3.py::test_e16_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_frozen_hierarchy_rows_match_both_lanes"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_3.py::test_open_corpus_is_byte_identical_to_v3_2"
+        ],
+    }
+    multiple_testing_v3_3["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.3-TERMINAL-PRESENTATION-DESIGN-2026-08-30.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_3)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

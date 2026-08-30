@@ -88,8 +88,8 @@ def test_detector_identity_is_pinned_to_manifest_and_development_binding(
         for item in scientific_check_release_registry().modules_for_lane("development")
         if item.manifest.check_id == MULTIPLE_TESTING_CODE_CHECK_ID
     )
-    assert module.manifest.check_version == "3.2.0"
-    assert module.adapter_manifests[0].adapter_version == "3.2.0"
+    assert module.manifest.check_version == "3.3.0"
+    assert module.adapter_manifests[0].adapter_version == "3.3.0"
     assert binding not in scientific_check_release_registry().development_method_conflict_bindings
     assert binding not in scientific_check_release_registry().method_conflict_bindings
 

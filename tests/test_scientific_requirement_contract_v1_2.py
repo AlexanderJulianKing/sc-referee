@@ -82,7 +82,7 @@ def test_profile_1_2_slims_authority_and_derives_api_and_group_values() -> None:
     resolved = resolve_scientific_requirement_profile(_multiple_testing_profile())
 
     assert resolved.profile_version == "1.2.0"
-    assert resolved.check_version == "3.2.0"
+    assert resolved.check_version == "3.3.0"
     assert resolved.dimension == "selection_process"
     assert resolved.value == "complete_family_correction_over_authorized_outcome_family"
     family = resolved.semantic_role_authority["authorized_test_family"]  # type: ignore[index]
