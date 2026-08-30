@@ -1,0 +1,63 @@
+{
+  "298a1432b9b550031f5d": {
+    "DATA_DESCRIPTION.md": "31828da9536c8720648b9646e83025713361d097a963bc504c7066be80c1ed45",
+    "eel_catchment_survey.csv": "1aff9a8cdb65906dc68ac84a5ea34f0b3da3ab61e48c45abf6bfa33c0bf0b767"
+  },
+  "5a9c5b4377c33916d672": {
+    "DATA_DESCRIPTION.md": "f30070d2aa64ab3b181e07d70484d317bcca515f45d4ca6b1fa31ff1c02b180a",
+    "green_roof_survey.csv": "0bf8006faa28e29d0b4b4ff84629f6eb9bb739c883533ac987a2ec80d38db6b2"
+  },
+  "6c45fce29073c572d8c0": {
+    "DATA_DESCRIPTION.md": "a8da9b250cc1aefba3e480f95f604c8e4cda95cc83f7b7dfca8434fa4ad26aaf",
+    "lobster_shelter_trial.csv": "3e7ff3d734f337c118a9ad69d86a084c89bb51fca8382d8ade34d787f669bde6"
+  },
+  "6d5e78b815b73081865f": {
+    "DATA_DESCRIPTION.md": "b42367a08d5d97512e6e69e38b55a51426e122d1588ef4a1433c152f0f5a54e1",
+    "swimmers.csv": "d0a4a1f26d0db4815c2854dcf5611fdfd664f6477ae5ba9ee298d024a3cc915d"
+  },
+  "76f0e7831f3856df66d5": {
+    "DATA_DESCRIPTION.md": "f3cbbe89e30b5e098fd0cff86fb8c067924015ca181b4c71d7822222a2db4f76",
+    "hedge_sections.csv": "783f69dfa757176e399bbaf01b57ed46e96a671f7315f1d1035f482e709e81cf"
+  },
+  "7a43fa7b50f1b99e5034": {
+    "DATA_DESCRIPTION.md": "551530d2d494988b2e7b7e74ab80e933b865c8aad407f9e9f8646ff20879b2c6",
+    "quail_flooring.csv": "5793931b5b3353f0158d5e98534510368199790f52d640b22a12ec64b01719e8"
+  },
+  "7be23db36040f5be1df2": {
+    "DATA_DESCRIPTION.md": "3e45ec7d8ff08f64cd6dbd5cc639fbbcbb83516eb16d6e6e53036d62813941c5",
+    "molar_cold_therapy.csv": "0244fc7b8e0c5b1cbe2a7bf4d6e283abbb4f0b04d5ec064ca1e4efbbad6e9205"
+  },
+  "8b9b2171434ddd20b63f": {
+    "DATA_DESCRIPTION.md": "a74854462280d62a8af97ce427fb26b1ac6f3ebaab59484cab887976652ef620",
+    "hares.csv": "5ccf6b3f60abbe457f78ab338be10e519b86c5f5b519d6f743d9d62fd6e55010"
+  },
+  "8ff6de728df8f29261aa": {
+    "DATA_DESCRIPTION.md": "5fe73e1a600670557c895a0622ffe05bb1d0810462a6b508a3e4df05db4583ab",
+    "plantain_frying_batches.csv": "0455d8c1e426e0239f1473938174a7163c567aac6bfe325a63739884c7919392"
+  },
+  "9155ca1dd76fa5c630b1": {
+    "DATA_DESCRIPTION.md": "a61f7aabf404360d4e3ac4c66146b4780af000fcd13a6d4403a27625c4a11cb2",
+    "millet_irrigation.csv": "795f3d693e810d231cf6996f1f5d7c36f2999d4434a5fa76bbd6534d7e055e3f",
+    "upstream_inference.csv": "3e27e6d7e630520f6c6a12cdddbd60cece0cd1fe4c9ec34192b1a87a952e6b89"
+  },
+  "9ced761b41ef93485acf": {
+    "DATA_DESCRIPTION.md": "f19b0c2f3bf5f89f5c13071482df83b82c02ee38ffa13b04ad201710b58e6d08",
+    "chickpea_inoculation.csv": "9ab5a0ffcc9c0fdbb36fc61e74845b35ede55671f9fec6b78e60de59f4f96f2b"
+  },
+  "a5a32dcc59d4f3acd943": {
+    "DATA_DESCRIPTION.md": "ca9ddf3ee2f0718d97003fe2427e24c6e858f641b2e35278670741c56bb5e3e7",
+    "tinnitus_sound_therapy.csv": "6928c3997d5e04d71fa45d9baedd02b21a460fb024d100247b41407de65597d5"
+  },
+  "b1b81b953f324b7e4f75": {
+    "DATA_DESCRIPTION.md": "f638c0b4f7f9dc366e7ffe5dc34d229c2bc594e6a74214036d40c85b7371ccb4",
+    "eczema_trial.csv": "c22695b050380b9c48b595378a6aae320ac05285e9e985b5987690b7a9db23a4"
+  },
+  "c89a2a4259f96b413be8": {
+    "DATA_DESCRIPTION.md": "8f43c8caea380f7586294fcec625128962b7faac678f5e801313798a8c58a1d2",
+    "bakery_flour_dust.csv": "9bf993e6853749cbe3deef36e3727a35b00dac421dd005b02f62cb8c5af7d1dc"
+  },
+  "f0214d4b77f589655ac3": {
+    "DATA_DESCRIPTION.md": "bdac2e0b7c55d22ad823d59c330c709bb2e5814dbfe860b1e1b0f83d7765fb0c",
+    "girth_pad_trial.csv": "9500a0352586d0662404972dc9604a85220a3e8cb0793753fc647a746ade5ab6"
+  }
+}
