@@ -14,6 +14,7 @@ import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3 as dat
 from sc_referee.core.ids import canonical_json, sha256_digest
 from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3 import _CLOSED_REASONS
 from sc_referee.scientific_checks.core import (
+    CanonicalOperand,
     FrozenBaseRecord,
     FrozenInspectionContext,
     InspectionDocument,
@@ -261,9 +262,18 @@ def _adapter() -> adapter_module.CodeCsvMultipleTestingAdapter:
         for item in registry.modules_for_lane("development")
         if item.manifest.check_id == _CHECK_ID
     )
-    adapter = module.adapters[0]
-    assert isinstance(adapter, adapter_module.CodeCsvMultipleTestingAdapter)
-    return adapter
+    return adapter_module.CodeCsvMultipleTestingAdapter(
+        check_manifest=module.manifest,
+        adapter_manifest=module.adapter_manifests[0],
+        complete_operand=CanonicalOperand.scalar(adapter_module.COMPLETE_FAMILY_CORRECTION_OPERAND),
+        none_operand=CanonicalOperand.scalar(
+            adapter_module.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND
+        ),
+        strict_subset_operand=CanonicalOperand.scalar(
+            adapter_module.STRICT_SUBSET_FAMILY_CORRECTION_OPERAND
+        ),
+        role_bindings=adapter_module.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
+    )
 
 
 def test_verified_authority_unavailable_is_the_first_adapter_reason() -> None:

@@ -29,6 +29,8 @@ class Fixture:
     category: str
     design_clause: str
     source_origin: str
+    expected_gate: str | None = None
+    expected_gate_reason: str | None = None
 
 
 def _outcome(value: list[object]) -> Outcome:
@@ -289,6 +291,9 @@ def new_ap_fixtures() -> tuple[Fixture, ...]:
         expected: Outcome | None,
         correct: bool,
         clause: str,
+        *,
+        expected_gate: str | None = None,
+        expected_gate_reason: str | None = None,
     ) -> None:
         fixtures.append(
             Fixture(
@@ -301,6 +306,8 @@ def new_ap_fixtures() -> tuple[Fixture, ...]:
                 "ap-v3.2",
                 clause,
                 "generated from sealed E15 P6",
+                expected_gate,
+                expected_gate_reason,
             )
         )
 
@@ -568,6 +575,52 @@ def new_ap_fixtures() -> tuple[Fixture, ...]:
         Outcome("abstain", "unresolved-manual-correction-present"),
         True,
         "3 global correction census",
+    )
+
+    frozen_record = json.loads((V3_SWEEP / "results.json").read_text(encoding="utf-8"))
+    frozen_record_row = next(
+        item
+        for item in frozen_record["fixtures"]
+        if item["name"] == "positive-record-dict-flag-fold"
+    )
+    cross_function = (V3_SWEEP / frozen_record_row["source_path"]).read_text(encoding="utf-8")
+    cross_function = _replace_once(
+        cross_function,
+        '        result["significant"] = result["p_value"] < ALPHA\n',
+        '        result["p_used"] = min(1.0, result["p_value"] * len(OUTCOMES))\n'
+        '        result["significant"] = result["p_used"] < ALPHA\n',
+        "cross-function-record-fold",
+    )
+    fixtures.append(
+        Fixture(
+            "correct-ap-cross-function-record-flow-gate",
+            frozen_record_row["case_key"],
+            cross_function.encode("utf-8"),
+            Outcome("abstain", "record-family-lineage-unresolved"),
+            Outcome("abstain", "record-family-lineage-unresolved"),
+            True,
+            "ap-v3.2",
+            "4.6 helper-return records remain cross-function flow",
+            "generated from the frozen record positive",
+            "cross-function-record-flow",
+        )
+    )
+
+    merge_source = _replace_once(
+        base,
+        "        significant = p_used < ALPHA\n",
+        "        p_merge = (p_raw * FAMILY_SIZE) if is_primary else p_raw\n"
+        "        significant = p_used < ALPHA\n",
+        "ap-record-merge-gate",
+    )
+    add(
+        "correct-ap-frozen-record-merge-gate",
+        merge_source,
+        Outcome("abstain", "unresolved-manual-correction-present"),
+        True,
+        "4.1 frozen _record_merge_reason re-run",
+        expected_gate="_record_merge_reason",
+        expected_gate_reason="record-family-lineage-unresolved",
     )
 
     return tuple(fixtures)

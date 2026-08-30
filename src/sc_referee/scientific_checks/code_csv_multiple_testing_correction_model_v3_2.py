@@ -1,23 +1,28 @@
-"""Strict non-production AP(C, POS) shadow recognizer for the MT 3.2 design.
+"""Strict AP(C, POS) correction recognizer for multiple-testing 3.2.
 
-The recognizer never executes project code.  It admits only two closed Bonferroni productions and
-then reruns the frozen analyzer on a structural surrogate in which the proved correction is replaced
-by its raw-p identity.  The surrogate must be candidate/none; otherwise no movement is permitted.
+The recognizer never executes project code and never classifies by itself.  It admits only the
+closed Bonferroni productions, subtracts one proved correction fold on a structural surrogate,
+and requires the frozen 3.0 analyzer to prove the remaining raw family independently.
 """
 
 from __future__ import annotations
 
 import ast
 import copy
+import hashlib
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
+from pathlib import Path
 from typing import Any, cast
-
-from harness import Outcome, classify
 
 import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3 as mt
 import sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3 as rm
+from sc_referee.core.ids import sha256_digest
+
+CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST = sha256_digest(
+    Path(__file__).read_bytes()
+)
 
 _TARGET_REASONS = frozenset(
     {
@@ -46,9 +51,42 @@ _CORRECTION_TERMINALS = frozenset(
 
 
 @dataclass(frozen=True)
-class APResult:
-    outcome: Outcome
-    baseline: Outcome
+class _Outcome:
+    state: str
+    reason_or_classification: str
+    corrected_positions: tuple[int, ...] = ()
+    authorized_count: int | None = None
+
+    def as_json(self) -> list[object]:
+        value: list[object] = [self.state, self.reason_or_classification]
+        if self.state in {"candidate", "covered"}:
+            value.append(
+                {
+                    "authorized_count": self.authorized_count,
+                    "corrected_positions": list(self.corrected_positions),
+                }
+            )
+        return value
+
+
+def _classify(result: mt.MultipleTestingDataflowResult) -> _Outcome:
+    if result.reason is not None:
+        return _Outcome("abstain", result.reason)
+    if result.facts is None:
+        return _Outcome("abstain", "multiple-testing-code-inspection-exception")
+    state = "covered" if result.facts.correction_classification == "complete" else "candidate"
+    return _Outcome(
+        state,
+        result.facts.correction_classification,
+        result.facts.corrected_positions,
+        result.facts.family_size,
+    )
+
+
+@dataclass(frozen=True)
+class CorrectionModelResult:
+    outcome: _Outcome
+    baseline: _Outcome
     changed: bool
     attempted: bool
     model: str | None
@@ -66,6 +104,20 @@ class _Fold:
     owner: ast.Module | ast.FunctionDef
     form: str
     source_line: int
+
+
+@dataclass(frozen=True)
+class _TransportProof:
+    target: tuple[str, object]
+    corrected_positions: tuple[int, ...]
+    raw_positions: tuple[int, ...]
+
+
+@dataclass(frozen=True)
+class _ConclusionConsumption:
+    corrected_positions: tuple[int, ...]
+    raw_positions: tuple[int, ...]
+    comparison_positions: tuple[tuple[int, int, int, int], ...]
 
 
 def _position(node: ast.AST) -> tuple[int, int, int, int]:
@@ -457,7 +509,8 @@ def _static_bool(
         return node.value
     if isinstance(node, ast.Name):
         if node.id in row:
-            return row[node.id] if isinstance(row[node.id], bool) else None
+            row_value = row[node.id]
+            return row_value if isinstance(row_value, bool) else None
         if node.id in active:
             return None
         value = _resolve_bool_name(node.id, owner=owner)
@@ -473,8 +526,10 @@ def _static_bool(
             )
         )
     if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
-        value = _static_bool(node.operand, row, owner=owner, sequences=sequences, active=active)
-        return None if value is None else not value
+        bool_value = _static_bool(
+            node.operand, row, owner=owner, sequences=sequences, active=active
+        )
+        return None if bool_value is None else not bool_value
     if isinstance(node, ast.BoolOp):
         values = [
             _static_bool(item, row, owner=owner, sequences=sequences, active=active)
@@ -726,7 +781,7 @@ def _folds(
             sequences=sequences,
             outcome_columns=outcome_columns,
         )
-        item = {
+        item: dict[str, object] = {
             "line": statement.lineno,
             "factor": factor,
             "positions": None if positions is None else list(positions),
@@ -821,7 +876,7 @@ def _threshold_fold(
     sequences = _module_sequences(tree)
     p_names, p_keys = rm._p_lineage(tree, resolver)
     candidates: list[_Fold] = []
-    assignments: list[tuple[ast.expr, ast.expr, ast.Module | ast.FunctionDef]] = []
+    assignments: list[tuple[ast.Name, ast.expr, ast.Module | ast.FunctionDef]] = []
     for node in ast.walk(tree):
         if isinstance(node, (ast.Assign, ast.AnnAssign)) and node.value is not None:
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
@@ -898,19 +953,40 @@ def _load_matches(node: ast.expr, target: tuple[str, object]) -> bool:
     return False
 
 
-def _transport_targets(
+def _transport_proofs(
     tree: ast.Module,
     fold: _Fold,
     *,
     p_names: frozenset[str],
     p_keys: frozenset[str | int],
     outcome_columns: tuple[str, ...],
-) -> tuple[tuple[str, object], ...]:
-    result: list[tuple[str, object]] = [fold.target]
+) -> tuple[_TransportProof, ...]:
     parents = _parents(tree)
     owners = _owners(tree)
     sequences = _module_sequences(tree)
     all_positions = set(range(len(outcome_columns)))
+    initial_raw: set[int] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
+            continue
+        targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+        if (
+            len(targets) == 1
+            and _target(targets[0]) == fold.target
+            and node.value is not fold.node
+            and _raw_expr(node.value, p_names=p_names, p_keys=p_keys) is not None
+        ):
+            positions = _positions_for(
+                node,
+                tree=tree,
+                owner=owners.get(node, tree),
+                parents=parents,
+                sequences=sequences,
+                outcome_columns=outcome_columns,
+            )
+            if positions is not None:
+                initial_raw.update(positions)
+    result = [_TransportProof(fold.target, fold.positions, tuple(sorted(initial_raw)))]
     changed = True
     while changed:
         changed = False
@@ -918,7 +994,11 @@ def _transport_targets(
             if not isinstance(node, (ast.Assign, ast.AnnAssign)) or node.value is None:
                 continue
             targets = node.targets if isinstance(node, ast.Assign) else [node.target]
-            if len(targets) != 1 or (target := _target(targets[0])) is None or target in result:
+            if (
+                len(targets) != 1
+                or (target := _target(targets[0])) is None
+                or any(item.target == target for item in result)
+            ):
                 continue
             definitions: list[tuple[ast.Assign | ast.AnnAssign, ast.expr]] = []
             for candidate in ast.walk(tree):
@@ -935,18 +1015,22 @@ def _transport_targets(
                     definitions.append((candidate, candidate.value))
             if not definitions or any(isinstance(value, ast.IfExp) for _, value in definitions):
                 continue
-            classified: list[tuple[str, tuple[int, ...] | None]] = []
+            classified: list[tuple[str, tuple[int, ...] | None, _TransportProof | None]] = []
             valid = True
             for statement, value in definitions:
-                kind = (
-                    "corrected"
-                    if any(_load_matches(value, known) for known in result)
-                    else "raw"
-                    if _raw_expr(value, p_names=p_names, p_keys=p_keys) is not None
-                    else "none"
-                    if isinstance(value, ast.Constant) and value.value is None
-                    else "unknown"
-                )
+                known = [item for item in result if _load_matches(value, item.target)]
+                if len(known) == 1:
+                    kind = "transport"
+                    origin = known[0]
+                elif not known and _raw_expr(value, p_names=p_names, p_keys=p_keys) is not None:
+                    kind = "raw"
+                    origin = None
+                elif not known and isinstance(value, ast.Constant) and value.value is None:
+                    kind = "none"
+                    origin = None
+                else:
+                    kind = "unknown"
+                    origin = None
                 if kind == "unknown":
                     valid = False
                     break
@@ -959,30 +1043,166 @@ def _transport_targets(
                     sequences=sequences,
                     outcome_columns=outcome_columns,
                 )
-                classified.append((kind, positions))
+                classified.append((kind, positions, origin))
             if not valid:
                 continue
+            corrected_positions: set[int] = set()
+            raw_positions: set[int] = set()
+            for kind, positions, origin in classified:
+                if positions is None:
+                    valid = False
+                    break
+                selected = set(positions)
+                if kind == "transport" and origin is not None:
+                    available = set(origin.corrected_positions) | set(origin.raw_positions)
+                    if not selected <= available:
+                        valid = False
+                        break
+                    corrected_positions.update(selected & set(origin.corrected_positions))
+                    raw_positions.update(selected & set(origin.raw_positions))
+                elif kind == "raw":
+                    raw_positions.update(selected)
+                elif kind != "none":
+                    valid = False
+                    break
+            if not valid or corrected_positions & raw_positions:
+                continue
             if len(classified) == 1:
-                kind, positions = classified[0]
-                if kind == "none" or positions is None:
+                kind, positions, _ = classified[0]
+                if (
+                    kind != "transport"
+                    or positions is None
+                    or set(positions) != corrected_positions | raw_positions
+                    or not corrected_positions
+                ):
                     continue
             elif len(classified) == 2:
-                corrected = [positions for kind, positions in classified if kind == "corrected"]
-                raw = [positions for kind, positions in classified if kind == "raw"]
-                if (
-                    len(corrected) != 1
-                    or len(raw) != 1
-                    or corrected[0] is None
-                    or raw[0] is None
-                    or set(corrected[0]) != set(fold.positions)
-                    or set(raw[0]) != all_positions - set(fold.positions)
-                ):
+                if corrected_positions != set(
+                    fold.positions
+                ) or raw_positions != all_positions - set(fold.positions):
                     continue
             else:
                 continue
-            result.append(target)
+            result.append(
+                _TransportProof(
+                    target,
+                    tuple(sorted(corrected_positions)),
+                    tuple(sorted(raw_positions)),
+                )
+            )
             changed = True
     return tuple(result)
+
+
+def _transport_targets(
+    tree: ast.Module,
+    fold: _Fold,
+    *,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+    outcome_columns: tuple[str, ...],
+) -> tuple[tuple[str, object], ...]:
+    return tuple(
+        item.target
+        for item in _transport_proofs(
+            tree,
+            fold,
+            p_names=p_names,
+            p_keys=p_keys,
+            outcome_columns=outcome_columns,
+        )
+    )
+
+
+def _same_expression(left: ast.expr, right: ast.expr) -> bool:
+    return ast.dump(left, include_attributes=False) == ast.dump(right, include_attributes=False)
+
+
+def _threshold_compare_uses_fold(compare: ast.Compare, fold: _Fold) -> bool:
+    if fold.target[0] == "threshold-direct":
+        return _position(compare) == fold.target[1]
+    if fold.target[0] != "threshold-binding" or not isinstance(fold.target[1], str):
+        return False
+    operands = (compare.left, *compare.comparators)
+    return any(
+        isinstance(operand, ast.Name)
+        and isinstance(operand.ctx, ast.Load)
+        and operand.id == fold.target[1]
+        for operand in operands
+    )
+
+
+def _conclusion_consumption(
+    tree: ast.Module,
+    fold: _Fold,
+    transports: Sequence[_TransportProof],
+    *,
+    p_names: frozenset[str],
+    p_keys: frozenset[str | int],
+    outcome_columns: tuple[str, ...],
+) -> _ConclusionConsumption | None:
+    """Prove each conclusion's corrected/raw origin before AP classification."""
+
+    parents = _parents(tree)
+    owners = _owners(tree)
+    sequences = _module_sequences(tree)
+    origins: dict[int, set[str]] = {position: set() for position in range(len(outcome_columns))}
+    comparison_positions: list[tuple[int, int, int, int]] = []
+    for compare in (node for node in ast.walk(tree) if isinstance(node, ast.Compare)):
+        left_p = rm._p_derived(compare.left, p_names, p_keys)
+        right_p = any(rm._p_derived(item, p_names, p_keys) for item in compare.comparators)
+        if not left_p and not right_p:
+            continue
+        if left_p == right_p or len(compare.ops) != 1 or len(compare.comparators) != 1:
+            return None
+        positions = _positions_for(
+            compare,
+            tree=tree,
+            owner=owners.get(compare, tree),
+            parents=parents,
+            sequences=sequences,
+            outcome_columns=outcome_columns,
+        )
+        if positions is None or not positions:
+            return None
+        p_operand = compare.left if left_p else compare.comparators[0]
+        if fold.form == "family-alpha-division":
+            kind = "corrected" if _threshold_compare_uses_fold(compare, fold) else "raw"
+            for position in positions:
+                origins[position].add(kind)
+            comparison_positions.append(_position(compare))
+            continue
+
+        matching = [item for item in transports if _load_matches(p_operand, item.target)]
+        if len(matching) == 1:
+            proof = matching[0]
+            available = set(proof.corrected_positions) | set(proof.raw_positions)
+            if not set(positions) <= available:
+                return None
+            for position in positions:
+                if position in proof.corrected_positions:
+                    origins[position].add("corrected")
+                if position in proof.raw_positions:
+                    origins[position].add("raw")
+        elif not matching and _same_expression(p_operand, fold.raw):
+            for position in positions:
+                origins[position].add("raw")
+        else:
+            return None
+        comparison_positions.append(_position(compare))
+
+    corrected = set(fold.positions)
+    family = set(range(len(outcome_columns)))
+    if any(
+        origins[position] != ({"corrected"} if position in corrected else {"raw"})
+        for position in family
+    ):
+        return None
+    return _ConclusionConsumption(
+        tuple(sorted(corrected)),
+        tuple(sorted(family - corrected)),
+        tuple(sorted(comparison_positions)),
+    )
 
 
 class _Surrogate(ast.NodeTransformer):
@@ -997,10 +1217,10 @@ class _Surrogate(ast.NodeTransformer):
             and raw_target != fold.target
         )
 
-    def visit(self, node: ast.AST) -> ast.AST:  # type: ignore[override]
+    def visit(self, node: ast.AST) -> ast.AST:
         if node is self.fold.node:
             return ast.copy_location(copy.deepcopy(self.fold.raw), node)
-        return super().visit(node)
+        return cast(ast.AST, super().visit(node))
 
     def visit_Assign(self, node: ast.Assign) -> ast.AST:
         if (
@@ -1065,22 +1285,26 @@ def _surrogate_bytes(
     return (ast.unparse(value) + "\n").encode("utf-8")
 
 
-def analyze_ap(
+def _analyze_correction_outcome(
     content: bytes,
     *,
-    baseline: Outcome,
+    baseline: _Outcome,
     outcome_columns: tuple[str, ...],
     **kwargs: Any,
-) -> APResult:
+) -> CorrectionModelResult:
     if baseline.state != "abstain" or baseline.reason_or_classification not in _TARGET_REASONS:
-        return APResult(baseline, baseline, False, False, None, (), {"gate": "first-reason"})
+        return CorrectionModelResult(
+            baseline, baseline, False, False, None, (), {"gate": "first-reason"}
+        )
     try:
         tree = mt._bounded_parse(content)
         resolver, reason = mt._resolver(
             tuple(item for item in tree.body if not mt._is_docstring(item))
         )
         if resolver is None or reason is not None:
-            return APResult(baseline, baseline, False, False, None, (), {"gate": reason})
+            return CorrectionModelResult(
+                baseline, baseline, False, False, None, (), {"gate": reason}
+            )
         folds, rejected = _folds(
             tree,
             source=content,
@@ -1096,7 +1320,7 @@ def analyze_ap(
         if threshold is not None:
             folds.append(threshold)
         if _has_correction_terminal(tree):
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1106,7 +1330,7 @@ def analyze_ap(
                 {"gate": "correction-terminal-present", "rejected": rejected},
             )
         if len(folds) != 1:
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1119,7 +1343,7 @@ def analyze_ap(
         if fold.target[0] == "field" and _record_cross_function(
             fold, tree=tree, resolver=resolver, outcome_columns=outcome_columns
         ):
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1130,7 +1354,7 @@ def analyze_ap(
             )
         merge = rm._record_merge_reason(tree, resolver)
         if merge is not None:
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1144,22 +1368,41 @@ def analyze_ap(
                 },
             )
         p_names, p_keys = rm._p_lineage(tree, resolver)
-        transports = _transport_targets(
+        transport_proofs = _transport_proofs(
             tree,
             fold,
             p_names=p_names,
             p_keys=p_keys,
             outcome_columns=outcome_columns,
         )
+        transports = tuple(item.target for item in transport_proofs)
+        consumption = _conclusion_consumption(
+            tree,
+            fold,
+            transport_proofs,
+            p_names=p_names,
+            p_keys=p_keys,
+            outcome_columns=outcome_columns,
+        )
+        if consumption is None:
+            return CorrectionModelResult(
+                baseline,
+                baseline,
+                False,
+                True,
+                None,
+                (),
+                {"gate": "conclusion-consumption", "line": fold.source_line},
+            )
         surrogate = _surrogate_bytes(tree, fold, transports)
         surrogate_result = mt.analyze_code_csv_multiple_testing_dataflow(
             surrogate,
             outcome_columns=outcome_columns,
             **kwargs,
         )
-        downstream = classify(surrogate_result)
+        downstream = _classify(surrogate_result)
         if downstream.state != "candidate" or downstream.reason_or_classification != "none":
-            return APResult(
+            return CorrectionModelResult(
                 baseline,
                 baseline,
                 False,
@@ -1174,13 +1417,11 @@ def analyze_ap(
             )
         positions = fold.positions
         outcome = (
-            Outcome("covered", "complete", positions, len(outcome_columns))
+            _Outcome("covered", "complete", positions, len(outcome_columns))
             if positions == tuple(range(len(outcome_columns)))
-            else Outcome("candidate", "strict_subset", positions, len(outcome_columns))
+            else _Outcome("candidate", "strict_subset", positions, len(outcome_columns))
         )
-        import hashlib
-
-        return APResult(
+        return CorrectionModelResult(
             outcome,
             baseline,
             outcome != baseline,
@@ -1189,18 +1430,48 @@ def analyze_ap(
             positions,
             {
                 "line": fold.source_line,
+                "source_position": list(_position(fold.node)),
                 "transport_count": len(transports),
+                "consumption_comparisons": [
+                    list(position) for position in consumption.comparison_positions
+                ],
+                "consumption_corrected_positions": list(consumption.corrected_positions),
+                "consumption_raw_positions": list(consumption.raw_positions),
                 "surrogate_outcome": downstream.as_json(),
             },
             "sha256:" + hashlib.sha256(surrogate).hexdigest(),
         )
-    except Exception as exc:  # prototype evidence localizes, never invents a movement
-        return APResult(
+    except (ArithmeticError, RecursionError, SyntaxError, UnicodeError, ValueError) as exc:
+        return CorrectionModelResult(
             baseline,
             baseline,
             False,
             True,
             None,
             (),
-            {"gate": "prototype-exception", "exception": type(exc).__name__},
+            {"gate": "correction-model-exception", "exception": type(exc).__name__},
         )
+
+
+def analyze_correction_model(
+    content: bytes,
+    *,
+    baseline: mt.MultipleTestingDataflowResult,
+    outcome_columns: tuple[str, ...],
+    **kwargs: Any,
+) -> CorrectionModelResult:
+    """Return an immutable AP delta or preserve the frozen source result."""
+
+    return _analyze_correction_outcome(
+        content,
+        baseline=_classify(baseline),
+        outcome_columns=outcome_columns,
+        **kwargs,
+    )
+
+
+__all__ = [
+    "CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST",
+    "CorrectionModelResult",
+    "analyze_correction_model",
+]

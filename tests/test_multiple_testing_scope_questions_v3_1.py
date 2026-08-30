@@ -2,18 +2,25 @@ from __future__ import annotations
 
 import json
 import runpy
+import shutil
+import tempfile
 from collections import Counter
 from collections.abc import Callable
+from dataclasses import replace
 from pathlib import Path
 from typing import Any, cast
 
 import pytest
 
+from sc_referee.controller import run_audit
 from sc_referee.core.ids import canonical_json, sha256_digest
+from sc_referee.method_contract_run import run_method_contract
+from sc_referee.scientific_checks import code_csv_multiple_testing_adapter_v3_1 as adapter_v3_1
 from sc_referee.scientific_checks import code_csv_multiple_testing_dataflow_v3 as frozen_v3
 from sc_referee.scientific_checks import code_csv_multiple_testing_dataflow_v3_1 as v3_1
-from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_1 import (
-    CLOSED_MULTIPLE_TESTING_ABSTENTION_REASONS,
+from sc_referee.scientific_checks.core import (
+    CanonicalOperand,
+    FrozenInspectionContext,
 )
 from sc_referee.scientific_checks.multiple_testing_scope_questions_v1 import (
     NONQUALIFYING_REASON_NAMES,
@@ -23,6 +30,9 @@ from sc_referee.scientific_checks.multiple_testing_scope_questions_v1 import (
     locate_correction_scope_witness,
     question_wording_profile,
 )
+from sc_referee.scientific_checks.profiles import scientific_check_release_registry
+
+CLOSED_MULTIPLE_TESTING_ABSTENTION_REASONS = adapter_v3_1.CLOSED_MULTIPLE_TESTING_ABSTENTION_REASONS
 
 _ORACLE_ROOT = Path("evaluation/development/multitest-code-slice-v3_1")
 _ORACLE = json.loads((_ORACLE_ROOT / "QUESTION_ORACLE.json").read_text(encoding="utf-8"))
@@ -30,10 +40,11 @@ _QUESTION_ROWS = {row["key"]: row for row in _ORACLE["rows"]}
 _FIXTURE_MATRIX = json.loads((_ORACLE_ROOT / "FIXTURE_MATRIX.json").read_text(encoding="utf-8"))
 _HARNESS = runpy.run_path("evaluation/development/multitest-recall-recon-e13/h.py")
 _ENVELOPE_INPUTS = cast(Callable[[Path], dict[str, Any]], _HARNESS["envelope_inputs"])
-_ADAPTER_ENVELOPE = cast(Callable[[Path, bytes], dict[str, Any]], _HARNESS["adapter_envelope"])
 _CORPUS_AUTHORITY = cast(
     Callable[[Path], tuple[str, tuple[str, ...]]], _HARNESS["corpus_authority"]
 )
+_SCHEMAS = cast(Path, _HARNESS["SCHEMAS"])
+_CHECK_ID = "check:authorized-complete-family-correction-over-code-test-battery"
 _ROOTS = {
     "E10": Path("evaluation/development/blind-envelope-10-2026-08-24"),
     "E11": Path("evaluation/development/blind-envelope-11-2026-08-25"),
@@ -49,6 +60,76 @@ _FROZEN_RESULTS = json.loads(
     )
 )
 _FROZEN_ROWS = {row["key"]: row["outcome"] for row in _FROZEN_RESULTS["cases"]}
+
+
+def _historical_v3_1_adapter() -> adapter_v3_1.CodeCsvMultipleTestingAdapter:
+    registry = scientific_check_release_registry()
+    module = next(
+        item
+        for item in registry.modules_for_lane("development")
+        if item.manifest.check_id == _CHECK_ID
+    )
+    manifest = replace(
+        module.adapter_manifests[0],
+        adapter_version=adapter_v3_1.MULTIPLE_TESTING_CODE_ADAPTER_VERSION,
+        implementation_digest=adapter_v3_1.CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=adapter_v3_1.code_csv_multiple_testing_grammar_digest(),
+    )
+    return adapter_v3_1.CodeCsvMultipleTestingAdapter(
+        check_manifest=module.manifest,
+        adapter_manifest=manifest,
+        complete_operand=CanonicalOperand.scalar(adapter_v3_1.COMPLETE_FAMILY_CORRECTION_OPERAND),
+        none_operand=CanonicalOperand.scalar(adapter_v3_1.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND),
+        strict_subset_operand=CanonicalOperand.scalar(
+            adapter_v3_1.STRICT_SUBSET_FAMILY_CORRECTION_OPERAND
+        ),
+        role_bindings=adapter_v3_1.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
+    )
+
+
+def _frozen_v3_1_adapter_envelope(case_dir: Path, source: bytes) -> dict[str, Any]:
+    """Inspect one sealed case with the byte-frozen 3.1 adapter, not the active binding."""
+
+    with tempfile.TemporaryDirectory(prefix="sc-referee-frozen-mt31-", dir="/tmp") as raw:
+        root = Path(raw)
+        project = root / "project"
+        shutil.copytree(case_dir / "project", project)
+        (project / "analysis.py").write_bytes(source)
+        (project / "recon-task.txt").write_bytes((case_dir / "PROMPT.txt").read_bytes())
+        profile = json.loads((case_dir / "profile_1_2_0.json").read_text(encoding="utf-8"))
+        material_path = profile["semantic_role_authority"]["authorized_test_family"][
+            "material_input_path"
+        ]
+        contract = root / "contract"
+        run_method_contract(
+            project,
+            "recon-task.txt",
+            contract,
+            _SCHEMAS,
+            profile=profile,
+            actor_id="human:multitest-frozen-v3-1",
+            created_at="2026-08-29T00:00:00Z",
+        )
+        contexts: list[FrozenInspectionContext] = []
+        run_audit(
+            project,
+            root / "audit",
+            _SCHEMAS,
+            material_inputs=(material_path,),
+            method_contract_lock=contract / "semantic.lock.json",
+            scientific_check_lane="development",
+            evaluation_inspection_observer=contexts.append,
+        )
+        assert len(contexts) == 1
+        observation = _historical_v3_1_adapter().inspect(contexts[0])
+        if observation.abstention_reason is not None:
+            outcome = ["abstain", observation.abstention_reason]
+        else:
+            evidence = observation.multiple_testing_evidence
+            assert evidence is not None
+            classification = evidence.correction_classification
+            outcome = ["covered" if classification == "complete" else "candidate", classification]
+        return {"outcome": outcome, "adapter_version": observation.adapter_version}
 
 
 @pytest.fixture(scope="module")
@@ -286,12 +367,12 @@ def test_all_fifteen_e15_source_rows_remain_the_sealed_adapter_rows() -> None:
     observed: dict[str, list[str]] = {}
     for row in audit["cases"]:
         case = root / "cases" / row["case_id"]
-        actual = _ADAPTER_ENVELOPE(case, (case / "project/analysis.py").read_bytes())
+        actual = _frozen_v3_1_adapter_envelope(case, (case / "project/analysis.py").read_bytes())
         expected = [row["dev_outcome"], row["dev_reason_or_classification"]]
         if row["dev_outcome"] == "covered_complete":
             expected = ["covered", "complete"]
         assert actual["outcome"] == expected, row["case_id"]
-        assert actual["finding_count"] == 0, row["case_id"]
+        assert actual["adapter_version"] == "3.1.0", row["case_id"]
         observed[row["case_id"]] = actual["outcome"]
     assert len(observed) == 15
 

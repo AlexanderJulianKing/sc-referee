@@ -101,7 +101,7 @@ from sc_referee.method_contracts import (
     EXPECTED_COUNT_PROFILE_ID,
     EXPECTED_COUNT_REQUIRED_DIMENSIONS,
 )
-from sc_referee.multiple_testing_scope_attestations_v1 import (
+from sc_referee.multiple_testing_scope_attestations_v3_2 import (
     LoadedAttestation,
     MultipleTestingAttestationError,
     apply_attestation,
@@ -153,7 +153,7 @@ from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
 )
-from sc_referee.scientific_checks.integration_multiple_testing_v3_1 import (
+from sc_referee.scientific_checks.integration_multiple_testing_v3_2 import (
     MultipleTestingScopeQuestionCompilation,
     compile_multiple_testing_development_records,
     compile_multiple_testing_scope_question,
@@ -1348,6 +1348,7 @@ def run_audit(
                     analysis_content=scope_question_compilation.analysis_content,
                     outcome_columns=scope_question_compilation.outcome_columns,
                     created_at=created_at,
+                    ap_context=scope_question_compilation.ap_recheck_context,
                 )
                 questions.append(application.question)
                 answers.append(application.answer)

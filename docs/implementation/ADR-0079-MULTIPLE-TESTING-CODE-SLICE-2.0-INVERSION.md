@@ -169,3 +169,27 @@ looser than the final grammar, so none-flip evidence transfers to a stricter imp
 positive movements do not. Revision 1b consequently requires the final strict implementation to
 re-demonstrate E12 P5 and E14 P2/P4/P5; either a missing pinned candidate or a new candidate on a
 pinned noncandidate is a stop-and-report regression.
+
+## AP correction-recognition 3.2 amendment
+
+The accepted design
+`docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md`, Revision 1a,
+has raw SHA-256 `81e5db51d8f93983497baa7c121dc28ac7dbd3e959dc4961696b87f7e27641bf`
+and advances only the development check, adapter, and detector to `3.2.0`. AP recognition is a
+closed normalization, never an independent classifier: it subtracts one proved-unique exact
+Bonferroni fold and requires the byte-frozen 3.0 analyzer to prove the remaining raw family and
+conclusions independently.
+
+The only factors admitted are an integer literal equal to the contract family size, exact
+`len(NAME)` whose resolved position-zero headers are byte-order-equal to the contract outcomes,
+or one stable direct binding to either form. Alias chains, factor mismatch, duplicate folds,
+mutation, merge, polarity, unresolved consumers, cross-function record flow, and all B1-B5
+laundering variants remain abstentions. Strict-subset coverage requires corrected conclusions at
+every position in `C` and proved raw conclusions at every position outside `C`; complete coverage
+requires all contract positions.
+
+The 3.1 question and asymmetric-attestation policy is unchanged. AP removes a question only when
+scope is structurally proved. From 3.2 onward a B-answer location may prioritize AP as an existing
+check, but the Answer and claimed factor never enter the proof; answer removal must produce the
+same corrected positions. Blind scoring, public record types, wording, and qualified lanes remain
+unchanged.
