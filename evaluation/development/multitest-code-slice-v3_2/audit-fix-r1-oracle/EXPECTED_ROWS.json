@@ -123,5 +123,57 @@
       "fixture_name": "positive-ap-complete-division-threshold-control",
       "fixture_source_sha256": "sha256:addf601dad872e14f8dacbe3799cd370516260053fb58d7315e56bee9ceacc87"
     }
+  ],
+  "attestation_rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "controller applies a complete-family answer to a mixed corrected/raw-consumer source whose AP proof is unverified",
+        "design_clause": "§11.2 — failed guided AP proof",
+        "design_text": "A failed AP proof yields the existing non-accusatory Disclosure and leaves the question open; B alone can never create a candidate, Finding, corrected position, or verified-correct source classification."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [],
+      "expected_disclosure": true,
+      "expected_proof_status": "unverified",
+      "expected_question_status": "open",
+      "fixture_name": "controller-answer-b-fails-ap-raw-consumer",
+      "fixture_source_name": "correct-ap-mixed-corrected-and-raw-consumers",
+      "fixture_source_sha256": "sha256:51e23accf0cac1fbdac4c5ebd772eafb881cd15823cbd6d5799d73fbdff28dd7"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "answer-guided AP proves complete coverage while the independently invoked answer-removed AP proof starts from the source-derived question witness",
+        "design_clause": "§6 rule 1 and §11.2 answer-removal equivalence",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N. Removing the Answer and invoking AP at the now-known node must yield the same corrected-position set."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "expected_proof_status": "complete",
+      "fixture_name": "answer-removal-equivalence-ap-proving",
+      "fixture_source_name": "positive-ap-complete-corrected-consumer",
+      "fixture_source_sha256": "sha256:ec6e092f5098cab8067497d25a1dcf2d2807afcb2a0c2939d2c866be93699851"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "answer-guided AP and the independently invoked answer-removed AP proof both refuse a mixed corrected/raw-consumer source",
+        "design_clause": "§6 rule 4 and §11.2 answer-removal equivalence",
+        "design_text": "Anything else abstains with the unchanged first reason. Removing the Answer and invoking AP at the now-known node must yield the same corrected-position set."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [],
+      "expected_proof_status": "unverified",
+      "fixture_name": "answer-removal-equivalence-ap-failing",
+      "fixture_source_name": "correct-ap-mixed-corrected-and-raw-consumers",
+      "fixture_source_sha256": "sha256:51e23accf0cac1fbdac4c5ebd772eafb881cd15823cbd6d5799d73fbdff28dd7"
+    }
   ]
 }

@@ -64,4 +64,17 @@ def fixture_sources() -> dict[str, tuple[str, bytes]]:
     }
 
 
-__all__ = ["fixture_sources"]
+def attestation_fixture_sources() -> dict[str, tuple[str, bytes]]:
+    sources = fixture_sources()
+    return {
+        "controller-answer-b-fails-ap-raw-consumer": sources[
+            "correct-ap-mixed-corrected-and-raw-consumers"
+        ],
+        "answer-removal-equivalence-ap-proving": sources["positive-ap-complete-corrected-consumer"],
+        "answer-removal-equivalence-ap-failing": sources[
+            "correct-ap-mixed-corrected-and-raw-consumers"
+        ],
+    }
+
+
+__all__ = ["attestation_fixture_sources", "fixture_sources"]
