@@ -22,6 +22,7 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_2 import
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_3 import (
     MultipleTestingDataflowResult,
+    _analyze_code_csv_multiple_testing_baseline,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_3 import (
     analyze_code_csv_multiple_testing_dataflow as analyze_v33,
@@ -31,10 +32,14 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_helper_record_v3_3 i
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_terminal_presentation_v3_3 import (
     _control_identity,
+    _terminal_count_scan,
     prove_terminal_presentation,
 )
 
 _ROOT = Path("evaluation/development/multitest-code-slice-v3_3/prototype-sweep").resolve()
+_AUDIT_FIX_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_3/audit-fix-r1-oracle"
+).resolve()
 _PINNED = {
     "instrument_results.json": "03c7aa815b8728bf9452afe666f9738e9501f345903ce7ef7fe3f520c320134f",
     "results.json": "be9ddd1ea4b8bd27faff92392865cbb76f14fbf6b162f847523fe5900d1bd7ad",
@@ -48,12 +53,12 @@ try:
     _harness_module.__dict__.update(_harness)
     sys.modules["harness"] = _harness_module
     _catalog = runpy.run_path(str(_ROOT / "fixture_catalog.py"))
+    _FIXTURES = tuple(_catalog["all_fixtures"]())
 finally:
     sys.modules.pop("harness", None)
     if _previous_harness is not None:
         sys.modules["harness"] = _previous_harness
 
-_FIXTURES = tuple(_catalog["all_fixtures"]())
 _RESULT_ROWS = {
     row["name"]: row["outcome"]
     for row in json.loads((_ROOT / "results.json").read_text(encoding="utf-8"))["fixtures"]
@@ -61,12 +66,31 @@ _RESULT_ROWS = {
 _REFERENCE_CASE = cast(Callable[[str], Any], _harness["reference_case"])
 _INPUTS = cast(Callable[[Any, bytes | None], dict[str, Any]], _harness["inputs"])
 _CLASSIFY = cast(Callable[[MultipleTestingDataflowResult], Any], _harness["classify"])
+_AUDIT_FIX_NAMESPACE = runpy.run_path(str(_AUDIT_FIX_ROOT / "fixture_sources.py"))
+_AUDIT_FIX_SOURCES = cast(dict[str, tuple[str, bytes]], _AUDIT_FIX_NAMESPACE["fixture_sources"]())
+_AUDIT_FIX_ORACLE = json.loads((_AUDIT_FIX_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8"))
+_AUDIT_FIX_ROWS = cast(list[dict[str, Any]], _AUDIT_FIX_ORACLE["rows"])
+_AUDIT_FIX_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_ROWS}
 
 
 def _run(fixture: Any, analyzer: Callable[..., MultipleTestingDataflowResult]) -> Any:
     values = _INPUTS(_REFERENCE_CASE(fixture.case_key), fixture.source)
     content = cast(bytes, values.pop("content"))
     return _CLASSIFY(analyzer(content, **values))
+
+
+def _run_source(
+    case_key: str,
+    source: bytes,
+    analyzer: Callable[..., MultipleTestingDataflowResult] = analyze_v33,
+) -> Any:
+    values = _INPUTS(_REFERENCE_CASE(case_key), source)
+    content = cast(bytes, values.pop("content"))
+    return _CLASSIFY(analyzer(content, **values))
+
+
+def _audit_fix_source(name: str) -> tuple[str, bytes]:
+    return _AUDIT_FIX_SOURCES[name]
 
 
 def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
@@ -91,6 +115,85 @@ def test_pinned_prototype_evidence_is_immutable() -> None:
     assert {
         name: hashlib.sha256((_ROOT / name).read_bytes()).hexdigest() for name in _PINNED
     } == _PINNED
+
+
+def test_audit_fix_round_1_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_ROWS) == 12
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_ROWS) == 11
+    assert set(_AUDIT_FIX_ROWS_BY_NAME) == set(_AUDIT_FIX_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_SOURCES.items()
+    } == {name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_ROWS_BY_NAME.items()}
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_12_audit_fix_round_1_rows_execute(row: dict[str, Any]) -> None:
+    name = str(row["fixture_name"])
+    case_key, source = _audit_fix_source(name)
+    result = _run_source(case_key, source)
+    expected_positions = tuple(cast(list[int], row.get("expected_corrected_positions", [])))
+    expected_count = cast(int | None, row.get("expected_authorized_count"))
+    assert _outcome_tuple(result) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        expected_positions,
+        expected_count,
+    )
+
+
+def test_terminal_condition_2_rejects_logging_count_consumer_at_its_own_gate() -> None:
+    _case_key, source = _audit_fix_source("correct-terminal-count-logging-info")
+    scan = _terminal_count_scan(source)
+    # Mutation kill: re-admitting logging changes this gate before any analyzer reason can mask it.
+    assert scan.refusal_gate == "terminal-count-total-forward-consumer"
+    assert prove_terminal_presentation(source) is None
+
+
+def test_terminal_condition_5_rejects_output_cardinality_at_its_own_gate() -> None:
+    _case_key, source = _audit_fix_source(
+        "correct-terminal-count-cardinality-summary-warning-branch"
+    )
+    scan = _terminal_count_scan(source)
+    # Mutation kill: re-admitting count-selected emission changes this exact gate assertion.
+    assert scan.refusal_gate == "terminal-count-output-cardinality"
+    assert prove_terminal_presentation(source) is None
+
+
+def test_terminal_condition_4_rejects_store_consumed_by_later_fold_at_its_own_gate() -> None:
+    _case_key, source = _audit_fix_source(
+        "correct-terminal-presentation-store-consumed-by-later-fold-minimal"
+    )
+    # Mutation kill: weakening _simple_presentation_body makes this proof non-None.
+    assert prove_terminal_presentation(source) is None
+
+
+def test_helper_single_call_site_gate_is_reached_without_public_census_masking() -> None:
+    case_key, source = _audit_fix_source("correct-helper-record-two-call-sites-gate")
+    outcome_columns = tuple(_INPUTS(_REFERENCE_CASE(case_key), source)["outcome_columns"])
+    # Mutation kill: allowing a second call site makes the helper graph non-None.
+    assert build_helper_record_graph(source, outcome_columns) is None
+
+
+def test_versioned_hierarchy_match_gate_is_reached_without_frozen_short_circuit() -> None:
+    case_key, source = _audit_fix_source("correct-versioned-hierarchy-match-gate")
+    values = _INPUTS(_REFERENCE_CASE(case_key), source)
+    content = cast(bytes, values.pop("content"))
+    result = _analyze_code_csv_multiple_testing_baseline(content, **values)
+    # Mutation kill: dropping ast.Match from the versioned copy makes this a candidate.
+    assert result.reason == "hierarchical-gatekeeping-present"
+    assert result.facts is None
+
+
+def test_helper_twice_probe_is_a_pinned_uncorrected_positive_on_both_frozen_paths() -> None:
+    name = "positive-terminal-helper-two-prints-frozen-path"
+    row = _AUDIT_FIX_ROWS_BY_NAME[name]
+    case_key, source = _audit_fix_source(name)
+    assert row["correct_analysis"] is False
+    expected = ("candidate", "none", (), 7)
+    assert _outcome_tuple(_run_source(case_key, source, analyze_v32)) == expected
+    assert _outcome_tuple(_run_source(case_key, source, analyze_v33)) == expected
 
 
 @pytest.mark.parametrize("fixture", _FIXTURES, ids=lambda item: item.name)

@@ -12,7 +12,7 @@ import copy
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Literal, cast
 
 import sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3 as frozen
 from sc_referee.core.ids import semantic_digest, sha256_digest
@@ -53,6 +53,18 @@ class TerminalPresentationProof:
 class HelperRecordGraph:
     tree: ast.Module
     detail: Mapping[str, object]
+
+
+@dataclass(frozen=True)
+class _TerminalCountScan:
+    positions: tuple[tuple[int, int, int, int], ...]
+    refusal_gate: (
+        Literal[
+            "terminal-count-total-forward-consumer",
+            "terminal-count-output-cardinality",
+        ]
+        | None
+    )
 
 
 def _position(node: ast.AST) -> tuple[int, int, int, int]:
@@ -187,6 +199,98 @@ def _reaches_print(node: ast.AST, parents: Mapping[ast.AST, ast.AST]) -> bool:
             cursor = parent
             continue
         return False
+    return False
+
+
+def _unshadowed_print(call: ast.Call, resolver: Any) -> bool:
+    return bool(
+        isinstance(call.func, ast.Name)
+        and call.func.id == "print"
+        and resolver.qualified(call.func) == "print"
+        and "print" not in resolver.builtins_shadowed
+    )
+
+
+def _reaches_closed_output(
+    node: ast.AST, parents: Mapping[ast.AST, ast.AST], resolver: Any
+) -> bool:
+    """Prove the exact OUTPUT transport, allowing only closed formatting on its path."""
+
+    cursor = node
+    for _ in range(16):
+        parent = parents.get(cursor)
+        if parent is None:
+            return False
+        if isinstance(parent, ast.Call):
+            if _unshadowed_print(parent, resolver):
+                return bool(not parent.keywords and isinstance(parents.get(parent), ast.Expr))
+            if isinstance(parent.func, ast.Attribute) and parent.func.attr in {"format", "join"}:
+                cursor = parent
+                continue
+            return False
+        if isinstance(parent, (ast.FormattedValue, ast.JoinedStr, ast.BinOp, ast.Tuple, ast.List)):
+            cursor = parent
+            continue
+        return False
+    return False
+
+
+def _loads_any_name(node: ast.AST, names: set[str]) -> bool:
+    return any(
+        isinstance(item, ast.Name) and isinstance(item.ctx, ast.Load) and item.id in names
+        for item in ast.walk(node)
+    )
+
+
+def _derived_name_closure(owner: ast.AST, seed: str) -> set[str]:
+    names = {seed}
+    changed = True
+    while changed:
+        changed = False
+        for statement in ast.walk(owner):
+            if not isinstance(statement, (ast.Assign, ast.AnnAssign)) or statement.value is None:
+                continue
+            targets = statement.targets if isinstance(statement, ast.Assign) else [statement.target]
+            if (
+                len(targets) == 1
+                and isinstance(targets[0], ast.Name)
+                and targets[0].id not in names
+                and _loads_any_name(statement.value, names)
+            ):
+                names.add(targets[0].id)
+                changed = True
+    return names
+
+
+def _has_print_call(node: ast.AST, resolver: Any) -> bool:
+    return any(
+        isinstance(item, ast.Call) and _unshadowed_print(item, resolver) for item in ast.walk(node)
+    )
+
+
+def _count_changes_output_cardinality(owner: ast.AST, count_name: str, resolver: Any) -> bool:
+    names = _derived_name_closure(owner, count_name)
+    for node in ast.walk(owner):
+        if isinstance(node, (ast.If, ast.While, ast.IfExp)):
+            if _loads_any_name(node.test, names) and _has_print_call(node, resolver):
+                return True
+        elif isinstance(node, ast.Match):
+            expressions: tuple[ast.expr, ...] = (
+                node.subject,
+                *(case.guard for case in node.cases if case.guard is not None),
+            )
+            if any(_loads_any_name(expression, names) for expression in expressions) and any(
+                _has_print_call(statement, resolver)
+                for case in node.cases
+                for statement in case.body
+            ):
+                return True
+        elif isinstance(node, ast.BoolOp):
+            for index, value in enumerate(node.values[:-1]):
+                if _loads_any_name(value, names) and any(
+                    _has_print_call(later, resolver) for later in node.values[index + 1 :]
+                ):
+                    return True
     return False
 
 
@@ -775,11 +879,11 @@ def _terminal_ifexp_positions(
     return tuple(result)
 
 
-def _terminal_count_positions(
-    tree: ast.Module,
-) -> tuple[tuple[int, int, int, int], ...]:
-    """Census the already-admitted exact direct-p terminal count production."""
+def _scan_terminal_counts(tree: ast.Module, resolver: Any) -> _TerminalCountScan:
+    """Census direct-p counts and prove every count load is one closed OUTPUT transport."""
 
+    parents = _parents(tree)
+    p_names, p_keys = _structural_p_roots(tree, resolver)
     result: list[tuple[int, int, int, int]] = []
     for node in ast.walk(tree):
         if not (
@@ -792,7 +896,7 @@ def _terminal_count_positions(
         ):
             continue
         generator = node.args[0]
-        if (
+        if not (
             len(generator.generators) == 1
             and not generator.generators[0].is_async
             and len(generator.generators[0].ifs) == 1
@@ -800,8 +904,41 @@ def _terminal_count_positions(
             and type(generator.elt.value) is int
             and generator.elt.value == 1
         ):
-            result.append(_position(generator.generators[0].ifs[0]))
-    return tuple(result)
+            continue
+        condition = generator.generators[0].ifs[0]
+        if not _single_p_compare(condition, p_names, p_keys):
+            continue
+        assignment = parents.get(node)
+        if not (isinstance(assignment, (ast.Assign, ast.AnnAssign)) and assignment.value is node):
+            return _TerminalCountScan(tuple(result), "terminal-count-total-forward-consumer")
+        targets = assignment.targets if isinstance(assignment, ast.Assign) else [assignment.target]
+        if len(targets) != 1 or not isinstance(targets[0], ast.Name):
+            return _TerminalCountScan(tuple(result), "terminal-count-total-forward-consumer")
+        owner = _owner(assignment, parents)
+        count_name = targets[0].id
+        stores = [
+            item
+            for item in ast.walk(owner)
+            if isinstance(item, ast.Name)
+            and isinstance(item.ctx, (ast.Store, ast.Del))
+            and item.id == count_name
+        ]
+        loads = _loads(owner, count_name)
+        if len(stores) != 1 or not loads:
+            return _TerminalCountScan(tuple(result), "terminal-count-total-forward-consumer")
+        if _count_changes_output_cardinality(owner, count_name, resolver):
+            return _TerminalCountScan(tuple(result), "terminal-count-output-cardinality")
+        if not all(_reaches_closed_output(load, parents, resolver) for load in loads):
+            return _TerminalCountScan(tuple(result), "terminal-count-total-forward-consumer")
+        result.append(_position(condition))
+    return _TerminalCountScan(tuple(result), None)
+
+
+def _terminal_count_scan(content: bytes) -> _TerminalCountScan:
+    """Expose the production scan as one deterministic gate-level test seam."""
+
+    tree = frozen._bounded_parse(content)
+    return _scan_terminal_counts(tree, _resolver(tree))
 
 
 def _sequence(node: ast.expr, assignments: Mapping[str, ast.expr]) -> tuple[object, ...] | None:
@@ -1196,6 +1333,9 @@ def prove_terminal_presentation(content: bytes) -> TerminalPresentationProof | N
     resolver = _resolver(tree)
     if _correction_terminal_present(tree, resolver):
         return None
+    terminal_counts = _scan_terminal_counts(tree, resolver)
+    if terminal_counts.refusal_gate is not None:
+        return None
     if_positions = _terminal_if_positions(tree, resolver)
     ifexp_positions = _terminal_ifexp_positions(tree, resolver)
     positions = frozenset((*if_positions, *ifexp_positions))
@@ -1214,7 +1354,7 @@ def prove_terminal_presentation(content: bytes) -> TerminalPresentationProof | N
         {
             "admitted_if_tests": tuple(if_positions),
             "admitted_ifexp_tests": tuple(ifexp_positions),
-            "terminal_count_tests": _terminal_count_positions(tree),
+            "terminal_count_tests": terminal_counts.positions,
         },
     )
 
