@@ -1,0 +1,170 @@
+{
+  "profile": "multitest-v3.3-audit-fix-r1-terminal-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-30",
+    "audit_identity": "MT 3.3 audit fix round 1 terminal-presentation probe table",
+    "design_document": "docs/implementation/MULTITEST-3.3-TERMINAL-PRESENTATION-DESIGN-2026-08-30.md",
+    "design_revision": "0",
+    "implementation_output_used": false
+  },
+  "rows": [
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT is passed to logging.info",
+        "design_clause": "section 4.1 condition 2 and section 4.4",
+        "design_text": "Every value produced under the control has a total forward-consumer account. A count may never be an unresolved-call argument."
+      },
+      "expected_gate": "terminal-count-total-forward-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-logging-info",
+      "fixture_source_sha256": "sha256:08ce766590cb4429cfe3030fc4a37c4c89e5260bb4135a197feb97114da57f16"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT is passed to warnings.warn",
+        "design_clause": "section 4.1 condition 2 and section 4.4",
+        "design_text": "The only admitted count consumer is the closed OUTPUT transport; any other call refuses."
+      },
+      "expected_gate": "terminal-count-total-forward-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-warnings-warn",
+      "fixture_source_sha256": "sha256:d5b06e4670d908cde40a79c36d4fd7e728e762afb4aca0255a71d1bdc62c75c6"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT is passed to sys.stderr.write",
+        "design_clause": "section 4.1 condition 2 and section 4.4",
+        "design_text": "The only admitted count consumer is the closed OUTPUT transport; file and stream writes refuse."
+      },
+      "expected_gate": "terminal-count-total-forward-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-sys-stderr-write",
+      "fixture_source_sha256": "sha256:575b565a2c74de222c87ff038b8725cb873764b101efd196a064757e06c2f0dd"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT is passed to file.write through a local stream binding",
+        "design_clause": "section 4.1 condition 2 and section 4.4",
+        "design_text": "The only admitted count consumer is the closed OUTPUT transport; file writes refuse."
+      },
+      "expected_gate": "terminal-count-total-forward-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-file-write",
+      "fixture_source_sha256": "sha256:aeee881153c343c06f32730d18d0f3cdc65733920a9a27b808f1ec67778bc6eb"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT is passed to logging.warning",
+        "design_clause": "section 4.1 condition 2 and section 4.4",
+        "design_text": "The only admitted count consumer is the closed OUTPUT transport; logging calls refuse."
+      },
+      "expected_gate": "terminal-count-total-forward-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-logging-warning",
+      "fixture_source_sha256": "sha256:bbac88ae993ba3e844d5986c12be3f4a6063b88ffce862d5be1731dee81b8737"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT selects a summary Name that gates whether a warning print executes",
+        "design_clause": "section 4.1 condition 5",
+        "design_text": "Neither the control nor a value derived from it reaches a second output branch or changes output cardinality."
+      },
+      "expected_gate": "terminal-count-output-cardinality",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-cardinality-summary-warning-branch",
+      "fixture_source_sha256": "sha256:df38b30f02718f20e3a014d5c85c6daa1ab8101c48c443162e26fcb24209c798"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT controls a print through Boolean and short-circuit evaluation",
+        "design_clause": "section 4.1 condition 5",
+        "design_text": "A p-derived value may not choose whether an emission occurs."
+      },
+      "expected_gate": "terminal-count-output-cardinality",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-cardinality-and-print",
+      "fixture_source_sha256": "sha256:53de6674ecb86995ff09802f8c5d8ce897ca1f0054d38879ccdafe5a01a54d4f"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "COUNT controls a print through Boolean or short-circuit evaluation",
+        "design_clause": "section 4.1 condition 5",
+        "design_text": "A p-derived value may not choose whether an emission occurs."
+      },
+      "expected_gate": "terminal-count-output-cardinality",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-count-cardinality-or-print",
+      "fixture_source_sha256": "sha256:bac557fb9153ed7b6df92f01a4c7efa410ee6546d766d926c32073a0e99dbaf2"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "a presentation-arm local is appended to a later fold collection",
+        "design_clause": "section 4.1 condition 4",
+        "design_text": "The owner and every control-reachable statement contain no store consumed by a later fold or family container."
+      },
+      "expected_gate": "terminal-owner-store-consumer",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-terminal-presentation-store-consumed-by-later-fold-minimal",
+      "fixture_source_sha256": "sha256:19d12527bc3091710c48d649bfc231fb61428edfe493f9633bf7b5ba0ef1bcde"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper has the complete-family comprehension call plus one divergent call site",
+        "design_clause": "section 5.1 single-call-site helper rule",
+        "design_text": "The helper-return graph requires exactly one static call site."
+      },
+      "expected_gate": "helper-single-call-site",
+      "expected_outcome": "abstain",
+      "expected_reason": "extra-registered-test-outside-authorized-family",
+      "fixture_name": "correct-helper-record-two-call-sites-gate",
+      "fixture_source_sha256": "sha256:97b0917913b883432fa8c61bf3a566aa80a131c76dccb5d2c0fe6a302df26a56"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "jointly-derived outcome data feeds ast.Match subject and match_case guard",
+        "design_clause": "section 3 whole-module hierarchy control set",
+        "design_text": "The versioned hierarchy copy retains ast.Match subjects and match_case guards."
+      },
+      "expected_gate": "versioned-hierarchy-match",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "fixture_name": "correct-versioned-hierarchy-match-gate",
+      "fixture_source_sha256": "sha256:9a36b0169d47a96060410c4341872372918db0f75b3affe38e8d66db5cce7c61"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "sealed E16 P4 changes each presentation-arm print to one helper that prints the same payload twice",
+        "design_clause": "supervisor ground-truth disposition for the inherited frozen path",
+        "design_text": "The source remains a role-map positive with raw-p conclusions for all seven outcomes; presentation multiplicity does not correct the family."
+      },
+      "expected_authorized_count": 7,
+      "expected_corrected_positions": [],
+      "expected_gate": "frozen-positive-classification",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "fixture_name": "positive-terminal-helper-two-prints-frozen-path",
+      "fixture_source_sha256": "sha256:12ab28f801d0158e67ecf6bc937708124f6058f9d1b8bfdc7c9f6cf275837b6b"
+    }
+  ]
+}
