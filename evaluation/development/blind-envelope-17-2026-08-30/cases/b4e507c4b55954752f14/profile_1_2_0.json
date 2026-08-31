@@ -1,0 +1,23 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "workstation_evaluation.csv",
+      "group_contrast_column": "workstation_group",
+      "outcome_columns": [
+        "neck_shoulder_discomfort_0_10",
+        "lower_back_discomfort_0_10",
+        "sitting_time_min",
+        "sit_to_stand_changes_per_day",
+        "end_of_day_fatigue_0_10",
+        "typing_throughput_kpm",
+        "work_engagement_0_6"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

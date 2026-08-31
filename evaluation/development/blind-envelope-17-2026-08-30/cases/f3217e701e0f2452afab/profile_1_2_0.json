@@ -1,0 +1,24 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "yoghurt_cups.csv",
+      "group_contrast_column": "starter_culture",
+      "outcome_columns": [
+        "ph_24h",
+        "titratable_acidity_pct",
+        "syneresis_pct",
+        "gel_firmness_n",
+        "apparent_viscosity_pa_s",
+        "water_holding_capacity_pct",
+        "lab_count_log10_cfu_g",
+        "sensory_smoothness_score"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

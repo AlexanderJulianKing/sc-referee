@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "axolotl_feed_trial.csv",
+      "group_contrast_column": "feed_group",
+      "outcome_columns": [
+        "specific_growth_rate_pct_per_day",
+        "final_body_mass_g",
+        "feed_conversion_ratio",
+        "whole_body_lipid_pct",
+        "cortisol_release_ng_per_l_per_h"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}
