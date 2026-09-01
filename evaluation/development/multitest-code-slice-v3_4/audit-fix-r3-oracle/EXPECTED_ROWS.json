@@ -1,0 +1,436 @@
+{
+ "profile": "multitest-v3.4-audit-fix-r3-classification-closure-oracle-v1",
+ "provenance": {
+  "audit_date": "2026-09-01",
+  "audit_identity": "MT 3.4 adversarial audit round 3: a correct, complete Bonferroni correction whose record-collection store is written through a second name for the collection is classified candidate/none over the uncorrected family by the byte-frozen 3.3 path inside 3.4.0",
+  "design_document": "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md",
+  "design_revision": "0",
+  "implementation_output_used": false,
+  "reason_authority": "Round 3 works on the classification side, so the byte-frozen 3.3 analyzer's reason for the row itself is not available: 3.3 classifies these rows, which is the defect. The authority is instead the frozen 3.3 reason for the row's THROUGH-NAME SIBLING -- the identical program with the identical correction written through the collection's own name. Each refused row names its sibling in `expected_reason_sibling`, and the test recomputes the sibling's frozen 3.3 row live and asserts the shipped 3.4 reason for the aliased row equals it, so a wrong pin fails rather than passes. No reason is added to the closed set of 61.",
+  "inherited_defect": "The defect is present in the byte-frozen v3 and v3.3 lanes and is narrowed only in v3.4, which supersedes them in the active development binding. The frozen lanes are unchanged and stay byte-identical."
+ },
+ "rows": [
+  {
+   "fixture_name": "correct-explicit-loop-collection-alias-store",
+   "fixture_source_sha256": "sha256:f577a9977992690f566bd3959e0eacd929f31ccd63a9578f92a0aa466a9a841b",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "adjusted = results, then for name in adjusted: adjusted[name][\"p\"] = min(adjusted[name][\"p\"] * len(OUTCOMES), 1.0)",
+    "design_clause": "audit round 3 confirmed false accusation; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family. The frozen engine reconstructs family membership from the stores written through the collection's own name, so a store written through a second name for the same object is invisible to it and the row is read as a family that was never corrected. The alias resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-store-through-name",
+   "fixture_source_sha256": "sha256:6bd19b48d9b54445d21007d81c0bada35c6599ca81081ee6b1be275bfc9b241f",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "for name in results: results[name][\"p\"] = min(results[name][\"p\"] * len(OUTCOMES), 1.0)",
+    "design_clause": "audit round 3 reason authority; design section 3.3 ordering rule step 3",
+    "design_text": "The same correction written through the collection's own name. The frozen pipeline sees the store, cannot resolve the member it names, and refuses. This row is the reason authority for every aliased row above and below it, and it must stay byte-identical to its own pre-round-3 outcome, because the closure narrows classifications only and can never reach an abstention."
+   },
+   "expected_gate": null,
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-alias-before-loop",
+   "fixture_source_sha256": "sha256:a99b8c713a1c6081d70c3ce20c25fd0abac93757e4634c18e7a2977136756c95",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "results = {} then adjusted = results, both before the loop that fills the collection",
+    "design_clause": "audit round 3 adversarial variant; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "The alias is bound before the collection has a single member, so a closure that looked only at bindings following the completed collection would miss it. The object is the same one either way, and the correction reaches every member of the declared family through it."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-alias-of-alias",
+   "fixture_source_sha256": "sha256:6a4f9cecb09bd69c678218c86e931d9be15afe483e3a6c6017aaad0a50c275cb",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "adjusted = results, corrected = adjusted, then the store through corrected",
+    "design_clause": "audit round 3 adversarial variant; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "Two hops instead of one. The alias relation is undirected and transitive over one object, so the closure runs over the whole component rather than over the collection's immediate neighbours, exactly as the round-1 sequence-object closure does."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-alias-module-scope",
+   "fixture_source_sha256": "sha256:24ce99f2b292ce249e15cb964cf45073f7351c4d4ccd623c96ebc369e5bee59a",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "the same corrected program with the collection, the alias, and the store all at module scope",
+    "design_clause": "audit round 3 adversarial variant; design section 3.1 whole-module censuses",
+    "design_text": "The `main` header and its entry-point guard are removed and the body dedented, so the program is the same analysis written as a script. A closure that walked only function bodies would classify this row and refuse its function-scope twin, which is the split the whole-module census discipline exists to prevent."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-container-escape",
+   "fixture_source_sha256": "sha256:8b1808e68ee70de8f1307a7ba96f9bd8df7c570d1f1fe471ed9b366852dadad0",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "REGISTRY = {\"family\": results} then the store through REGISTRY[\"family\"][name][\"p\"]",
+    "design_clause": "audit round 3 display-escape half, inherited from round 2; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "A container display binds the same collection object behind a subscript path, so the correction is written with no Store on a second Name at all. Round 2 closed this escape class on the selection sequence; the same escape reaches the record collection, and treating it as safe would leave the whole false accusation open through one extra pair of braces."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-attribute-escape",
+   "fixture_source_sha256": "sha256:09efbb7cf0ac1bcb3c0ba1559657a9ea1e6867521d6e8c9c6369ab4896cfdee1",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "plan = _Plan(); plan.family = results, then the store through plan.family[name][\"p\"]",
+    "design_clause": "audit round 3 display-escape half, inherited from round 2; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "The field spelling of the same escape. Carrying the container and the field forms separately is what shows the closure covers the escape forms as a class rather than one punctuation of one of them."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-seeded-collection-alias-store",
+   "fixture_source_sha256": "sha256:43223821d8a2727ea9bf12661012affc77357b3652fa3d0e2a048f1f5d9dce61",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "results = {\"_method\": \"...\"} filled per outcome, then the same aliased Bonferroni pass",
+    "design_clause": "audit round 3 seed-shape variant; design section 3.3 ordering rule steps 3 and 5",
+    "design_text": "The record collection is opened with one descriptive key already in it. Nothing about how the family is built, corrected, or read changes, and the alias asymmetry survives the extra key intact: the aliased spelling is accused and the through-name spelling refuses. A closure that tracked only collections opened empty would leave the whole route open one character away from the reported one."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "correct-explicit-loop-seeded-collection-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-seeded-collection-store-through-name",
+   "fixture_source_sha256": "sha256:261558f3b012820ad3ebece3ec1e780876bf0f81d9187f5d3b3ce049f5c87339",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "the seeded collection with the same correction written through the collection's own name",
+    "design_clause": "audit round 3 reason authority for the seeded pair",
+    "design_text": "The reason authority for the seeded row above, carried separately so the pin is the frozen reason for the identical seeded program rather than for the empty-seed one."
+   },
+   "expected_gate": null,
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "explicit-loop-collection-alias-dead-store",
+   "fixture_source_sha256": "sha256:1ac0a7f0e0c8829d598d43466acbacdbfc0d5866fc7f9d4fe8a735d140838ef3",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the aliased Bonferroni pass placed after every verdict has been read and printed",
+    "design_clause": "audit round 3 disposition on the dead-store shape",
+    "design_text": "Every printed verdict was computed from the uncorrected p, so the correction cannot have reached a conclusion and the row is not a correct analysis. It abstains anyway, and it abstains for the same reason its through-name twin does. Pinning the pair together is the point: whether a store is dead is a question about statement order that this closure does not answer, and a classification is allowed to survive a store only when the closure can see the store at all."
+   },
+   "expected_gate": "record-collection-alias",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": "explicit-loop-collection-dead-store-through-name",
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "explicit-loop-collection-dead-store-through-name",
+   "fixture_source_sha256": "sha256:60d34bef7e049340b9cda39474df0038391b913ec8484cc7ce2d63809ed72cc4",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the same dead store written through the collection's own name",
+    "design_clause": "audit round 3 reason authority for the dead-store pair",
+    "design_text": "The frozen pipeline already refuses this spelling, which is what makes the aliased dead store's abstention a restoration of parity rather than a new judgement about statement order."
+   },
+   "expected_gate": null,
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "correct-explicit-loop-collection-helper-argument",
+   "fixture_source_sha256": "sha256:83ba711533890685462c7b03eae75ef6f3522b7557cb46b70aeed611bd8578fd",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "bonferroni(results, len(OUTCOMES)) with the store written through the helper's parameter",
+    "design_clause": "audit round 3 argument-passing disposition; frozen non-capture discipline",
+    "design_text": "Passing a name to a call is not a capture under the frozen discipline the pinned 3.3 evidence rows depend on, and this closure does not change that. It does not have to: the frozen pipeline already refuses this program, so the shape is not a false accusation and needs no narrowing. The row is carried to pin that fact, so that a later change which starts classifying it is caught here."
+   },
+   "expected_gate": null,
+   "expected_outcome": "abstain",
+   "expected_reason": "unresolved-manual-correction-present",
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-explicit-loop-collection-alias-read-only",
+   "fixture_source_sha256": "sha256:698bcb48ee3a795b6e51a01ce3123e5c66c7313f7a0880ae766d91de8244c7c1",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "adjusted = results with every verdict read through adjusted[outcome] and no store anywhere",
+    "design_clause": "audit round 3 non-vacuity control on the read half",
+    "design_text": "A live alias that is only read. The closure is over stores and mutations, not over aliasing, so this row must keep exactly the row it had before round 3."
+   },
+   "expected_gate": null,
+   "expected_outcome": "abstain",
+   "expected_reason": "pderived-conclusion-family-incomplete",
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-explicit-loop-collection-alias-reported-not-stored",
+   "fixture_source_sha256": "sha256:99c4346b9cdb74e0c6f5a15483630d4b3e818ebb05723b0c24fedfae38c0868f",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "adjusted = results with len(adjusted) reported and no store through either name",
+    "design_clause": "audit round 3 non-vacuity control on the read half",
+    "design_text": "The sharp version of the control: the family really is uncorrected, the accusation really is true, and a live alias of the record collection is read in the report. A closure that refused aliasing rather than mutation would lose this candidate, so this row is what separates the two."
+   },
+   "expected_gate": null,
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_corrected_positions": [],
+   "expected_authorized_count": 6,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-explicit-loop-covered-family-with-read-only-alias",
+   "fixture_source_sha256": "sha256:8d444b00c313b910f804952758d798438b7794b193894054054f6076a6183dd9",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "adjusted = results bound and never stored through, with every verdict judged against ALPHA / len(OUTCOMES)",
+    "design_clause": "audit round 3 non-vacuity control on the coverage side",
+    "design_text": "A complete Bonferroni correction carried out on the threshold rather than on the p-values, so nothing is ever stored into the record collection and the analyzer proves complete coverage over all six declared outcomes. The closure guards coverage classifications as well as accusations, so a covered row with a live second name for its record collection is the control that shows guarding them costs nothing."
+   },
+   "expected_gate": null,
+   "expected_outcome": "covered",
+   "expected_reason": "complete",
+   "expected_corrected_positions": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ],
+   "expected_authorized_count": 6,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-explicit-loop-uncorrected-family",
+   "fixture_source_sha256": "sha256:d1e9a8b1dfa179436566db2eb4e7fc1d8623ef5ad05cfb1d4ee734a04a04fe08",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the explicit-loop collection with no correction and no second name for it",
+    "design_clause": "audit round 3 non-vacuity control on the accusation itself",
+    "design_text": "Six declared outcomes tested and judged against one fixed threshold with no correction anywhere. This is the true accusation the whole closure exists to preserve: if it moved, the fix would have bought its false-accusation closure by giving up the finding."
+   },
+   "expected_gate": null,
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_corrected_positions": [],
+   "expected_authorized_count": 6,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-explicit-loop-uncorrected-family-unrelated-alias",
+   "fixture_source_sha256": "sha256:49abe13fda67fdb12d789d90b9bcf82c84cf2dae6e75bd66ce7e0906a15d13ad",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the same uncorrected family with PRIMARY_OUTCOMES = OUTCOMES at module scope",
+    "design_clause": "audit round 3 non-vacuity control on the collection predicate",
+    "design_text": "An alias of the declared outcome list, which is not a record collection. The closure runs over record collections only, so an alias elsewhere in the module must not reach it."
+   },
+   "expected_gate": null,
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_corrected_positions": [],
+   "expected_authorized_count": 6,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": true,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-comprehension-e17-p3-unaltered",
+   "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the sealed E17 P3 source, unaltered",
+    "design_clause": "audit round 3 non-vacuity control; design section 0.1 pinned P3 movement",
+    "design_text": "The round-3 closure sits directly on the classification path, which is where the two pinned 3.4 movements land, so both are re-demonstrated here rather than assumed."
+   },
+   "expected_gate": null,
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_corrected_positions": [],
+   "expected_authorized_count": 6,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 1,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   }
+  },
+  {
+   "fixture_name": "positive-ap-e17-p6-unaltered",
+   "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the sealed E17 P6 source, unaltered",
+    "design_clause": "audit round 3 non-vacuity control; design section 0.1 pinned P6 movement",
+    "design_text": "The second pinned movement, carried for the same reason and with its exact corrected positions and authorized count."
+   },
+   "expected_gate": null,
+   "expected_outcome": "candidate",
+   "expected_reason": "strict_subset",
+   "expected_corrected_positions": [
+    0,
+    1,
+    2
+   ],
+   "expected_authorized_count": 7,
+   "expected_reason_sibling": null,
+   "expected_frozen_v33_identical": false,
+   "expected_admission_census": {
+    "cap": 1,
+    "comprehension": 0,
+    "enumerate": 1,
+    "terminal-ifexp": 0
+   }
+  }
+ ]
+}

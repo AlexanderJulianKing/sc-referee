@@ -351,6 +351,113 @@ def _sequence_object_is_stable(
     return True
 
 
+#: The seed calls that open an empty record collection, alongside the mapping and list displays.
+_COLLECTION_SEED_CALLS = frozenset({"dict", "list"})
+
+
+def _collection_seed(value: ast.expr) -> bool:
+    """The value forms that open a collection the module then fills member by member.
+
+    The display need not be empty.  `results = {"_notes": "..."}` filled per outcome is the same
+    collection as `results = {}` filled per outcome, and the alias asymmetry survives the extra
+    key intact, so restricting the seed to an empty display would leave the whole route open one
+    character away from the reported one.  A display that is never subscript-stored -- the
+    declared outcome list, a label table -- is excluded by the store requirement below rather
+    than by the shape of its seed.
+    """
+
+    if isinstance(value, (ast.DictComp, ast.ListComp, ast.Dict, ast.List)):
+        return True
+    return bool(
+        isinstance(value, ast.Call)
+        and isinstance(value.func, ast.Name)
+        and value.func.id in _COLLECTION_SEED_CALLS
+        and not value.args
+        and not value.keywords
+    )
+
+
+def record_collection_names(tree: ast.Module) -> frozenset[str]:
+    """Every name bound once to a collection this module then fills by subscript store.
+
+    This is the family container the frozen engine reconstructs member identity from: a name
+    opened as a mapping or list and filled at `NAME[member] = record`, or bound to one
+    comprehension, which is the same container written in one statement and is how the frozen
+    3.3 evidence rows build it.  The store requirement is what separates a collection the module
+    fills from a literal table it only reads, so the declared outcome list and the label table
+    are never tracked however they are aliased.
+
+    List builders filled by `append` are deliberately absent.  The frozen B1/B4 closure in
+    `rm._record_boundary_reason` already refuses a second name for a tracked builder collection,
+    so nothing here would add to it, and every name this predicate returns widens the closure
+    below.
+    """
+
+    subscript_stored: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Assign, ast.AnnAssign)):
+            continue
+        for target in node.targets if isinstance(node, ast.Assign) else [node.target]:
+            if isinstance(target, ast.Subscript):
+                root = rm._root_name(target)
+                if root is not None:
+                    subscript_stored.add(root)
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign) and len(node.targets) == 1:
+            target, value = node.targets[0], node.value
+        elif isinstance(node, ast.AnnAssign) and node.value is not None:
+            target, value = node.target, node.value
+        else:
+            continue
+        if not isinstance(target, ast.Name) or not _collection_seed(value):
+            continue
+        if not isinstance(value, (ast.DictComp, ast.ListComp)) and target.id not in subscript_stored:
+            continue
+        if _name_stable(tree, target.id):
+            result.add(target.id)
+    return frozenset(result)
+
+
+def record_collection_alias_unresolved(tree: ast.Module) -> bool:
+    """True when a store or mutation of a record collection hides behind a second name for it.
+
+    The frozen engine reconstructs the p-value family from the stores written *through the
+    collection name*.  A store written through any other name for the same object is invisible
+    to it, so `adjusted = results` followed by `adjusted[name]["p"] = ...` is read as a family
+    that was never corrected, while the identical program written through `results` refuses at
+    `pvalue-family-collection-unresolved` because the member the store names cannot be resolved.
+    The alias does not make the family reconstructable; it only makes the store unreachable.
+
+    The closure is the round-1/round-2 one, over the collection name's whole alias component:
+    `_alias_edges` supplies the undirected Name-to-Name edges and the container/field/tuple
+    display escapes, and `_object_mutated_names` supplies the in-place mutation census.  The
+    collection's *own* stores are excluded, because those are exactly what the frozen engine
+    already sees and judges.  Reads through an alias move nothing and are not refused here:
+    `verdict = adjusted[name]["p"] < ALPHA` with no store anywhere leaves the component clean.
+
+    Names are matched module-wide rather than per scope, as they are in rounds 1 and 2.  A name
+    reused in two scopes can only add edges, so the error is toward refusal.
+    """
+
+    edges, escaped = _alias_edges(tree)
+    mutated = _object_mutated_names(tree)
+    for collection in record_collection_names(tree):
+        seen = {collection}
+        frontier = [collection]
+        while frontier:
+            current = frontier.pop()
+            if current in escaped:
+                return True
+            if current != collection and current in mutated:
+                return True
+            for neighbour in edges.get(current, ()):
+                if neighbour not in seen:
+                    seen.add(neighbour)
+                    frontier.append(neighbour)
+    return False
+
+
 def _module_sequences(tree: ast.Module) -> dict[str, tuple[object, ...]]:
     result: dict[str, tuple[object, ...]] = {}
     edges, escaped = _alias_edges(tree)
@@ -1860,4 +1967,6 @@ __all__ = [
     "CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST",
     "CorrectionModelResult",
     "analyze_correction_model",
+    "record_collection_alias_unresolved",
+    "record_collection_names",
 ]

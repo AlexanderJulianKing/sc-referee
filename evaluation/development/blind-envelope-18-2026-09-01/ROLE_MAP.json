@@ -1,0 +1,82 @@
+{
+  "envelope": "blind-envelope-18-2026-09-01",
+  "briefing_sha256": "f3f6e47b91f69a511db5120d8a14a713ac82dbb0d719034349338e3cf8d40aa6",
+  "detector_under_test": "code_csv_multiple_testing 3.4.0 (development lane); repo commit recorded in CUSTODY_LOG.md at audit time",
+  "case_roles_in_fixed_order": [
+    {
+      "role": "P1",
+      "case_id": "42eec1feec0db6195a00",
+      "prompt_sha256": "ccbcd67eed2dd00cfaa732c3c7e787e52276934adfaa1d6d6e7e1f3d887d1400"
+    },
+    {
+      "role": "P2",
+      "case_id": "5a9277448db34379ce78",
+      "prompt_sha256": "0a006472c201c5b70791527190700f024846769c93bbe3df1bb445ed9c46904e"
+    },
+    {
+      "role": "P3",
+      "case_id": "d1b1fc47ccdabd0c2f22",
+      "prompt_sha256": "97ae6bc8edd906d6907b9ebf48b526f2a0d4263a9321522f0d23d523751c7383"
+    },
+    {
+      "role": "P4",
+      "case_id": "3fbb9d061e69e42758bd",
+      "prompt_sha256": "bcc180e3c6a7eed9ef419f4715fb2cdfd8cfee1e9b61ce17e18bcd2dab61b341"
+    },
+    {
+      "role": "P5",
+      "case_id": "464d36cd2013ca4791d9",
+      "prompt_sha256": "aa12d04489643ebe32607db18b57a9c5090e56653060f9d5a2b776668b551bb9"
+    },
+    {
+      "role": "P6",
+      "case_id": "2d2f5dd68825c378126b",
+      "prompt_sha256": "c89b36012cb665dac2e65bb1e524086adb5eb9906984bf5fefb30524a65ba26d"
+    },
+    {
+      "role": "N1",
+      "case_id": "5c091f9052becdb5c3ea",
+      "prompt_sha256": "db89f8c438f01837027d4926b1ce052441999e8d26699fa1abd4cd2cfc331248"
+    },
+    {
+      "role": "N2",
+      "case_id": "ece9be85a69b6966797a",
+      "prompt_sha256": "f666f0cbc8eb1553e80ad17c0d5c570b0aaf41cbf3965df56ab88e49fa581814"
+    },
+    {
+      "role": "N3",
+      "case_id": "0ebcfa6ddcba137a394a",
+      "prompt_sha256": "616a8334fd50ac2e5fc4c942d86ec53dacdf1a8f05e857e32745352a7b40c540"
+    },
+    {
+      "role": "N4",
+      "case_id": "fa95e54fbd50b26468e3",
+      "prompt_sha256": "7fac8c405bf4a299bc20e7f2427da397bd28d85108cc9d34743bff83728780f4"
+    },
+    {
+      "role": "N5",
+      "case_id": "5ed2b0a375235333b96e",
+      "prompt_sha256": "a425c7b78a92760cb3aa2aa05f4cd6640b01cb93a14a01d3f19bffa77e94b4bb"
+    },
+    {
+      "role": "N6",
+      "case_id": "28cc1447cb560791b53e",
+      "prompt_sha256": "eb221309c987dcab182bbfacfc5fac5dca884749958eec760bfa4230835c1040"
+    },
+    {
+      "role": "N7",
+      "case_id": "db70275a0b64b6f63b9b",
+      "prompt_sha256": "b3f6c7dad186a9328b799c794c9dd4669f8ca2cbc3a269d673844eb44cb293d5"
+    },
+    {
+      "role": "N8",
+      "case_id": "ed6addbf039ffd021be4",
+      "prompt_sha256": "908c2f0d2ccdb88fe50680e691ca00b4b519092b572b33797e5701149deb5d7b"
+    },
+    {
+      "role": "N9",
+      "case_id": "ddc10516f4315fcdbb4f",
+      "prompt_sha256": "294822ce8ba9d09da8db7e1ef2b86310cb68e313d0c8474b55daebbdf12ccff7"
+    }
+  ]
+}

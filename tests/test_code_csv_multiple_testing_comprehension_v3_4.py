@@ -137,6 +137,39 @@ _R2_MOVEMENT_ROWS = {
     "positive-ap-e17-p6-unaltered": ("candidate", "strict_subset", (0, 1, 2), 7),
 }
 
+# The round-3 audit-fix oracle: the classification-path closure.  Rounds 1 and 2 withheld a 3.4
+# admission; round 3 refuses a classification the byte-frozen 3.3 pipeline reaches on its own.
+_AUDIT_FIX_R3_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_4/audit-fix-r3-oracle"
+).resolve()
+_AUDIT_FIX_R3_SOURCES = cast(
+    "dict[str, tuple[str, bytes]]",
+    runpy.run_path(str(_AUDIT_FIX_R3_ROOT / "fixture_sources.py"))["fixture_sources"](),
+)
+_AUDIT_FIX_R3_ORACLE = json.loads(
+    (_AUDIT_FIX_R3_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8")
+)
+_AUDIT_FIX_R3_ROWS = cast("list[dict[str, Any]]", _AUDIT_FIX_R3_ORACLE["rows"])
+_AUDIT_FIX_R3_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_R3_ROWS}
+_COLLECTION_ALIAS_ROWS = tuple(
+    str(row["fixture_name"])
+    for row in _AUDIT_FIX_R3_ROWS
+    if row["expected_gate"] == "record-collection-alias"
+)
+_R3_MOVEMENT_ROWS = {
+    "positive-comprehension-e17-p3-unaltered": ("candidate", "none", (), 6),
+    "positive-ap-e17-p6-unaltered": ("candidate", "strict_subset", (0, 1, 2), 7),
+    "positive-explicit-loop-uncorrected-family": ("candidate", "none", (), 6),
+    "positive-explicit-loop-uncorrected-family-unrelated-alias": ("candidate", "none", (), 6),
+    "positive-explicit-loop-collection-alias-reported-not-stored": ("candidate", "none", (), 6),
+    "positive-explicit-loop-covered-family-with-read-only-alias": (
+        "covered",
+        "complete",
+        (0, 1, 2, 3, 4, 5),
+        6,
+    ),
+}
+
 
 def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
     return (
@@ -1357,3 +1390,267 @@ def test_round_2_narrowings_keep_every_pinned_movement(
 
     assert _outcome_tuple(audit_fix_r2_rows[name]["outcome"]) == _R2_MOVEMENT_ROWS[name]
     assert audit_fix_r2_rows[name]["outcome"] != audit_fix_r2_rows[name]["frozen"]
+
+
+# --------------------------------------------------------------------------------------
+# Audit fix round 3: the record-collection alias closure on the classification path
+# --------------------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r3_rows() -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for name, (case_key, source) in _AUDIT_FIX_R3_SOURCES.items():
+        outcome, census = _run_source(case_key, source)
+        rows[name] = {
+            "case_key": case_key,
+            "source": source,
+            "outcome": outcome,
+            "census": census,
+            "frozen": _run_v33(case_key, source),
+        }
+    return rows
+
+
+def test_audit_fix_round_3_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_R3_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_R3_ROWS) == 19
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_R3_ROWS) == 11
+    assert set(_AUDIT_FIX_R3_ROWS_BY_NAME) == set(_AUDIT_FIX_R3_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_R3_SOURCES.items()
+    } == {
+        name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_R3_ROWS_BY_NAME.items()
+    }
+    # Every fixture is a syntactically valid program, so no row can pass on a parse failure.
+    for _name, (_case_key, source) in _AUDIT_FIX_R3_SOURCES.items():
+        ast.parse(source)
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_R3_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_19_audit_fix_round_3_rows_execute(
+    row: dict[str, Any], audit_fix_r3_rows: dict[str, dict[str, Any]]
+) -> None:
+    observed = audit_fix_r3_rows[str(row["fixture_name"])]
+    assert _outcome_tuple(observed["outcome"]) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+        cast("int | None", row.get("expected_authorized_count")),
+    )
+    assert observed["census"] == row["expected_admission_census"]
+    identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
+    assert identical is bool(row["expected_frozen_v33_identical"])
+
+
+def test_no_audit_fix_round_3_correct_analysis_row_becomes_a_candidate(
+    audit_fix_r3_rows: dict[str, dict[str, Any]],
+) -> None:
+    """The eleven correct-analysis rows are complete Bonferroni corrections over the family."""
+
+    correct = [row for row in _AUDIT_FIX_R3_ROWS if row["correct_analysis"]]
+    assert len(correct) == 11
+    assert not [
+        str(row["fixture_name"])
+        for row in correct
+        if audit_fix_r3_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
+    ]
+
+
+@pytest.mark.parametrize("name", _COLLECTION_ALIAS_ROWS)
+def test_an_aliased_store_lands_on_its_through_name_siblings_frozen_reason(
+    name: str, audit_fix_r3_rows: dict[str, dict[str, Any]]
+) -> None:
+    """The reason pin is recomputed from the sibling rather than transcribed from 3.4 output.
+
+    3.3 classifies these rows, so the round-1/round-2 authority -- the frozen reason for the row
+    itself -- is unavailable.  The authority is the frozen 3.3 reason for the identical program
+    with the same store written through the collection's own name.  The equality is asserted
+    three ways: shipped 3.4 on the aliased row, the oracle pin, and the live frozen 3.3 row of
+    the sibling.
+    """
+
+    row = _AUDIT_FIX_R3_ROWS_BY_NAME[name]
+    sibling = str(row["expected_reason_sibling"])
+    assert sibling in _AUDIT_FIX_R3_SOURCES, name
+    sibling_key, sibling_source = _AUDIT_FIX_R3_SOURCES[sibling]
+    sibling_frozen = _run_v33(sibling_key, sibling_source)
+    observed = audit_fix_r3_rows[name]["outcome"]
+    assert sibling_frozen.state == "abstain"
+    assert observed.state == "abstain"
+    assert observed.reason_or_classification == sibling_frozen.reason_or_classification == str(
+        row["expected_reason"]
+    )
+    # The pair really is the same program up to the name the store travels through: the frozen
+    # pipeline classifies the aliased spelling and refuses the through-name one.
+    assert audit_fix_r3_rows[name]["frozen"].state == "candidate"
+
+
+def test_the_closed_reason_set_is_unchanged_by_round_3() -> None:
+    """Round 3 adds no reason: the emitted reason is already in the closed 3.3 set of 61."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_4 import (
+        _COLLECTION_ALIAS_REASON,
+    )
+
+    assert _COLLECTION_ALIAS_REASON in _CLOSED_REASONS
+    assert len(_CLOSED_REASONS) == 61
+    for row in _AUDIT_FIX_R3_ROWS:
+        if row["expected_outcome"] == "abstain":
+            assert str(row["expected_reason"]) in _CLOSED_REASONS
+
+
+def test_the_record_collection_predicate_stays_narrow() -> None:
+    """Only a collection the module opens empty and fills, or one comprehension, is tracked."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_collection_names,
+    )
+
+    for name, expected in (
+        ("correct-explicit-loop-collection-alias-store", {"results"}),
+        ("positive-comprehension-e17-p3-unaltered", {"results"}),
+        # The declared outcome list and the label table are literal displays, not collections
+        # the module fills, so an alias of either can never reach the closure.
+        ("positive-explicit-loop-uncorrected-family-unrelated-alias", {"results"}),
+        # A seeded display is the same collection; the store requirement, not the seed, is what
+        # keeps the declared outcome list and the label table out.
+        ("correct-explicit-loop-seeded-collection-alias-store", {"results"}),
+    ):
+        _case_key, source = _AUDIT_FIX_R3_SOURCES[name]
+        assert record_collection_names(ast.parse(source)) == expected, name
+
+
+@pytest.mark.parametrize(
+    "name",
+    (
+        "positive-explicit-loop-collection-alias-read-only",
+        "positive-explicit-loop-collection-alias-reported-not-stored",
+    ),
+)
+def test_a_read_only_alias_of_the_collection_is_never_refused(name: str) -> None:
+    """The closure is over stores and mutations.  A live second name that is only read is clean."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_collection_alias_unresolved,
+    )
+
+    _case_key, source = _AUDIT_FIX_R3_SOURCES[name]
+    tree = ast.parse(source)
+    # Non-vacuity: the alias really is bound in the source under test.
+    assert any(
+        isinstance(node, ast.Assign)
+        and len(node.targets) == 1
+        and isinstance(node.targets[0], ast.Name)
+        and isinstance(node.value, ast.Name)
+        and node.value.id == "results"
+        for node in ast.walk(tree)
+    ), name
+    assert record_collection_alias_unresolved(tree) is False
+
+
+@pytest.mark.parametrize("name", sorted(_R3_MOVEMENT_ROWS))
+def test_round_3_keeps_every_pinned_movement_and_every_true_accusation(
+    name: str, audit_fix_r3_rows: dict[str, dict[str, Any]]
+) -> None:
+    """A closure that refused aliasing rather than storing would lose all five of these."""
+
+    assert _outcome_tuple(audit_fix_r3_rows[name]["outcome"]) == _R3_MOVEMENT_ROWS[name]
+
+
+# --- Named mutation kills: apply, confirm, revert, record ------------------------------
+
+
+def _r3_outcome(name: str) -> tuple[str, str, tuple[int, ...], int | None]:
+    case_key, source = _AUDIT_FIX_R3_SOURCES[name]
+    outcome, _census = _run_source(case_key, source)
+    return _outcome_tuple(outcome)
+
+
+_R3_PROBE = "correct-explicit-loop-collection-alias-store"
+_R3_ACCUSED = ("candidate", "none", (), 6)
+_R3_REFUSED = ("abstain", "pvalue-family-collection-unresolved", (), None)
+
+
+def test_mutation_kill_a_dropping_the_classification_path_closure_readmits_the_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: the classification path returns the frozen row with no closure at all.
+
+    Apply the mutant, confirm the confirmed false accusation comes back exactly as the custodian
+    reproduced it, revert, and confirm the refusal returns.  Recorded: this is the whole fix, so
+    removing it must lose the probe and nothing else needs to change to see that.
+    """
+
+    from sc_referee.scientific_checks import code_csv_multiple_testing_dataflow_v3_4 as dataflow
+
+    assert _r3_outcome(_R3_PROBE) == _R3_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(dataflow, "_record_collection_alias_unresolved", lambda content: False)
+        assert _r3_outcome(_R3_PROBE) == _R3_ACCUSED
+    assert _r3_outcome(_R3_PROBE) == _R3_REFUSED
+
+
+def test_mutation_kill_b_a_function_scope_only_closure_loses_the_module_scope_row(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: the closure runs over function bodies only, not over the whole module.
+
+    Apply the mutant, confirm the module-scope spelling of the identical program is readmitted
+    while its function-scope twin still refuses, revert, and confirm both refuse.  Recorded: a
+    closure that is not whole-module splits one program into two verdicts on indentation.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    module_scope = "correct-explicit-loop-collection-alias-module-scope"
+    real = correction.record_collection_alias_unresolved
+
+    def function_scope_only(tree: ast.Module) -> bool:
+        bodies = [node for node in tree.body if isinstance(node, ast.FunctionDef)]
+        return real(ast.Module(body=cast("list[ast.stmt]", bodies), type_ignores=[]))
+
+    assert _r3_outcome(module_scope) == _R3_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction, "record_collection_alias_unresolved", function_scope_only)
+        assert _r3_outcome(module_scope) == _R3_ACCUSED
+        assert _r3_outcome(_R3_PROBE) == _R3_REFUSED, "the function-scope twin still refuses"
+    assert _r3_outcome(module_scope) == _R3_REFUSED
+
+
+@pytest.mark.parametrize(
+    "name",
+    (
+        "correct-explicit-loop-collection-container-escape",
+        "correct-explicit-loop-collection-attribute-escape",
+    ),
+)
+def test_mutation_kill_c_treating_a_display_escape_as_safe_readmits_the_escaped_rows(
+    name: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Mutant: the closure keeps its alias edges and drops the display-escape set.
+
+    Apply the mutant, confirm the container and field escapes are readmitted while the plain
+    alias still refuses, revert, and confirm the refusal returns.  Recorded: without the escape
+    half the whole false accusation is reachable through one extra pair of braces.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    real_edges = correction._alias_edges
+
+    def edges_without_escapes(tree: ast.Module) -> tuple[dict[str, set[str]], frozenset[str]]:
+        edges, _escaped = real_edges(tree)
+        return edges, frozenset()
+
+    assert _r3_outcome(name) == _R3_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction, "_alias_edges", edges_without_escapes)
+        assert _r3_outcome(name) == _R3_ACCUSED
+        assert _r3_outcome(_R3_PROBE) == _R3_REFUSED, "the plain-alias row still refuses"
+    assert _r3_outcome(name) == _R3_REFUSED

@@ -349,3 +349,60 @@ abstention on either of those two pinned candidates would be a stop rather than 
 the design. Blind scoring, promotion arithmetic, role maps, sealed audit bytes, wording, contract
 profile `1.2.0`, qualified lanes, GrantPins, and the asymmetric attestation rule remain unchanged;
 sealed E17 stays `4/6` and is never rescored.
+
+**Adversarial audit fixes, rounds 1 to 3.** Three narrowings were added after the 3.4 build, each
+demonstrated on executed probes rather than argued from symmetry. Rounds 1 and 2 withhold a 3.4
+admission: the sequence-object closure proves the *object* behind a selection-sequence name stable
+rather than only the name, over the whole alias component and including container, field, and
+walrus display escapes, and the comprehension lane shares that closure by import rather than by
+restatement. A withheld admission returns the row to its frozen 3.3 abstention byte-for-byte, so
+neither round can move a public record.
+
+Round 3 is different in kind and is recorded here as a **narrowing of an inherited defect**. The
+route it closes carries no 3.4 admission at all. A correct, complete Bonferroni correction over the
+declared family, written as
+
+```python
+adjusted = results
+for name in adjusted:
+    adjusted[name]["p"] = min(adjusted[name]["p"] * len(OUTCOMES), 1.0)
+```
+
+is classified `candidate`/`none` over the uncorrected family by the byte-frozen 3.3 pipeline on its
+own, and step 3 of the ordering rule returns that classification untouched. The identical program
+with the same store written through `results` abstains at `pvalue-family-collection-unresolved`.
+The frozen engine reconstructs family membership from the stores written through the collection's
+own name, so through `results` it sees an unresolvable store and refuses, while through `adjusted`
+it sees no store on the collection at all and reads a family whose every member still carries its
+raw p. The alias hides the correction rather than resolving the family, so the accusation is false
+in the strongest sense available: the analysis it accuses is correct, and the analyzer already
+refuses to judge the same analysis written one line differently.
+
+The defect is present in the byte-frozen v3 and v3.3 lanes. Those lanes are unchanged and stay
+byte-identical; the narrowing lives only in the v3.4 modules, which supersede them in the active
+development binding, and no frozen abstention reason anywhere can move because the closure is
+applied to classifications only. Before a classification is returned -- the frozen one at step 3 or
+the re-analysed one at step 5 -- no other name for the record collection may receive a store, a
+mutation, or a display escape, over the whole alias component and whole-module rather than per
+scope. A refused classification lands on `pvalue-family-collection-unresolved`, which is the frozen
+reason its through-name sibling already carries; no reason is invented and the closed set stays at
+61. A record collection is a name bound once to an empty mapping or list, or to one comprehension,
+and filled by subscript store; list builders filled by `append` are excluded because the frozen
+B1/B4 closure in `_record_boundary_reason` already refuses a second name for a tracked builder.
+
+Two boundaries are deliberate and are pinned by non-vacuity rows. Reads through an alias are never
+refused, so a genuinely uncorrected family with a live second name for its record collection keeps
+its `candidate`/`none` row. Passing the collection to a call is not a capture, which is the frozen
+`len(OUTCOMES)` discipline the pinned 3.3 evidence rows depend on; a correction written inside a
+helper the collection is passed to is already refused by the frozen pipeline at
+`unresolved-manual-correction-present`, so no false accusation exists there and argument-passing
+semantics are untouched. A store through an alias that cannot have reached any conclusion is
+refused with the rest, because whether a store is dead is a question about statement order that
+this closure does not answer and its through-name spelling is refused too.
+
+The round-3 movement set is exactly seven oracle rows, all in the refusing direction. Both pinned
+3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows, every none-flip
+population, the E10-E17 retro recall including E17 `6/6`, the question census `28 -> 27`, and the
+frozen 3.1/3.2/3.3 anchor bytes are re-demonstrated unchanged. Blind scoring, promotion arithmetic,
+role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified lanes, and GrantPins
+remain unchanged; sealed E17 stays `4/6`.

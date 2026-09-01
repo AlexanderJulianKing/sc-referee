@@ -20,6 +20,17 @@ classification and every frozen 3.3 abstention reason survives by construction, 
 Section 8's outcome-headers reason routing is measured in the design and **not applied** here:
 3.4 emits the frozen reason unchanged.  Extension B, the terminal `IfExp` print-only production,
 is specified in the design and is **not** part of this recognizer set.
+
+The round-3 audit fix adds the one narrowing that steps 3 and 5 cannot express as an admission.
+A false accusation was demonstrated on the *classification* side: a correct, complete Bonferroni
+pass written through a second name for the record collection is classified `candidate`/`none`
+over the uncorrected family, because the frozen engine reconstructs family membership from the
+stores written through the collection's own name and never sees the aliased one.  Before a
+classification is returned -- the frozen one at step 3 or the re-analysed one at step 5 -- the
+round-1/round-2 alias closure must find no store, mutation, or display escape on any other name
+for that collection.  When it finds one, the row lands on `pvalue-family-collection-unresolved`,
+which is the frozen reason the identical through-name program already carries; no reason is
+added.  Abstentions are untouched, so no frozen abstention reason can move.
 """
 
 from __future__ import annotations
@@ -57,6 +68,45 @@ FROZEN_V33_DATAFLOW_DELEGATE = (
 #: Reasons whose 3.3 graph proof is re-attempted inside the 3.4 re-analysis.
 _TERMINAL_PRESENTATION_REASON = "hierarchical-gatekeeping-present"
 _HELPER_RECORD_REASON = "unresolved-pvalue-consumer"
+
+#: The frozen reason the identical program carries when the same store is written through the
+#: collection name itself.  It is in the closed 3.3 reason set; round 3 adds no reason.
+_COLLECTION_ALIAS_REASON = "pvalue-family-collection-unresolved"
+
+
+def _record_collection_alias_unresolved(content: bytes) -> bool:
+    """Round 3: refuse to classify a family whose record collection is stored through an alias.
+
+    The frozen 3.3 engine reconstructs the p-value family from the stores written through the
+    record collection's own name.  A store written through a second name for the same object is
+    invisible to that reconstruction, so a complete Bonferroni pass spelled
+
+    ```python
+    adjusted = results
+    for name in adjusted:
+        adjusted[name]["p"] = min(adjusted[name]["p"] * len(OUTCOMES), 1.0)
+    ```
+
+    is classified `candidate`/`none` over the full family, while the identical program written
+    through `results` refuses at `pvalue-family-collection-unresolved` because the member the
+    store names cannot be resolved.  The alias hides the correction rather than resolving the
+    family, so the aliased spelling lands on the through-name spelling's own frozen reason.
+
+    This is a narrowing of an inherited defect.  The byte-frozen v3 and v3.3 lanes carry it and
+    stay byte-identical; the active 3.4 binding supersedes them, and only 3.4 is narrowed.  The
+    closure is exactly the round-1/round-2 one and it is applied to *classifications only*, so
+    no abstention reason anywhere can move.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_collection_alias_unresolved,
+    )
+
+    try:
+        tree = ast.parse(content)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    return record_collection_alias_unresolved(tree)
 
 
 def _apply_v34_ap(
@@ -219,13 +269,18 @@ def analyze_code_csv_multiple_testing_dataflow(
     }
     frozen = _frozen_v33_analyze(content, **arguments)
     if frozen.reason is None:
+        # Round 3: a classification whose record collection is stored through an alias lands on
+        # the frozen reason the through-name spelling of the same program lands on.
+        if _record_collection_alias_unresolved(content):
+            return MultipleTestingDataflowResult(None, _COLLECTION_ALIAS_REASON)
         # Step 3: a frozen 3.3 classification is returned untouched and no admission is tried.
         return frozen
     attempted = _reanalyze_with_v34_admissions(content, **arguments)
-    if attempted.reason is None:
+    if attempted.reason is None and not _record_collection_alias_unresolved(content):
         # Step 5: the re-analysis is adopted only when it is itself a classification.
         return attempted
-    # Steps 5 and 6: an abstaining re-analysis returns the frozen 3.3 reason byte-for-byte.
+    # Steps 5 and 6: an abstaining re-analysis returns the frozen 3.3 reason byte-for-byte.  A
+    # re-analysis refused by the round-3 closure is an abstaining re-analysis for that purpose.
     return frozen
 
 
