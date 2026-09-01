@@ -1,4 +1,4 @@
-"""Deterministic adapter-level replay harness for the open MT corpus."""
+"""Deterministic adapter-level replay harness for the open MT corpus, through MT 3.4."""
 
 from __future__ import annotations
 

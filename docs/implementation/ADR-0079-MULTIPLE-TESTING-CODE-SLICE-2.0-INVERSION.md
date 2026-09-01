@@ -221,3 +221,131 @@ three cases carried publication-surface questions, not MT correction-scope quest
 unrelated MaterialQuestion may be removed. Wording, contract profile, qualified lanes, blind
 scoring, and the asymmetric attestation rule remain unchanged; answer-guided proof may do nothing
 that the answer-removed path cannot reproduce.
+
+## Comprehension, iterator, and cap 3.4 amendment
+
+The accepted design
+`docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md`, Revision 0,
+has raw SHA-256 `2f7bd77e1020777c9fcdc5573edc87c43567ba153fd3fc1f801926752993c854`
+and advances only the development check, adapter, and detector to `3.4.0`. Version 3.4 adds three
+narrow syntactic admissions, specifies a fourth that is not shipped, and records one reason defect
+without correcting it. It adds no scientific classification rule, test API, correction form,
+threshold, family-position source, row-mask route, reader, reducer, record mutation, conclusion
+polarity, or wording rule.
+
+**Observed trigger attribution.** Instrumented execution of the shipped 3.3 hierarchy guard shows
+that E17 P3 `a2e031f79e31c80fd900` stops at exactly one tracked control, the line 71 columns 35-54
+`result['p'] < ALPHA` compare, with **zero** p-origins, no correction control, and all six contract
+outcome headers. The control is tracked only by the outcome-headers branch of `_control_tracked`,
+so `hierarchical-gatekeeping-present` asserts a gate that was never demonstrated. The zero-p-origin
+finding is the same fact that causes the miss: the dict comprehension is never normalized into the
+record model, so `result["p"]` resolves to no p-origin. E17 P6 `b4e507c4b55954752f14` tracks no
+hierarchy control at all; it is blocked by `enumerate(OUTCOMES, start=1)` failing the bare-Name row
+table and by the cap reassignment competing with the product in the single-reaching-fold proof.
+Both walls are spelling, not science: an author who writes the same computation as an explicit loop
+with `min(p * F, 1.0)` was already caught.
+
+**Extension A, the comprehension grammar and its lowering.** One `ast.Assign` or `ast.AnnAssign`
+with a single `ast.Name` target whose value is a one-generator `ast.DictComp` or `ast.ListComp`,
+whose generator is not async and carries no `ifs`, whose target is a simple Name, whose iterable is
+a bare Name resolving to a stable module sequence that is order-equal to the contract outcome
+tuple, whose dict key is exactly the generator target, and whose element is one closed `SCALAR`
+call or one flat literal record of `SCALAR` values that loads the generator target, is lowered to
+the equivalent explicit loop. The collected name must have exactly one Store or Del in the whole
+module and may never be augmented, deleted, subscript-stored, or receiver-mutated elsewhere.
+`ast.Lambda`, `ast.NamedExpr`, `ast.Await`, `ast.Yield`, `ast.YieldFrom`, `ast.IfExp`,
+`ast.Starred`, any nested comprehension, `ast.JoinedStr`, `ast.Slice`, and any keyword-carrying
+call inside the element are absolute refusals. The lowering is a graph fact: production builds an
+`ast.Module` and never rewrites source text. Element identity and idempotence are asserted at
+runtime on every lowering.
+
+**Extension B is specified and not shipped.** The print-only terminal `IfExp` production is stated
+in full in design section 5 with its three named verdict-store disqualifiers. It is not installed
+in the shipped recognizer set. The executed evidence is decisive in both directions: across all 170
+evidence cases and all 245 fixtures it admits zero positions on any abstaining row, and on E16 P4
+its one admitted `IfExp` position at `(82, 35, 82, 60)` collides with the 3.3 single-occurrence
+requirement in `prove_terminal_presentation`, which then returns `None` and loses a pinned
+candidate/`none` `N=7`. A later delta that wants the shape must first decide what
+`prove_terminal_presentation` should do with more than one admissible position, which is a 3.3
+design question and is not answered here.
+
+**Extension C, the `enumerate` row table.** `_complete_rows` admits `enumerate(NAME)` and
+`enumerate(NAME, start=K)` when the callee is the unshadowed simple Name `enumerate`, there is
+exactly one positional argument and it is a bare Name resolving through the unchanged
+`_module_sequences` to a stable flat literal sequence, keywords are absent or exactly one `start=`
+with an integer literal that is not a bool, the loop target is an exact two-element tuple or list of
+distinct simple Names, the sequence length equals the contract family size, and the sequence
+elements in order equal the contract outcome tuple. Position derivation is unchanged: positions come
+from the index in the sequence, so `K` is never consulted and `start=0`, `start=1`, and an absent
+`start` produce the identical row table. The counter is bound in every row to a distinguished object
+that is neither a `bool` nor any contract outcome string, so `_static_bool` returns `None` for it,
+`_positions_for` then refuses, and a membership test against a contract name set is false on every
+row. Any use of the counter in the correction or decision path therefore refuses. That is a property
+of the binding, not a lint against the identifier.
+
+**Extension D, the adjacent if-cap.** The exact pair `X = A * B` immediately followed, in the same
+block, by an `ast.If` with no `orelse` whose test is one of `X > 1`, `X >= 1`, `1 < X`, `1 <= X`
+against a numeric one that is not a bool, and whose body holds exactly one `ast.Assign` writing a
+numeric one to the same Name, is one fold equal to `min(A * B, 1.0)`. It changes exactly three
+things and nothing else: the cap reassignment is excluded from the competing-assignment set in the
+single-reaching-fold proof; the cap `ast.If` is transparent in `_positions_for`, because it chooses
+between `A * B` and `1.0` for the same position rather than selecting family positions; and the
+surrogate lowering drops the whole cap statement together with its fold, exactly as
+`min(A * B, 1.0)` does. Without the surrogate drop the retained `1.0` reads as a second decision
+threshold and abstains at `unresolved-decision-threshold`. Factor resolution, name-set selection,
+transport proofs, conclusion consumption, and classification are untouched. The if-cap and `min`
+spellings of the same complete correction produce identical coverage records.
+
+**Extension E is recorded and not applied.** The observed mislabel is real: when only the
+outcome-headers branch of `_control_tracked` matches, the analyzer has proved that a control reads
+outcome columns and has proved neither a p-origin, a correction dependence, nor an
+execution-prevention edge, yet it emits `hierarchical-gatekeeping-present`. The specified routing to
+the already-registered `pvalue-control-dependence-unresolved` was executed side by side with the
+unrouted reason on every row. It relabels **zero** of the 170 evidence cases and **ten** fixtures,
+eight of which are frozen gatekeeping controls whose reason is already accurate. The discriminator
+that would separate them is whether the control's owner subtree contains a registered test and
+whether `can_prevent_slice` holds for an exit edge under it, which is a real design item rather than
+a routing tweak. Version 3.4 therefore keeps the current reason and records the defect and its
+measured blast radius. No new reason is invented, and the closed set stays at 61.
+
+**The hierarchy registry stays global, and the ordering rule is load-bearing.** Version 3.4 removes
+no node kind and no owner class from the control registry, and section 8 would have changed only
+which reason is emitted, never whether an abstention occurs. The analyzer runs every unchanged
+adapter precondition and global census on original bytes, then the complete unchanged 3.3 pipeline.
+A classification is returned untouched and no 3.4 admission is attempted. Only on an abstention is
+the source re-analyzed with the comprehension normalization supplied as a graph fact and the
+section-6 and section-7 admissions inside the AP recognizer, and that re-analysis is adopted only if
+it is itself a classification; otherwise the step-2 abstention reason is returned byte-for-byte. An
+earlier revision normalized unconditionally and lost the pinned E16 P3 and E16 P4 candidates. Six
+executed rows re-analyze to a different wall than 3.3 recorded, so the rule is exercised rather than
+decorative. Classification, correction recognition, row completeness, and wording remain unchanged.
+
+**Executed movement set, none-flip, and admission census.** The movement set is exactly
+`{E17:P3 -> candidate/none, corrected_positions {}, N=6}` and
+`{E17:P6 -> candidate/strict_subset, corrected_positions {0,1,2}, N=7}`. All 155 earlier evidence
+rows, all other thirteen E17 rows, and all 50 corpus adapter rows are outcome-identical; corpus
+score remains `0/25` correct and `19/25` misstep. None-flip is zero in every measured population:
+corpus-correct `0/25`, opened negatives `0/72`, all correct fixtures `0/194`, cumulative-v3 correct
+`0/62`, B5 expression variants `0/63`, 3.1 laundering-adjacent `0/16`, AP correct `0/13`, frozen
+gatekeeping `0/12`, 3.3 terminal and helper correct `0/17`, and the new 3.4 correct set `0/11`. The
+executed admission census over 170 cases and 245 fixtures is comprehension 16, `enumerate` 16, cap
+5, terminal `IfExp` 0.
+
+**Question census and prototype/final asymmetry.** The no-attestation correction-scope census moves
+`28 -> 27`, removing exactly `E17:P6:b4e507c4b55954752f14` because the ambiguity its
+MaterialQuestion asked about resolved into a demonstrated candidate. No non-MT MaterialQuestion is
+removed, and E17 P3 contributed nothing to the removal set because
+`hierarchical-gatekeeping-present` is not a qualifying reason. Fidelity between the design prototype
+and the final implementation is asymmetric at integration boundaries. The prototype spliced
+normalized source text and its AP recognizer therefore read normalized bytes; production supplies
+the normalization only as a graph fact and never rewrites source, so its AP recognizer reads the
+original bytes. Production is consequently stricter on exactly two correct-analysis fixtures,
+`correct-comprehension-corrected-family` and `correct-terminal-verdict-rebound-into-name`, which
+abstain at `unresolved-decision-threshold` byte-identically to frozen 3.3 where the prototype
+reached covered/`complete`. None-flip evidence transfers to a stricter implementation; a positive
+movement does not. The final implementation independently re-demonstrates E17 P3 and E17 P6 at
+their exact pinned outcomes through the real adapter and controller path, and a conservative
+abstention on either of those two pinned candidates would be a stop rather than permission to loosen
+the design. Blind scoring, promotion arithmetic, role maps, sealed audit bytes, wording, contract
+profile `1.2.0`, qualified lanes, GrantPins, and the asymmetric attestation rule remain unchanged;
+sealed E17 stays `4/6` and is never rescored.

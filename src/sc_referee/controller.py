@@ -101,7 +101,7 @@ from sc_referee.method_contracts import (
     EXPECTED_COUNT_PROFILE_ID,
     EXPECTED_COUNT_REQUIRED_DIMENSIONS,
 )
-from sc_referee.multiple_testing_scope_attestations_v3_3 import (
+from sc_referee.multiple_testing_scope_attestations_v3_4 import (
     LoadedAttestation,
     MultipleTestingAttestationError,
     apply_attestation,
@@ -153,7 +153,7 @@ from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
 )
-from sc_referee.scientific_checks.integration_multiple_testing_v3_3 import (
+from sc_referee.scientific_checks.integration_multiple_testing_v3_4 import (
     MultipleTestingScopeQuestionCompilation,
     compile_multiple_testing_development_records,
     compile_multiple_testing_scope_question,
