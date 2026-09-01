@@ -1,0 +1,224 @@
+{
+  "profile": "multitest-v3.4-audit-fix-r1-admission-closure-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-31",
+    "audit_identity": "MT 3.4 adversarial audit round 1: sequence-mutation false accusation, shadowed enumerate, surviving contract-order mutant",
+    "design_document": "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md",
+    "design_revision": "0",
+    "implementation_output_used": false,
+    "reason_authority": "Every abstention reason below is the byte-frozen 3.3 analyzer's own reason for the same source. Design section 3.3 steps 5 and 6 require an abstaining 3.4 re-analysis to return that reason unchanged, so the pin is a restatement of the ordering rule rather than a transcription of 3.4 output. The test recomputes the frozen 3.3 row live and asserts three-way equality, so a wrong pin fails rather than passes."
+  },
+  "rows": [
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "MUSCULOSKELETAL.extend(OUTCOMES[3:]) directly on the selection sequence",
+        "design_clause": "audit round 1 blocker; design section 6.2 position derivation",
+        "design_text": "Positions come from the index of each element in the sequence. A sequence whose object is mutated after its literal is written does not have the members the literal shows, so the membership guard selects a family the recognizer cannot see."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "sequence-object-stability",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_unstable_sequence_names": [
+        "MUSCULOSKELETAL"
+      ],
+      "fixture_name": "correct-ap-selection-sequence-direct-extend",
+      "fixture_source_sha256": "sha256:b548c2b141af768e47c7c92680649fff0c5893de76e0dae2d5dcced8a16a91c7"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "CORRECTED_OUTCOMES = MUSCULOSKELETAL, then CORRECTED_OUTCOMES.extend(OUTCOMES[3:])",
+        "design_clause": "audit round 1 blocker; frozen B1/B4 record-mutation closure",
+        "design_text": "A bare Name-to-Name binding makes one object reachable under two names, so a mutation written through either name changes what the other reads. The stability closure runs over the whole alias component."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "sequence-object-stability",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_unstable_sequence_names": [
+        "MUSCULOSKELETAL"
+      ],
+      "fixture_name": "correct-ap-selection-sequence-alias-extend",
+      "fixture_source_sha256": "sha256:acc4b7bbbb9a023ceafc22c4a7e17bc06d94b0d9e7bbed736374a8fb0da4755d"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "CORRECTED_OUTCOMES = MUSCULOSKELETAL, then CORRECTED_OUTCOMES += OUTCOMES[3:]",
+        "design_clause": "audit round 1 blocker; frozen B1/B4 record-mutation closure",
+        "design_text": "An augmented assignment on a list is an in-place mutation of the object, not a rebinding of the name, and it is refused on every name in the alias component."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "sequence-object-stability",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_unstable_sequence_names": [
+        "MUSCULOSKELETAL"
+      ],
+      "fixture_name": "correct-ap-selection-sequence-alias-augmented-assign",
+      "fixture_source_sha256": "sha256:ccdbb963c494dfaff43738963ece73d2af40de092bbbd60fe2bd09687ab435fa"
+    },
+    {
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "CORRECTED_OUTCOMES = MUSCULOSKELETAL, then CORRECTED_OUTCOMES[:] = OUTCOMES",
+        "design_clause": "audit round 1 blocker; frozen B1/B4 record-mutation closure",
+        "design_text": "A slice store is a subscript store on the alias, which is an in-place mutation. The right-hand bare Name is bound into a location this module does not track, so that sequence escapes as well."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "sequence-object-stability",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_unstable_sequence_names": [
+        "MUSCULOSKELETAL",
+        "OUTCOMES"
+      ],
+      "fixture_name": "correct-ap-selection-sequence-alias-slice-assign",
+      "fixture_source_sha256": "sha256:fcef953a26eb514d2a77ee4cd97a8535cbd1b156c3200bbe5854affed09bed04"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "a project-local def enumerate whose body happens to agree with the builtin",
+        "design_clause": "audit round 1 major; design section 6.1 admitted iterator",
+        "design_text": "The admitted iterator is the builtin enumerate. Nothing in a project-authored function of the same name proves it agrees with the builtin, so the admission requires the builtin to be unshadowed module-wide. This row is not an outcome flip: it pins the gate, because agreement here is a coincidence the recognizer cannot check."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "unshadowed-builtin-enumerate",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "fixture_name": "shadowed-enumerate-definition-agreeing",
+      "fixture_source_sha256": "sha256:1b8144546dcfec42ee85edef20070ed3113f5788fa8e5fea93e8450683c404de"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "a project-local def enumerate that drops the final declared outcome",
+        "design_clause": "audit round 1 major; design section 6.1 admitted iterator",
+        "design_text": "The same binding, where the local definition does not agree with the builtin: the loop visits six of the seven declared outcomes. Reading the name as the builtin would tag positions the loop never reaches, which is why agreement may not be assumed."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "unshadowed-builtin-enumerate",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "fixture_name": "correct-ap-shadowed-enumerate-definition-diverging",
+      "fixture_source_sha256": "sha256:36fb2f7e1ca020317b75617dafaeef3584f04fdb323edc51162ad7113a972cab"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "a flat list literal holding the six declared outcomes in a different order",
+        "design_clause": "audit round 1 surviving mutant; design section 4.2 generator sequence",
+        "design_text": "The generator sequence must be order-equal to the contract family, not merely equal in length or in member set. The pinned out-of-contract-order row uses list(reversed(OUTCOMES)), which is not a resolvable module sequence and refuses upstream, so it never reaches the order-equality predicate. This row is a resolvable module sequence of the contract length whose member set is exactly the contract family, so order equality is the only predicate left standing."
+      },
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_gate": "comprehension-contract-order-equality",
+      "expected_outcome": "abstain",
+      "expected_reason": "authorized-family-test-census-incomplete",
+      "expected_upstream_gates_pass": {
+        "member_set_equals_contract": true,
+        "sequence_is_a_resolvable_module_sequence": true,
+        "sequence_length_equals_contract_length": true,
+        "sequence_order_equals_contract_order": false
+      },
+      "fixture_name": "correct-comprehension-flat-literal-out-of-contract-order",
+      "fixture_source_sha256": "sha256:9efcb07b20afa963a356c5a504c1fab064e194e4b8f66e7501473ebbe8e12691"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P6 source, unaltered",
+        "design_clause": "audit round 1 non-vacuity control; design section 0.2 pinned movement",
+        "design_text": "Both closures are narrowings, so the pinned movement has to survive them. An unmutated selection sequence read under the genuine builtin enumerate still reaches the strict subset of the first three declared outcomes in a family of seven."
+      },
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_authorized_count": 7,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2
+      ],
+      "expected_frozen_v33_identical": false,
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "fixture_name": "positive-ap-unmutated-sequence-genuine-enumerate",
+      "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052"
+    },
+    {
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "CORRECTED_OUTCOMES = MUSCULOSKELETAL, read in the report line and never mutated",
+        "design_clause": "audit round 1 non-vacuity control; frozen B1/B4 record-mutation closure",
+        "design_text": "The closure refuses mutation, not aliasing. A live alias that nothing mutates leaves the selection sequence exactly as its literal shows, so the movement stands and the four mutation rows are refused for the mutation rather than for the alias."
+      },
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_authorized_count": 7,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2
+      ],
+      "expected_frozen_v33_identical": false,
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "fixture_name": "positive-ap-selection-sequence-alias-without-mutation",
+      "fixture_source_sha256": "sha256:8e21a958e3d73aeeeab7f5e39a19a4afacbef7d48ae6e5c96dbe24a1eecf2013"
+    }
+  ]
+}

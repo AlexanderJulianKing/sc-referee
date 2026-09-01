@@ -32,6 +32,7 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_comprehension_v3_4 i
 from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
     _ENUMERATE_COUNTER,
     _complete_rows,
+    _enumerate_is_the_unshadowed_builtin,
     _module_sequences,
     _positions_for,
     _static_bool,
@@ -87,6 +88,29 @@ _CLASSIFY = cast(Callable[[MultipleTestingDataflowResult], Any], _harness["class
 _RESULTS = json.loads((_ROOT / "results.json").read_text(encoding="utf-8"))
 _PROTOTYPE_FIXTURE_ROWS = {row["name"]: row for row in _RESULTS["fixtures"]}
 _INSTRUMENT = json.loads((_ROOT / "instrument_results.json").read_text(encoding="utf-8"))
+
+# The round-1 audit-fix oracle lives outside the prototype sweep, whose manifest bytes are
+# pinned above and may not carry a post-hoc fixture.
+_AUDIT_FIX_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_4/audit-fix-r1-oracle"
+).resolve()
+_AUDIT_FIX_SOURCES = cast(
+    "dict[str, tuple[str, bytes]]",
+    runpy.run_path(str(_AUDIT_FIX_ROOT / "fixture_sources.py"))["fixture_sources"](),
+)
+_AUDIT_FIX_ORACLE = json.loads((_AUDIT_FIX_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8"))
+_AUDIT_FIX_ROWS = cast("list[dict[str, Any]]", _AUDIT_FIX_ORACLE["rows"])
+_AUDIT_FIX_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_ROWS}
+_MUTATED_SEQUENCE_ROWS = (
+    "correct-ap-selection-sequence-direct-extend",
+    "correct-ap-selection-sequence-alias-extend",
+    "correct-ap-selection-sequence-alias-augmented-assign",
+    "correct-ap-selection-sequence-alias-slice-assign",
+)
+_SHADOWED_ENUMERATE_ROWS = (
+    "shadowed-enumerate-definition-agreeing",
+    "correct-ap-shadowed-enumerate-definition-diverging",
+)
 
 
 def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
@@ -1006,3 +1030,150 @@ def test_the_admission_census_is_write_only_and_never_reaches_a_proof() -> None:
     outside, _ = _run_source(fixture.case_key, fixture.source)
     assert _outcome_tuple(inside) == _outcome_tuple(outside)
     assert set(admission_spans()) == set(ADMISSION_KINDS)
+
+
+# --------------------------------------------------------------------------------------
+# Audit fix round 1: sequence-object stability, the unshadowed builtin, contract order
+# --------------------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def audit_fix_rows() -> dict[str, dict[str, Any]]:
+    """Execute every audit-fix source through the shipped 3.4 analyzer and the frozen 3.3 one."""
+
+    rows: dict[str, dict[str, Any]] = {}
+    for name, (case_key, source) in _AUDIT_FIX_SOURCES.items():
+        outcome, census = _run_source(case_key, source)
+        rows[name] = {
+            "case_key": case_key,
+            "source": source,
+            "outcome": outcome,
+            "census": census,
+            "frozen": _run_v33(case_key, source),
+        }
+    return rows
+
+
+def test_audit_fix_round_1_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_ROWS) == 9
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_ROWS) == 4
+    assert set(_AUDIT_FIX_ROWS_BY_NAME) == set(_AUDIT_FIX_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_SOURCES.items()
+    } == {name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_ROWS_BY_NAME.items()}
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_9_audit_fix_round_1_rows_execute(
+    row: dict[str, Any], audit_fix_rows: dict[str, dict[str, Any]]
+) -> None:
+    observed = audit_fix_rows[str(row["fixture_name"])]
+    assert _outcome_tuple(observed["outcome"]) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+        cast("int | None", row.get("expected_authorized_count")),
+    )
+    assert observed["census"] == row["expected_admission_census"]
+    # Design section 3.3 steps 5 and 6: a refused admission returns the frozen 3.3 row unchanged.
+    identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
+    assert identical is bool(row["expected_frozen_v33_identical"])
+
+
+def test_no_audit_fix_correct_analysis_row_becomes_a_candidate(
+    audit_fix_rows: dict[str, dict[str, Any]],
+) -> None:
+    """The four mutated-sequence rows are complete seven-outcome corrections, never subsets."""
+
+    correct = [row for row in _AUDIT_FIX_ROWS if row["correct_analysis"]]
+    assert len(correct) == 4
+    assert not [
+        str(row["fixture_name"])
+        for row in correct
+        if audit_fix_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
+    ]
+
+
+@pytest.mark.parametrize("name", _MUTATED_SEQUENCE_ROWS)
+def test_mutated_selection_sequence_refuses_at_the_sequence_object_stability_gate(
+    name: str,
+) -> None:
+    """Mutation kill: dropping the object-stability closure readmits the mutated sequence here.
+
+    The accusation this closes is a complete seven-outcome correction reported as a strict
+    subset of three, so the assertion is that the mutated sequence never enters the module
+    sequence table at all.  A downstream abstention would not distinguish the fix from a
+    coincidence.
+    """
+
+    row = _AUDIT_FIX_ROWS_BY_NAME[name]
+    _case_key, source = _AUDIT_FIX_SOURCES[name]
+    unstable = [str(item) for item in row["expected_unstable_sequence_names"]]
+    sequences = _module_sequences(ast.parse(source))
+    assert [item for item in unstable if item in sequences] == []
+    # Non-vacuity: every one of those names resolves on the unmutated source.
+    _control_key, control = _AUDIT_FIX_SOURCES["positive-ap-unmutated-sequence-genuine-enumerate"]
+    assert set(unstable) <= set(_module_sequences(ast.parse(control)))
+
+
+@pytest.mark.parametrize("name", _SHADOWED_ENUMERATE_ROWS)
+def test_shadowed_enumerate_refuses_at_the_unshadowed_builtin_gate(
+    name: str, audit_fix_rows: dict[str, dict[str, Any]]
+) -> None:
+    """Mutation kill: proving the builtin by `node.func.id` alone readmits a project-local def."""
+
+    _case_key, source = _AUDIT_FIX_SOURCES[name]
+    tree = ast.parse(source)
+    assert any(
+        isinstance(node, ast.FunctionDef) and node.name == "enumerate" for node in ast.walk(tree)
+    )
+    assert _enumerate_is_the_unshadowed_builtin(tree) is False
+    assert audit_fix_rows[name]["census"]["enumerate"] == 0
+    # Non-vacuity: the same predicate admits the genuine builtin on the unaltered source.
+    _control_key, control = _AUDIT_FIX_SOURCES["positive-ap-unmutated-sequence-genuine-enumerate"]
+    assert _enumerate_is_the_unshadowed_builtin(ast.parse(control)) is True
+
+
+def test_flat_equal_length_sequence_refuses_at_the_contract_order_equality_gate() -> None:
+    """Mutation kill: matching the generator sequence by length instead of order admits this.
+
+    The pinned out-of-contract-order row cannot kill that mutant.  It builds its sequence with
+    `list(reversed(OUTCOMES))`, which never resolves to a module sequence, so it refuses before
+    the order comparison is reached.  This row resolves, carries the contract length, and
+    carries exactly the contract member set, so order equality is the only predicate left.
+    """
+
+    name = "correct-comprehension-flat-literal-out-of-contract-order"
+    row = _AUDIT_FIX_ROWS_BY_NAME[name]
+    case_key, source = _AUDIT_FIX_SOURCES[name]
+    columns = _outcome_columns(case_key, source)
+    tree = ast.parse(source)
+    sequence = module_sequences(tree).get("SHUFFLED")
+    upstream = row["expected_upstream_gates_pass"]
+    assert (sequence is not None) is upstream["sequence_is_a_resolvable_module_sequence"]
+    assert sequence is not None
+    assert (len(sequence) == len(columns)) is upstream["sequence_length_equals_contract_length"]
+    assert (set(sequence) == set(columns)) is upstream["member_set_equals_contract"]
+    assert (tuple(sequence) == columns) is upstream["sequence_order_equals_contract_order"]
+    assert admitted_comprehensions(tree, columns) == ()
+    assert normalize_comprehensions(source, columns) is None
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "positive-ap-unmutated-sequence-genuine-enumerate",
+        "positive-ap-selection-sequence-alias-without-mutation",
+    ],
+)
+def test_both_narrowings_keep_the_pinned_e17_p6_movement(
+    name: str, audit_fix_rows: dict[str, dict[str, Any]]
+) -> None:
+    """Mutation kill: a closure that refused every sequence, or refused a live alias, loses this."""
+
+    row = audit_fix_rows[name]
+    assert _outcome_tuple(row["outcome"]) == ("candidate", "strict_subset", (0, 1, 2), 7)
+    assert row["census"]["enumerate"] == 1
+    assert row["census"]["cap"] == 1

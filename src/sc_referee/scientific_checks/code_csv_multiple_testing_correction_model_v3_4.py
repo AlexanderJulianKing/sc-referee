@@ -21,6 +21,20 @@ Exactly two 3.4 admissions are added, and nothing else in this module moves:
 
 Factor resolution, name-set selection, transport proofs, conclusion consumption, wording, and
 classification are untouched.
+
+The 3.4 adversarial audit closed two admission predicates.  Both are narrowings: they can only
+withhold an admission that previously fired, so every row they touch keeps its frozen 3.3
+result byte-for-byte.
+
+* `_module_sequences` now proves the sequence *object* stable, not just the sequence *name*.
+  A single reaching Store says nothing about `NAME.extend(...)`, an augmented assignment, a
+  slice store, or the same three written through an alias, each of which grows the family a
+  membership guard selects at runtime while the literal the recognizer reads stays put.  The
+  closure runs over the whole alias component and follows the frozen B1/B4 record-mutation
+  discipline in `rm._record_boundary_reason`.
+* `_enumerate_sequence_name` now requires `enumerate` to be the unshadowed builtin, proved
+  module-wide by the frozen `mt._definition_shadows_builtin` census.  A project-local
+  definition of the name is never read as the builtin row-table iterator.
 """
 
 from __future__ import annotations
@@ -211,8 +225,110 @@ def _name_stable(tree: ast.Module, name: str) -> bool:
     return stores == 1
 
 
+def _alias_edges(tree: ast.Module) -> tuple[dict[str, set[str]], frozenset[str]]:
+    """Bare Name-to-Name bindings, and every name bound somewhere this module cannot follow.
+
+    `A = B` binds one object to two names, so the edge is undirected: a mutation reached
+    through either name changes what the other one reads.  A bare Name bound anywhere other
+    than a single Name target -- a tuple unpack, a record field, a subscript -- escapes into a
+    location whose later mutations are not enumerable here, and is refused outright.
+    """
+
+    edges: dict[str, set[str]] = {}
+    escaped: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            targets: list[ast.expr] = list(node.targets)
+            value: ast.expr | None = node.value
+        elif isinstance(node, ast.AnnAssign):
+            targets = [node.target]
+            value = node.value
+        elif isinstance(node, ast.NamedExpr):
+            # A walrus is a binding like any other, so it aliases like any other.
+            targets = [node.target]
+            value = node.value
+        else:
+            continue
+        if not isinstance(value, ast.Name):
+            continue
+        if len(targets) == 1 and isinstance(targets[0], ast.Name):
+            left, right = targets[0].id, value.id
+            edges.setdefault(left, set()).add(right)
+            edges.setdefault(right, set()).add(left)
+        else:
+            escaped.add(value.id)
+    return edges, frozenset(escaped)
+
+
+def _object_mutated_names(tree: ast.Module) -> frozenset[str]:
+    """Every name whose bound object is mutated in place anywhere in the module.
+
+    These are the exact forms the frozen B1/B4 record-mutation closure in
+    `rm._record_boundary_reason` refuses on its tracked names: an augmented assignment, a
+    `del`, a subscript or slice store, and a receiver method call.  Passing a name to a call
+    is not a mutation there and is not one here either -- the frozen 3.3 evidence rows read
+    `len(OUTCOMES)` and `", ".join(MUSCULOSKELETAL)`.
+    """
+
+    result: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AugAssign):
+            root = rm._root_name(node.target)
+            if root is not None:
+                result.add(root)
+        elif isinstance(node, ast.Delete):
+            result.update(
+                root for target in node.targets if (root := rm._root_name(target)) is not None
+            )
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Subscript):
+                    root = rm._root_name(target)
+                    if root is not None:
+                        result.add(root)
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+        ):
+            result.add(node.func.value.id)
+    return frozenset(result)
+
+
+def _sequence_object_is_stable(
+    name: str,
+    *,
+    edges: Mapping[str, set[str]],
+    escaped: frozenset[str],
+    mutated: frozenset[str],
+) -> bool:
+    """No name that reaches this sequence object is ever mutated in place.
+
+    A single reaching Store proves the *name* is stable; it does not prove the list it reads
+    never changes.  `MUSCULOSKELETAL.extend(OUTCOMES[3:])`, and the same call, `+=`, or slice
+    assignment written through an alias, all leave one Store standing while the family the
+    membership guard selects grows at runtime.  The closure is therefore over the whole alias
+    component, and an alias this module cannot follow refuses the sequence outright.
+    """
+
+    seen = {name}
+    frontier = [name]
+    while frontier:
+        current = frontier.pop()
+        if current in mutated or current in escaped:
+            return False
+        for neighbour in edges.get(current, ()):
+            if neighbour not in seen:
+                seen.add(neighbour)
+                frontier.append(neighbour)
+    return True
+
+
 def _module_sequences(tree: ast.Module) -> dict[str, tuple[object, ...]]:
     result: dict[str, tuple[object, ...]] = {}
+    edges, escaped = _alias_edges(tree)
+    mutated = _object_mutated_names(tree)
     pending = [node for node in tree.body if isinstance(node, (ast.Assign, ast.AnnAssign))]
     changed = True
     while changed:
@@ -224,6 +340,8 @@ def _module_sequences(tree: ast.Module) -> dict[str, tuple[object, ...]]:
                 continue
             name = targets[0].id
             if name in result or not _name_stable(tree, name):
+                continue
+            if not _sequence_object_is_stable(name, edges=edges, escaped=escaped, mutated=mutated):
                 continue
             if not isinstance(value, (ast.List, ast.Tuple)):
                 continue
@@ -502,8 +620,27 @@ class _EnumerateCounter:
 _ENUMERATE_COUNTER = _EnumerateCounter()
 
 
+def _enumerate_is_the_unshadowed_builtin(tree: ast.Module) -> bool:
+    """`enumerate` in this module is the builtin and nothing else.
+
+    `mt._definition_shadows_builtin` is the census the frozen lanes already use to prove a name
+    in `_UNSHADOWED_BUILTINS` is not rebound anywhere in the module by a function or class
+    definition, an import, a parameter, or any Store or Del of the name -- which covers an
+    assignment, a comprehension target, and a loop target.  `global` and `nonlocal` are the one
+    binding form that census does not carry, so they are refused here as well.  A project-local
+    `def enumerate` is then never read as the builtin row-table iterator.
+    """
+
+    if mt._definition_shadows_builtin(tree):
+        return False
+    return not any(
+        isinstance(node, (ast.Global, ast.Nonlocal)) and "enumerate" in node.names
+        for node in ast.walk(tree)
+    )
+
+
 def _enumerate_sequence_name(
-    node: ast.expr, sequences: Mapping[str, tuple[object, ...]]
+    node: ast.expr, sequences: Mapping[str, tuple[object, ...]], *, tree: ast.Module
 ) -> str | None:
     """The stable sequence Name of an admitted `enumerate` iterator, else None."""
 
@@ -514,6 +651,8 @@ def _enumerate_sequence_name(
         and len(node.args) == 1
         and isinstance(node.args[0], ast.Name)
     ):
+        return None
+    if not _enumerate_is_the_unshadowed_builtin(tree):
         return None
     if node.keywords:
         if len(node.keywords) != 1:
@@ -530,12 +669,13 @@ def _enumerate_sequence_name(
 def _enumerate_rows(
     loop: ast.For,
     *,
+    tree: ast.Module,
     sequences: Mapping[str, tuple[object, ...]],
     outcome_columns: tuple[str, ...],
 ) -> tuple[dict[str, object], ...] | None:
     """The 3.4 `enumerate` row table.  Positions come from sequence order, never from K."""
 
-    sequence_name = _enumerate_sequence_name(loop.iter, sequences)
+    sequence_name = _enumerate_sequence_name(loop.iter, sequences, tree=tree)
     if sequence_name is None:
         return None
     names = _target_names(loop.target)
@@ -564,7 +704,9 @@ def _complete_rows(
     outcome_columns: tuple[str, ...],
 ) -> tuple[dict[str, object], ...] | None:
     if not isinstance(loop.iter, ast.Name) or loop.iter.id not in sequences:
-        return _enumerate_rows(loop, sequences=sequences, outcome_columns=outcome_columns)
+        return _enumerate_rows(
+            loop, tree=tree, sequences=sequences, outcome_columns=outcome_columns
+        )
     names = _target_names(loop.target)
     rows = sequences[loop.iter.id]
     if names is None or len(rows) != len(outcome_columns):
