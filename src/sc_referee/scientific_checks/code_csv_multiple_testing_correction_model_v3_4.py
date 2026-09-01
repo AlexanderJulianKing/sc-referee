@@ -412,11 +412,291 @@ def record_collection_names(tree: ast.Module) -> frozenset[str]:
             continue
         if not isinstance(target, ast.Name) or not _collection_seed(value):
             continue
-        if not isinstance(value, (ast.DictComp, ast.ListComp)) and target.id not in subscript_stored:
+        if (
+            not isinstance(value, (ast.DictComp, ast.ListComp))
+            and target.id not in subscript_stored
+        ):
             continue
         if _name_stable(tree, target.id):
             result.add(target.id)
     return frozenset(result)
+
+
+#: Round 4: the element shapes a record-derived binding can carry.  `_RECORD` is one of the
+#: tracked record objects, reached through a view or a lookup that can only hand out records.
+#: `_OPAQUE` is anything else.  A fixed-length unpack carries a tuple of shapes.
+_RECORD = "record"
+_OPAQUE = "opaque"
+
+#: The mapping views that hand out the collection's own record objects, and the one that does not.
+#: `X.keys()` yields keys, and a key is not a record: the store a key reaches is `X[k][...]`,
+#: which is written through the collection's own name and is already what the frozen engine sees.
+_RECORD_VIEW_METHODS = frozenset({"items", "values"})
+_KEY_VIEW_METHODS = frozenset({"keys"})
+
+#: A shallow copy is a different container holding the *same* record objects, so a store through
+#: one of its records changes what the original collection reads.
+_SHALLOW_COPY_METHODS = frozenset({"copy"})
+
+#: The mapping methods that hand out one record by key.
+_RECORD_LOOKUP_METHODS = frozenset({"get", "pop", "setdefault"})
+
+#: The builtins that re-wrap an iterable without copying the objects it yields.
+_ITERABLE_WRAPPERS = frozenset({"iter", "list", "reversed", "sorted", "tuple"})
+#: The builtin that copies a mapping.  `dict(X)` is a shallow copy: a different mapping holding
+#: the same record objects, so its records are the collection's records.
+_MAPPING_WRAPPERS = frozenset({"dict"})
+
+
+class _RecordDerivation:
+    """The closed enumeration of names bound to a tracked record collection's records.
+
+    Round 3 followed bare `A = B` alias edges, which is the only way a *name for the collection*
+    can be made.  It is not the only way a *store into the collection* can be made.  A loop
+    target bound from `results.items()` is not an alias edge, so
+
+    ```python
+    for name, record in results.items():
+        record["p"] = min(record["p"] * len(OUTCOMES), 1.0)
+    ```
+
+    wrote a complete Bonferroni correction that round 3 could not see, and the row was published
+    as an accusation that a corrected analysis was never corrected.  The binding form is
+    incidental: `.values()`, `enumerate`, `zip`, `sorted`, `list`, `reversed`, `dict(X).items()`,
+    `X[k]`, `X.get(k)`, `X.setdefault(k, ...)`, `X.pop(k)`, `next(iter(X.values()))`,
+    `list(X.values())[i]`, and the walrus and comprehension spellings of each all hand out the
+    same record objects.  This class enumerates that whole class of bindings at once so the
+    closure stops being one spelling behind the next audit.
+
+    Three roles are tracked, because the forms compose:
+
+    * **mappings** -- names for a container still keyed or indexed by family member whose values
+      are the tracked records: the collection, its round-3 aliases, `dict(X)`, and `X.copy()`.
+      A mapping is what `.items()`, `.values()`, and `X[k]` are read from.
+    * **sequences** -- names bound to an iterable, or to a fixed-length unpack, that yields the
+      records: `list(X.values())`, `X.items()`, `enumerate(X.values())`, `zip(X.values(), ...)`,
+      a generator expression over any of them.  The recorded shape is what one element looks
+      like, so a `(key, record)` pair binds only its second element as a record.
+    * **records** -- names for one record object.
+
+    Two element positions are deliberately `_OPAQUE`, and both boundaries were measured rather
+    than argued.  The key half of an `items()` unpack is not a record: a key is not a record, the
+    store a key reaches is `X[k][...]`, which is written through the collection's own name and is
+    already what the frozen engine refuses, and treating the key as a record would refuse the
+    ordinary presentation loop
+    `for name, record in results.items(): print(name.title(), record["p"])` over a family that
+    really was left uncorrected.  The target of a bare `for x in X` is not a record either:
+    iterating a mapping yields keys and iterating a list yields whatever it holds, which for a
+    collected p-value table is a float, and the collection's seed does not say which.  Four
+    pinned rows are true accusations that survive only because of the second boundary -- two
+    envelope positives whose partial Holm adjustment is written `for row, adjusted in
+    zip(primary, p_adjusted): row["p_adjusted"] = ...` with the correction terminal itself
+    plainly visible, and two open-corpus missteps that read a loop variable of a tracked list
+    into a display.  In every measured row where a bare iteration really does hand out records,
+    the store it reaches is either written through the collection's own name, which the frozen
+    engine refuses on its own, or accompanied by a correction terminal the engine already reads.
+
+    Argument passing is not a binding form here.  A name read into a call argument stays a
+    non-capture, which is the frozen `len(OUTCOMES)` discipline the pinned 3.3 evidence rows
+    depend on and which rounds 1 to 3 all preserve.
+
+    Names are matched module-wide, as they are in rounds 1 to 3.  A name reused in two scopes can
+    only add bindings, so the error is toward refusal.
+    """
+
+    def __init__(self, mappings: frozenset[str]) -> None:
+        self.mappings: set[str] = set(mappings)
+        self.sequences: dict[str, object] = {}
+        self.records: set[str] = set()
+
+    # -- expression classifiers ---------------------------------------------------------
+
+    def maps_records(self, node: ast.expr) -> bool:
+        """True when the expression is a container still keyed or indexed by family member."""
+
+        if isinstance(node, ast.NamedExpr):
+            return self.maps_records(node.value)
+        if isinstance(node, ast.Name):
+            return node.id in self.mappings
+        if isinstance(node, ast.Call):
+            if (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr in _SHALLOW_COPY_METHODS
+                and not node.args
+            ):
+                return self.maps_records(node.func.value)
+            if isinstance(node.func, ast.Name) and node.func.id in _MAPPING_WRAPPERS:
+                return any(self.maps_records(argument) for argument in node.args)
+        return False
+
+    def element_shape(self, node: ast.expr) -> object:
+        """The shape of one element produced by iterating the expression."""
+
+        if isinstance(node, ast.NamedExpr):
+            return self.element_shape(node.value)
+        if isinstance(node, ast.Name):
+            # A bare name for the collection is iterated ambiguously -- keys for a mapping,
+            # elements for a list -- so its target is not enumerated as a record.
+            return self.sequences.get(node.id, _OPAQUE)
+        if isinstance(node, ast.Call):
+            return self._call_element_shape(node)
+        if isinstance(node, (ast.GeneratorExp, ast.ListComp, ast.SetComp)):
+            return _RECORD if self.is_record(node.elt) else _OPAQUE
+        return _OPAQUE
+
+    def _call_element_shape(self, node: ast.Call) -> object:
+        function = node.func
+        if isinstance(function, ast.Attribute):
+            if not self.maps_records(function.value):
+                return _OPAQUE
+            if function.attr in _KEY_VIEW_METHODS:
+                return _OPAQUE
+            if function.attr in _RECORD_VIEW_METHODS:
+                return (_OPAQUE, _RECORD) if function.attr == "items" else _RECORD
+            return _OPAQUE
+        if not isinstance(function, ast.Name):
+            return _OPAQUE
+        if function.id == "enumerate" and node.args:
+            return (_OPAQUE, self.element_shape(node.args[0]))
+        if function.id == "zip":
+            return tuple(self.element_shape(argument) for argument in node.args)
+        if function.id in _ITERABLE_WRAPPERS and node.args:
+            return self.element_shape(node.args[0])
+        # `dict(X)` is a mapping, so iterating it yields keys.  Its records are reached through
+        # `.items()`, `.values()`, or a subscript, each of which reads `maps_records` instead.
+        return _OPAQUE
+
+    def is_record(self, node: ast.expr) -> bool:
+        """True when the expression evaluates to one of the tracked record objects."""
+
+        if isinstance(node, ast.NamedExpr):
+            return self.is_record(node.value)
+        if isinstance(node, ast.Name):
+            return node.id in self.records
+        if isinstance(node, ast.Subscript) and not isinstance(node.slice, ast.Slice):
+            return self.maps_records(node.value) or self.element_shape(node.value) is _RECORD
+        if isinstance(node, ast.Call):
+            function = node.func
+            if (
+                isinstance(function, ast.Attribute)
+                and function.attr in _RECORD_LOOKUP_METHODS
+                and self.maps_records(function.value)
+            ):
+                return True
+            if (
+                isinstance(function, ast.Name)
+                and function.id == "next"
+                and node.args
+                and self.element_shape(node.args[0]) is _RECORD
+            ):
+                return True
+        return False
+
+    # -- binding ------------------------------------------------------------------------
+
+    def _carries_record(self, shape: object) -> bool:
+        if shape is _RECORD:
+            return True
+        return isinstance(shape, tuple) and any(self._carries_record(item) for item in shape)
+
+    def _add(self, group: set[str], name: str) -> bool:
+        if name in group:
+            return False
+        group.add(name)
+        return True
+
+    def _bind_target(self, target: ast.expr, shape: object) -> bool:
+        """Distribute an element shape over a loop target or an unpacking assignment target."""
+
+        if isinstance(target, ast.Name):
+            if shape is _RECORD:
+                return self._add(self.records, target.id)
+            if isinstance(shape, tuple) and self._carries_record(shape):
+                if self.sequences.get(target.id) == shape:
+                    return False
+                self.sequences[target.id] = shape
+                return True
+            return False
+        if isinstance(target, (ast.Tuple, ast.List)) and isinstance(shape, tuple):
+            if len(target.elts) != len(shape):
+                # A starred or mismatched unpack is not enumerable here.  Every element is
+                # treated as a record so the error stays toward refusal.
+                pairs: list[tuple[ast.expr, object]] = [
+                    (element, _RECORD) for element in target.elts
+                ]
+            else:
+                pairs = list(zip(target.elts, shape, strict=True))
+            changed = False
+            for element, item in pairs:
+                # Every element is bound: `any` over a generator would stop at the first one
+                # that moved and leave the rest to a later pass of the fixpoint.
+                changed = self._bind_target(element, item) or changed
+            return changed
+        return False
+
+    def _bind_value(self, target: ast.expr, value: ast.expr) -> bool:
+        """Bind an assignment target.  The value is the object itself, not one of its elements.
+
+        `family = list(results.values())` binds a *sequence of* records, so the shape belongs in
+        `sequences`, where a later `for record in family` reads it back as its element shape.
+        Filing it as a record instead would end the chain one binding early, which is the whole
+        failure mode this round exists to close.
+        """
+
+        changed = False
+        if isinstance(target, ast.Name):
+            if self.is_record(value):
+                changed = self._add(self.records, target.id) or changed
+            if self.maps_records(value):
+                changed = self._add(self.mappings, target.id) or changed
+            shape = self.element_shape(value)
+            if self._carries_record(shape) and self.sequences.get(target.id) != shape:
+                self.sequences[target.id] = shape
+                changed = True
+            # A bare `A = B` binds one object to two names, so the record role is undirected
+            # exactly as the round-3 alias edge is.
+            if isinstance(value, ast.Name) and target.id in self.records:
+                changed = self._add(self.records, value.id) or changed
+        elif isinstance(value, ast.Name) and value.id in self.sequences:
+            changed = self._bind_target(target, self.sequences[value.id]) or changed
+        return changed
+
+    def resolve(self, tree: ast.Module) -> None:
+        """Grow the three role sets to a fixpoint over the whole module."""
+
+        changed = True
+        while changed:
+            changed = False
+            for node in ast.walk(tree):
+                if isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
+                    shape = self.element_shape(node.iter)
+                    changed = self._bind_target(node.target, shape) or changed
+                elif isinstance(node, ast.Assign):
+                    for target in node.targets:
+                        changed = self._bind_value(target, node.value) or changed
+                elif isinstance(node, ast.AnnAssign) and node.value is not None:
+                    changed = self._bind_value(node.target, node.value) or changed
+                elif isinstance(node, ast.NamedExpr):
+                    changed = self._bind_value(node.target, node.value) or changed
+                elif isinstance(node, ast.withitem) and node.optional_vars is not None:
+                    changed = self._bind_value(node.optional_vars, node.context_expr) or changed
+
+    def names(self) -> frozenset[str]:
+        return frozenset(self.mappings | set(self.sequences) | self.records)
+
+
+def record_derived_names(tree: ast.Module, collection_aliases: frozenset[str]) -> frozenset[str]:
+    """Every name that reaches a record of the given collection, or a container of them.
+
+    `collection_aliases` is the round-3 alias component of one record collection: the collection
+    name and every other bare name for the same object.  The result is that component closed
+    under the enumerated record-derived binding forms, including their chains -- an alias of an
+    alias, a loop over a list built from a view of a copy, a record rebound to a third name.
+    """
+
+    derivation = _RecordDerivation(collection_aliases)
+    derivation.resolve(tree)
+    return derivation.names()
 
 
 def record_collection_alias_unresolved(tree: ast.Module) -> bool:
@@ -436,25 +716,36 @@ def record_collection_alias_unresolved(tree: ast.Module) -> bool:
     already sees and judges.  Reads through an alias move nothing and are not refused here:
     `verdict = adjusted[name]["p"] < ALPHA` with no store anywhere leaves the component clean.
 
-    Names are matched module-wide rather than per scope, as they are in rounds 1 and 2.  A name
+    Round 4 widens *which names* the walk covers and changes nothing else.  A second name for the
+    collection is not the only binding a store can travel through: a loop target bound from
+    `results.items()` holds the record itself, and `record["p"] = ...` was invisible to the
+    round-3 component for the same reason `adjusted[name]["p"] = ...` was invisible to the frozen
+    engine.  `record_derived_names` supplies the closed enumeration of those bindings -- the
+    iteration targets, the subscript and lookup bindings, their walrus and comprehension
+    spellings, and every chain of them -- and each one is checked against the same escape set and
+    the same mutation census the alias component is checked against.  Reads through them stay
+    admissible, which is what keeps the ordinary presentation loop a true accusation.
+
+    Names are matched module-wide rather than per scope, as they are in rounds 1 to 3.  A name
     reused in two scopes can only add edges, so the error is toward refusal.
     """
 
     edges, escaped = _alias_edges(tree)
     mutated = _object_mutated_names(tree)
     for collection in record_collection_names(tree):
-        seen = {collection}
+        component = {collection}
         frontier = [collection]
         while frontier:
             current = frontier.pop()
-            if current in escaped:
-                return True
-            if current != collection and current in mutated:
-                return True
             for neighbour in edges.get(current, ()):
-                if neighbour not in seen:
-                    seen.add(neighbour)
+                if neighbour not in component:
+                    component.add(neighbour)
                     frontier.append(neighbour)
+        for name in component | set(record_derived_names(tree, frozenset(component))):
+            if name in escaped:
+                return True
+            if name != collection and name in mutated:
+                return True
     return False
 
 
@@ -1969,4 +2260,5 @@ __all__ = [
     "analyze_correction_model",
     "record_collection_alias_unresolved",
     "record_collection_names",
+    "record_derived_names",
 ]

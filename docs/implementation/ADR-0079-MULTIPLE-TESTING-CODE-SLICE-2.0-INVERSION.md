@@ -406,3 +406,65 @@ population, the E10-E17 retro recall including E17 `6/6`, the question census `2
 frozen 3.1/3.2/3.3 anchor bytes are re-demonstrated unchanged. Blind scoring, promotion arithmetic,
 role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified lanes, and GrantPins
 remain unchanged; sealed E17 stays `4/6`.
+
+**Adversarial audit fix, round 4.** The round-3 audit found one route the round-3 closure does not
+cover, and it is the same defect reached through a different binding. A correct, complete
+Bonferroni correction over the declared family, written as
+
+```python
+for name, record in results.items():
+    record["p"] = min(record["p"] * len(OUTCOMES), 1.0)
+```
+
+is classified `candidate`/`none` over the uncorrected family. `record` is not a second name for the
+collection, so no alias edge binds it, and `results.items()` is a call on the collection's own
+name, which round 3 excludes because the collection's own stores are exactly what the frozen engine
+already judges. The store is invisible to the engine for the round-3 reason: family membership is
+reconstructed from the stores written through the collection's own name, and this store names
+`record`.
+
+Rounds 1 to 3 each closed one binding form and the next audit found another. Round 4 closes the
+class instead, by enumerating every binding that reaches a record rather than matching the spelling
+that was reported. A record-derived binding is any name bound to one of the collection's records,
+to the collection itself, or to a container of its records: the mapping views `values()` and
+`items()`, the wrappers `iter`, `list`, `tuple`, `sorted`, `reversed`, `enumerate`, and `zip`, the
+shallow copies `dict(X)` and `X.copy()`, the lookups `X[k]`, `X.get(k)`, `X.setdefault(k, ...)`,
+and `X.pop(k)`, `next(...)` over any of them, an index into any of them, a comprehension that
+yields records, the walrus and `async for` spellings of each, tuple and nested unpacking of any of
+them, and any chain of the above. A store, an in-place mutation, or a display escape through any of
+them refuses the classification exactly as round 3 does, on the same reason,
+`pvalue-family-collection-unresolved`, which the through-name sibling already carries. No reason is
+invented and the closed set stays at 61. The narrowing again lives only in the v3.4 modules and is
+applied to classifications only, so the byte-frozen lanes are unchanged and no frozen abstention
+reason can move.
+
+Three boundaries are deliberate and each is pinned by a non-vacuity row and an executable mutation
+kill. Reads are never refused: `for name, record in results.items(): flag = record["p"] < ALPHA` is
+the single most common correct presentation idiom, six read-only controls on genuinely uncorrected
+families keep their accusations, and the pinned E17 P3 movement is built on the same shape. The key
+half of an `items()` unpack is not a record: a key is not a record, the store a key reaches is
+written through the collection's own name and is already refused, and treating the key as a record
+would swallow a true accusation whose presentation loop calls a method on the key. The target of a
+bare `for x in X` is not a record either: iterating a mapping yields keys and iterating a collected
+p-value table yields floats, and the collection's seed does not say which. Four pinned rows are
+true accusations that survive only because of that boundary -- E10 P5 and E12 P5, whose partial
+Holm adjustment is written `for row, adjusted in zip(primary, p_adjusted): row["p_adjusted"] = ...`
+with the `multipletests` call itself plainly visible, and two open-corpus missteps that read a loop
+variable of a tracked list into a display. Enumerating those targets closes no demonstrated route
+in exchange, because where a bare iteration really does hand out records the store it reaches is
+`X[k][...]`, written through the collection's own name and already refused.
+
+One residual is named rather than left to a later audit. Argument passing stays a non-capture under
+the frozen discipline, so a helper that receives the record and stores through its own,
+differently named parameter is outside this closure and its row is still classified
+`candidate`/`none`. It is carried in the round-4 oracle as an open false accusation, alongside the
+twin whose helper parameter reuses the caller's name and which therefore refuses through
+whole-module name matching. Closing it would mean deciding what a helper parameter aliases, which
+is the same wider question the round-3 oracle left open for the collection-argument spelling.
+
+Both pinned 3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows,
+every none-flip population including the round-1, round-2, and round-3 rows, the E10-E17 retro
+recall including E17 `6/6`, the question census `28 -> 27`, and the frozen 3.1/3.2/3.3 anchor bytes
+are re-demonstrated unchanged. Blind scoring, promotion arithmetic, role maps, sealed audit bytes,
+wording, contract profile `1.2.0`, qualified lanes, and GrantPins remain unchanged; sealed E17
+stays `4/6`.

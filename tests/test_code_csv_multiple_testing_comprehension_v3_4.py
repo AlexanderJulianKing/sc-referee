@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import functools
 import hashlib
 import inspect
 import json
@@ -82,7 +83,12 @@ finally:
     if _previous_harness is not None:
         sys.modules["harness"] = _previous_harness
 
-_REFERENCE_CASE = cast(Callable[[str], Any], _harness["reference_case"])
+# `reference_case` rescans every case directory on each call, and the round-3 and round-4
+# oracles ask for the same two keys a few hundred times between them.  The lookup is pure,
+# so memoizing it is a runtime trim and not a change of evidence.
+_REFERENCE_CASE = functools.lru_cache(maxsize=None)(
+    cast("Callable[[str], Any]", _harness["reference_case"])
+)
 _INPUTS = cast(Callable[[Any, bytes | None], dict[str, Any]], _harness["inputs"])
 _CLASSIFY = cast(Callable[[MultipleTestingDataflowResult], Any], _harness["classify"])
 _RESULTS = json.loads((_ROOT / "results.json").read_text(encoding="utf-8"))
@@ -171,6 +177,89 @@ _R3_MOVEMENT_ROWS = {
 }
 
 
+# The round-4 audit-fix oracle: the record-derived binding closure.  Round 3 followed the bare
+# Name-to-Name alias edges that make a second *name for the collection*; round 4 enumerates every
+# binding that reaches a *record inside it*, which is how the reported blocker got through.
+_AUDIT_FIX_R4_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_4/audit-fix-r4-oracle"
+).resolve()
+_AUDIT_FIX_R4_SOURCES = cast(
+    "dict[str, tuple[str, bytes]]",
+    runpy.run_path(str(_AUDIT_FIX_R4_ROOT / "fixture_sources.py"))["fixture_sources"](),
+)
+_AUDIT_FIX_R4_ORACLE = json.loads(
+    (_AUDIT_FIX_R4_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8")
+)
+_AUDIT_FIX_R4_ROWS = cast("list[dict[str, Any]]", _AUDIT_FIX_R4_ORACLE["rows"])
+_AUDIT_FIX_R4_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_R4_ROWS}
+_RECORD_DERIVED_ROWS = tuple(
+    str(row["fixture_name"])
+    for row in _AUDIT_FIX_R4_ROWS
+    if row["expected_gate"] == "record-derived-binding"
+)
+# The one correct-analysis row round 4 leaves accused.  Argument passing stays a non-capture, so a
+# helper storing through its own differently named parameter is outside this closure.
+_R4_OPEN_RESIDUAL = {"correct-record-in-helper-distinct-parameter-name"}
+_R4_READ_ONLY_ROWS = frozenset(
+    name for name in _AUDIT_FIX_R4_SOURCES if name.startswith("positive-read-only-")
+)
+# The binding each fixture introduces, named rather than inferred from its outcome.
+_R4_NAMED_BINDINGS = {
+    "correct-iteration-items-unpack-record-store": {"record"},
+    "correct-iteration-values-loop-record-store": {"record"},
+    "correct-iteration-iter-values-record-store": {"record"},
+    "correct-iteration-enumerate-values-record-store": {"record"},
+    "correct-iteration-enumerate-items-nested-unpack-record-store": {"record"},
+    "correct-iteration-zip-values-record-store": {"record"},
+    "correct-iteration-sorted-items-record-store": {"record"},
+    "correct-iteration-sorted-values-keyed-record-store": {"record"},
+    "correct-iteration-list-values-record-store": {"record"},
+    "correct-iteration-reversed-list-values-record-store": {"record"},
+    "correct-iteration-tuple-values-record-store": {"record"},
+    "correct-iteration-dict-copy-items-record-store": {"record"},
+    "correct-iteration-comprehension-target-record-store": {"record"},
+    "correct-subscript-subscript-bound-record-store": {"record"},
+    "correct-subscript-get-bound-record-store": {"record"},
+    "correct-subscript-setdefault-bound-record-store": {"record"},
+    "correct-subscript-list-values-index-record-store": {"record"},
+    "correct-walrus-get-bound-record-store": {"record"},
+    "correct-walrus-container-loop-record-store": {"family", "record"},
+    "correct-chained-alias-items-unpack-record-store": {"adjusted", "record"},
+    "correct-chained-container-name-then-loop-record-store": {"family", "record"},
+    "correct-chained-record-rebound-to-a-third-name-record-store": {"record", "target"},
+    "correct-chained-nested-loop-inside-items-unpack-record-store": {"record"},
+    "correct-invented-collection-copy-method-items-record-store": {"copied", "record"},
+    "correct-invented-generator-expression-consumed-later-record-store": {
+        "entry",
+        "pending",
+        "record",
+    },
+    "correct-invented-record-update-method-record-store": {"record"},
+    "correct-invented-record-dunder-setitem-record-store": {"record"},
+    "correct-invented-record-subscript-augmented-assign-record-store": {"record"},
+    "correct-invented-record-escapes-into-a-container-display-record-store": {"record"},
+    "partial-next-iter-values-single-record-store": {"first"},
+    "correct-record-in-helper-shared-parameter-name": {"record"},
+}
+_R4_MOVEMENT_ROWS = {
+    "positive-comprehension-e17-p3-unaltered": ("candidate", "none", (), 6),
+    "positive-ap-e17-p6-unaltered": ("candidate", "strict_subset", (0, 1, 2), 7),
+    "positive-explicit-loop-uncorrected-family": ("candidate", "none", (), 6),
+    "positive-read-only-items-loop-summary": ("candidate", "none", (), 6),
+    "positive-read-only-values-loop-summary": ("candidate", "none", (), 6),
+    "positive-read-only-enumerate-values-loop-summary": ("candidate", "none", (), 6),
+    "positive-read-only-items-loop-key-method-call": ("candidate", "none", (), 6),
+    "positive-read-only-items-loop-record-verdict": ("candidate", "none", (), 6),
+    "positive-read-only-list-values-loop-summary": ("candidate", "none", (), 6),
+    "positive-covered-family-with-read-only-record-iteration": (
+        "covered",
+        "complete",
+        (0, 1, 2, 3, 4, 5),
+        6,
+    ),
+}
+
+
 def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
     return (
         value.state,
@@ -178,6 +267,19 @@ def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
         tuple(value.corrected_positions),
         value.authorized_count,
     )
+
+
+_CORPUS_INPUTS: dict[str, dict[str, Any]] = {}
+
+
+def _corpus_outcome(case_key: str) -> tuple[str, str, tuple[int, ...], int | None]:
+    """The shipped 3.4 row for one open-corpus case, by key."""
+
+    if case_key not in _CORPUS_INPUTS:
+        _CORPUS_INPUTS[case_key] = _INPUTS(_REFERENCE_CASE(case_key), None)
+    values = dict(_CORPUS_INPUTS[case_key])
+    content = cast(bytes, values.pop("content"))
+    return _outcome_tuple(_CLASSIFY(analyze_v34(content, **values)))
 
 
 def _run_source(case_key: str, source: bytes) -> tuple[Any, dict[str, int]]:
@@ -1479,8 +1581,10 @@ def test_an_aliased_store_lands_on_its_through_name_siblings_frozen_reason(
     observed = audit_fix_r3_rows[name]["outcome"]
     assert sibling_frozen.state == "abstain"
     assert observed.state == "abstain"
-    assert observed.reason_or_classification == sibling_frozen.reason_or_classification == str(
-        row["expected_reason"]
+    assert (
+        observed.reason_or_classification
+        == sibling_frozen.reason_or_classification
+        == str(row["expected_reason"])
     )
     # The pair really is the same program up to the name the store travels through: the frozen
     # pipeline classifies the aliased spelling and refuses the through-name one.
@@ -1654,3 +1758,442 @@ def test_mutation_kill_c_treating_a_display_escape_as_safe_readmits_the_escaped_
         assert _r3_outcome(name) == _R3_ACCUSED
         assert _r3_outcome(_R3_PROBE) == _R3_REFUSED, "the plain-alias row still refuses"
     assert _r3_outcome(name) == _R3_REFUSED
+
+
+# --- Round 4: the record-derived binding closure -----------------------------------------
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r4_rows() -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for name, (case_key, source) in _AUDIT_FIX_R4_SOURCES.items():
+        outcome, census = _run_source(case_key, source)
+        rows[name] = {
+            "case_key": case_key,
+            "source": source,
+            "outcome": outcome,
+            "census": census,
+            "frozen": _run_v33(case_key, source),
+        }
+    return rows
+
+
+def test_audit_fix_round_4_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_R4_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_R4_ROWS) == 45
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_R4_ROWS) == 35
+    assert set(_AUDIT_FIX_R4_ROWS_BY_NAME) == set(_AUDIT_FIX_R4_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_R4_SOURCES.items()
+    } == {
+        name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_R4_ROWS_BY_NAME.items()
+    }
+    # Every fixture is a syntactically valid program, so no row can pass on a parse failure.
+    for _name, (_case_key, source) in _AUDIT_FIX_R4_SOURCES.items():
+        ast.parse(source)
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_R4_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_45_audit_fix_round_4_rows_execute(
+    row: dict[str, Any], audit_fix_r4_rows: dict[str, dict[str, Any]]
+) -> None:
+    observed = audit_fix_r4_rows[str(row["fixture_name"])]
+    assert _outcome_tuple(observed["outcome"]) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+        cast("int | None", row.get("expected_authorized_count")),
+    )
+    assert observed["census"] == row["expected_admission_census"]
+    identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
+    assert identical is bool(row["expected_frozen_v33_identical"])
+
+
+def test_the_only_correct_analysis_row_left_accused_is_the_named_open_residual(
+    audit_fix_r4_rows: dict[str, dict[str, Any]],
+) -> None:
+    """Thirty-five rows are complete Bonferroni corrections.  Exactly one is still accused.
+
+    The one is `correct-record-in-helper-distinct-parameter-name`: the record is passed to a
+    helper that stores through its own, differently named parameter.  Argument passing stays a
+    non-capture under the frozen discipline, so nothing binds that parameter to the record and
+    round 4 does not close the row.  It is pinned as an open false accusation rather than left to
+    a later audit, and this test is what keeps the residual set from growing quietly.
+    """
+
+    accused = {
+        str(row["fixture_name"])
+        for row in _AUDIT_FIX_R4_ROWS
+        if row["correct_analysis"]
+        and audit_fix_r4_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
+    }
+    assert accused == _R4_OPEN_RESIDUAL
+    declared = {
+        str(row["fixture_name"])
+        for row in _AUDIT_FIX_R4_ROWS
+        if row.get("expected_open_false_accusation")
+    }
+    assert declared == _R4_OPEN_RESIDUAL
+
+
+@pytest.mark.parametrize("name", _RECORD_DERIVED_ROWS)
+def test_a_record_derived_store_lands_on_its_through_name_siblings_frozen_reason(
+    name: str, audit_fix_r4_rows: dict[str, dict[str, Any]]
+) -> None:
+    """The reason pin is recomputed from the sibling rather than transcribed from 3.4 output.
+
+    3.3 classifies these rows, so the round-1/round-2 authority -- the frozen reason for the row
+    itself -- is unavailable.  The authority is the frozen 3.3 reason for the identical program
+    with the same store written through the collection's own name.  The equality is asserted
+    three ways: shipped 3.4 on the derived row, the oracle pin, and the live frozen 3.3 row of
+    the sibling.
+    """
+
+    row = _AUDIT_FIX_R4_ROWS_BY_NAME[name]
+    sibling = str(row["expected_reason_sibling"])
+    assert sibling in _AUDIT_FIX_R4_SOURCES, name
+    sibling_key, sibling_source = _AUDIT_FIX_R4_SOURCES[sibling]
+    sibling_frozen = _run_v33(sibling_key, sibling_source)
+    observed = audit_fix_r4_rows[name]["outcome"]
+    assert sibling_frozen.state == "abstain"
+    assert observed.state == "abstain"
+    assert (
+        observed.reason_or_classification
+        == sibling_frozen.reason_or_classification
+        == str(row["expected_reason"])
+    )
+    # The pair really is the same program up to the binding the store travels through: the
+    # frozen pipeline classifies the derived spelling and refuses the through-name one.
+    assert audit_fix_r4_rows[name]["frozen"].state == "candidate"
+
+
+def test_the_closed_reason_set_is_unchanged_by_round_4() -> None:
+    """Round 4 adds no reason: it emits the same reason round 3 does, already in the set of 61."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_4 import (
+        _COLLECTION_ALIAS_REASON,
+    )
+
+    assert _COLLECTION_ALIAS_REASON in _CLOSED_REASONS
+    assert len(_CLOSED_REASONS) == 61
+    for row in _AUDIT_FIX_R4_ROWS:
+        if row["expected_outcome"] == "abstain":
+            assert str(row["expected_reason"]) in _CLOSED_REASONS
+
+
+def test_the_keys_view_needs_no_closure_because_its_store_is_through_the_name() -> None:
+    """`X.keys()` hands out keys, and the store a key reaches is written through `X` itself.
+
+    The frozen pipeline already refuses that row, so there is no false accusation for a key rule
+    to close, and the closure deliberately leaves the key half of every unpack alone.
+    """
+
+    name = "correct-keys-view-store-through-name"
+    case_key, source = _AUDIT_FIX_R4_SOURCES[name]
+    frozen = _run_v33(case_key, source)
+    assert frozen.state == "abstain"
+    assert frozen.reason_or_classification == "pvalue-family-collection-unresolved"
+    tree = ast.parse(source)
+    # Non-vacuity: the keys view really is the iterator under test.
+    assert any(
+        isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "keys"
+        for node in ast.walk(tree)
+    )
+
+
+@pytest.mark.parametrize("name", sorted(_R4_READ_ONLY_ROWS))
+def test_a_read_only_record_derived_binding_is_never_refused(name: str) -> None:
+    """The closure is over stores and mutations.  A live binding that is only read is clean."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_collection_alias_unresolved,
+        record_derived_names,
+    )
+
+    _case_key, source = _AUDIT_FIX_R4_SOURCES[name]
+    tree = ast.parse(source)
+    # Non-vacuity: the binding really is present, and the closure really does enumerate it.
+    assert record_derived_names(tree, frozenset({"results"})) > {"results"}, name
+    assert record_collection_alias_unresolved(tree) is False
+
+
+def test_the_record_derived_enumeration_covers_every_named_form() -> None:
+    """Each enumerated binding form binds the name the fixture spells it with.
+
+    The refusal rows above prove the closure fires; this proves it fires for the reason claimed,
+    by naming the binding each fixture introduces rather than only its outcome.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_derived_names,
+    )
+
+    for name, expected in _R4_NAMED_BINDINGS.items():
+        _case_key, source = _AUDIT_FIX_R4_SOURCES[name]
+        assert expected <= record_derived_names(ast.parse(source), frozenset({"results"})), name
+
+
+def test_a_bare_iteration_target_is_not_enumerated_as_a_record() -> None:
+    """The boundary that keeps four pinned true accusations alive.
+
+    Iterating a mapping yields keys and iterating a collected p-value table yields floats, and
+    the collection's seed does not say which, so a bare `for x in X` target is not a record.
+    Where a bare iteration really does hand out records, the store it reaches is written through
+    the collection's own name and the frozen engine already refuses it, which the
+    `correct-keys-view-store-through-name` row pins.  Both halves are asserted on hand-written
+    modules so neither depends on a fixture.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_collection_alias_unresolved,
+        record_derived_names,
+    )
+
+    bare = ast.parse(
+        "results = [score(name) for name in NAMES]\nfor value in results:\n    value.round(2)\n"
+    )
+    through_name = ast.parse(
+        'results = {}\nresults[name] = row\nfor key in results:\n    results[key]["p"] = 1.0\n'
+    )
+    assert record_derived_names(bare, frozenset({"results"})) == {"results"}
+    assert record_collection_alias_unresolved(bare) is False
+    # The through-name store is what a bare iteration over a real record table reaches, and the
+    # collection's own stores are excluded because the frozen engine already judges them.
+    assert record_derived_names(through_name, frozenset({"results"})) == {"results"}
+
+
+def test_an_async_for_over_a_record_view_binds_the_record() -> None:
+    """`async for` is the same binding form as `for` and is enumerated with it."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        record_derived_names,
+    )
+
+    tree = ast.parse(
+        "results = {}\n"
+        "results[name] = row\n"
+        "async def rescale():\n"
+        "    async for record in results.values():\n"
+        '        record["p"] = 1.0\n'
+    )
+    assert "record" in record_derived_names(tree, frozenset({"results"}))
+
+
+@pytest.mark.parametrize("name", sorted(_R4_MOVEMENT_ROWS))
+def test_round_4_keeps_every_pinned_movement_and_every_true_accusation(
+    name: str, audit_fix_r4_rows: dict[str, dict[str, Any]]
+) -> None:
+    """A closure that refused binding rather than storing would lose all nine of these."""
+
+    assert _outcome_tuple(audit_fix_r4_rows[name]["outcome"]) == _R4_MOVEMENT_ROWS[name]
+
+
+def test_round_3_rows_are_unmoved_by_round_4(
+    audit_fix_r3_rows: dict[str, dict[str, Any]],
+) -> None:
+    """Round 4 widens which names the round-3 walk covers and moves no round-3 row.
+
+    The round-3 oracle is re-executed against the widened closure here rather than only in its
+    own block, so a round-4 widening that happened to flip a round-3 row fails in the round-4
+    block that caused it.
+    """
+
+    for row in _AUDIT_FIX_R3_ROWS:
+        name = str(row["fixture_name"])
+        assert _outcome_tuple(audit_fix_r3_rows[name]["outcome"]) == (
+            str(row["expected_outcome"]),
+            str(row["expected_reason"]),
+            tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+            cast("int | None", row.get("expected_authorized_count")),
+        ), name
+
+
+# --- Round-4 named mutation kills: apply, confirm, revert, record ----------------------
+
+
+def _r4_outcome(name: str) -> tuple[str, str, tuple[int, ...], int | None]:
+    case_key, source = _AUDIT_FIX_R4_SOURCES[name]
+    outcome, _census = _run_source(case_key, source)
+    return _outcome_tuple(outcome)
+
+
+_R4_PROBE = "correct-iteration-items-unpack-record-store"
+_R4_SUBSCRIPT_PROBE = "correct-subscript-subscript-bound-record-store"
+_R4_ACCUSED = ("candidate", "none", (), 6)
+_R4_REFUSED = ("abstain", "pvalue-family-collection-unresolved", (), None)
+
+
+def test_mutation_kill_d_dropping_the_record_derived_edges_readmits_the_whole_class(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: the closure keeps the round-3 alias component and enumerates nothing beyond it.
+
+    Apply the mutant, confirm the reported blocker and every other newly closed row come back as
+    the accusations the audit reproduced, revert, and confirm the refusals return.  Recorded:
+    this is the whole round-4 delta, and the round-3 probe still refuses under it, so the two
+    rounds are shown to close different routes rather than the same one twice.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    def no_derivation(tree: ast.Module, aliases: frozenset[str]) -> frozenset[str]:
+        return aliases
+
+    assert _r4_outcome(_R4_PROBE) == _R4_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction, "record_derived_names", no_derivation)
+        assert _r4_outcome(_R4_PROBE) == _R4_ACCUSED
+        assert _r4_outcome(_R4_SUBSCRIPT_PROBE) == _R4_ACCUSED
+        # The round-3 route is a different one and is untouched by this mutant.
+        assert _r3_outcome("correct-explicit-loop-collection-alias-store") == _R3_REFUSED, (
+            "the round-3 alias probe still refuses"
+        )
+    assert _r4_outcome(_R4_PROBE) == _R4_REFUSED
+
+
+def test_mutation_kill_e_dropping_the_subscript_half_loses_the_lookup_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: only a Name already known to be a record counts as a record expression.
+
+    Apply the mutant, confirm the subscript, `get`, `setdefault`, and walrus-lookup rows are
+    readmitted while every iteration row still refuses, revert, and confirm the refusals return.
+    Recorded: the iteration half and the subscript half are independent, so neither alone is the
+    closure.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    def name_only(self: Any, node: ast.expr) -> bool:
+        return isinstance(node, ast.Name) and node.id in self.records
+
+    subscript_rows = (
+        _R4_SUBSCRIPT_PROBE,
+        "correct-subscript-get-bound-record-store",
+        "correct-subscript-setdefault-bound-record-store",
+        "correct-walrus-get-bound-record-store",
+    )
+    for row in subscript_rows:
+        assert _r4_outcome(row) == _R4_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction._RecordDerivation, "is_record", name_only)
+        for row in subscript_rows:
+            assert _r4_outcome(row) == _R4_ACCUSED, row
+        assert _r4_outcome(_R4_PROBE) == _R4_REFUSED, "the iteration half still refuses"
+    for row in subscript_rows:
+        assert _r4_outcome(row) == _R4_REFUSED
+
+
+def test_mutation_kill_f_dropping_the_iteration_half_loses_the_view_rows(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: iterating anything yields an opaque element.
+
+    Apply the mutant, confirm the reported blocker and the other view and wrapper rows are
+    readmitted while the subscript row still refuses, revert, and confirm the refusals return.
+    Recorded: this is the other half of the pair mutation kill E opens.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    iteration_rows = (
+        _R4_PROBE,
+        "correct-iteration-values-loop-record-store",
+        "correct-iteration-enumerate-values-record-store",
+        "correct-iteration-zip-values-record-store",
+    )
+    for row in iteration_rows:
+        assert _r4_outcome(row) == _R4_REFUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            correction._RecordDerivation,
+            "element_shape",
+            lambda self, node: correction._OPAQUE,
+        )
+        for row in iteration_rows:
+            assert _r4_outcome(row) == _R4_ACCUSED, row
+        assert _r4_outcome(_R4_SUBSCRIPT_PROBE) == _R4_REFUSED, "the subscript half still refuses"
+    for row in iteration_rows:
+        assert _r4_outcome(row) == _R4_REFUSED
+
+
+def test_mutation_kill_g_treating_the_key_element_as_a_record_swallows_a_true_accusation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: both halves of an `items()` unpack are records.
+
+    Apply the mutant, confirm the read-only presentation loop that calls a method on the key is
+    refused -- a true accusation swallowed -- while the real probes still refuse for their own
+    reason, revert, and confirm the accusation returns.  Recorded: the key half is not a record,
+    and the over-refusal it would cause is a lost finding rather than a harmless extra abstention.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    real = correction._RecordDerivation._call_element_shape
+
+    def key_is_a_record(self: Any, node: ast.Call) -> object:
+        shape = real(self, node)
+        if isinstance(shape, tuple):
+            return tuple(correction._RECORD for _ in shape)
+        return shape
+
+    guard = "positive-read-only-items-loop-key-method-call"
+    assert _r4_outcome(guard) == _R4_ACCUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction._RecordDerivation, "_call_element_shape", key_is_a_record)
+        assert _r4_outcome(guard) == _R4_REFUSED
+        assert _r4_outcome(_R4_PROBE) == _R4_REFUSED, "the real probe refuses either way"
+    assert _r4_outcome(guard) == _R4_ACCUSED
+
+
+def test_mutation_kill_h_treating_a_bare_iteration_target_as_a_record_costs_four_findings(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: a bare `for x in X` target is enumerated as a record.
+
+    Apply the mutant, confirm two envelope positives and two open-corpus missteps lose their
+    accusations, revert, and confirm all four come back.  Recorded: the boundary is not a
+    stylistic choice.  E10 P5 and E12 P5 write a partial Holm adjustment as
+    `for row, adjusted in zip(primary, p_adjusted): row["p_adjusted"] = ...` with the correction
+    terminal itself plainly visible, and the two corpus rows read a loop variable of a tracked
+    list into a display; refusing on either would trade four real findings for no closed route.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    real = correction._RecordDerivation.element_shape
+
+    def bare_name_is_a_record(self: Any, node: ast.expr) -> object:
+        if isinstance(node, ast.Name) and node.id in self.mappings:
+            return self.sequences.get(node.id, correction._RECORD)
+        return real(self, node)
+
+    rows = (
+        "E10:P5:c51d08801b3d0ba4e532",
+        "E12:P5:54667dd7c39067c8c2c8",
+        "corpus:spec-21",
+        "corpus:spec-45",
+    )
+    for key in rows:
+        assert _corpus_outcome(key)[0] == "candidate", key
+    with monkeypatch.context() as patch:
+        patch.setattr(correction._RecordDerivation, "element_shape", bare_name_is_a_record)
+        for key in rows:
+            assert _corpus_outcome(key) == _R4_REFUSED, key
+        assert _r4_outcome(_R4_PROBE) == _R4_REFUSED, "the real probe refuses either way"
+    for key in rows:
+        assert _corpus_outcome(key)[0] == "candidate", key

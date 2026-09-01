@@ -31,6 +31,15 @@ round-1/round-2 alias closure must find no store, mutation, or display escape on
 for that collection.  When it finds one, the row lands on `pvalue-family-collection-unresolved`,
 which is the frozen reason the identical through-name program already carries; no reason is
 added.  Abstentions are untouched, so no frozen abstention reason can move.
+
+The round-4 audit fix widens *which names* that closure covers and changes nothing else about
+this module.  A second name for the collection is not the only binding a correction store can
+travel through: `for name, record in results.items(): record["p"] = ...` stores through the
+iterated record, which is not an alias edge, so a complete correct Bonferroni pass was still
+published as an accusation.  The predicate now enumerates every record-derived binding -- the
+mapping views and their wrappers, the subscript and lookup forms, the walrus, comprehension, and
+`async for` spellings, and every chain of them -- and refuses on the same reason.  The ordering
+rule, the admissions, the reason set, and the abstention paths are untouched.
 """
 
 from __future__ import annotations
@@ -92,10 +101,15 @@ def _record_collection_alias_unresolved(content: bytes) -> bool:
     store names cannot be resolved.  The alias hides the correction rather than resolving the
     family, so the aliased spelling lands on the through-name spelling's own frozen reason.
 
+    Round 4 widens the closure from *names for the collection* to every binding that reaches a
+    record inside it.  `for name, record in results.items(): record["p"] = ...` is the same
+    defect through a loop target rather than through an alias edge, and the enumeration in
+    `record_derived_names` covers the mapping views, their wrappers, the subscript and lookup
+    forms, the walrus, comprehension, and `async for` spellings, and every chain of them.
+
     This is a narrowing of an inherited defect.  The byte-frozen v3 and v3.3 lanes carry it and
     stay byte-identical; the active 3.4 binding supersedes them, and only 3.4 is narrowed.  The
-    closure is exactly the round-1/round-2 one and it is applied to *classifications only*, so
-    no abstention reason anywhere can move.
+    closure is applied to *classifications only*, so no abstention reason anywhere can move.
     """
 
     from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
