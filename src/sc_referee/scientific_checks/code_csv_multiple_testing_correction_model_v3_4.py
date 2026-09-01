@@ -31,7 +31,10 @@ result byte-for-byte.
   slice store, or the same three written through an alias, each of which grows the family a
   membership guard selects at runtime while the literal the recognizer reads stays put.  The
   closure runs over the whole alias component and follows the frozen B1/B4 record-mutation
-  discipline in `rm._record_boundary_reason`.
+  discipline in `rm._record_boundary_reason`.  Round 2 extended its escape half to container
+  displays, because `PLAN = {"family": SEQ}` followed by `PLAN["family"].extend(...)` grows the
+  same list with nothing the mutation census can see, and gave the sibling comprehension lane
+  the identical closure by importing these three helpers rather than restating them.
 * `_enumerate_sequence_name` now requires `enumerate` to be the unshadowed builtin, proved
   module-wide by the frozen `mt._definition_shadows_builtin` census.  A project-local
   definition of the name is never read as the builtin row-table iterator.
@@ -232,11 +235,34 @@ def _alias_edges(tree: ast.Module) -> tuple[dict[str, set[str]], frozenset[str]]
     through either name changes what the other one reads.  A bare Name bound anywhere other
     than a single Name target -- a tuple unpack, a record field, a subscript -- escapes into a
     location whose later mutations are not enumerable here, and is refused outright.
+
+    A container display escapes the same way and for the same reason.  `PLAN = {"family": SEQ}`
+    stores the list object behind a subscript path, and `PLAN["family"].extend(...)` then grows
+    it with no Store, no augmented assignment, and no method call whose receiver is a Name, so
+    nothing the mutation census can see moves.  Every bare Name read into a list, tuple, set, or
+    dict display is therefore refused, however deeply the displays are nested, because walking
+    the module reaches each display in turn.  Reading a name into a call argument is not a
+    capture and stays admissible -- that is the frozen `len(OUTCOMES)` and
+    `", ".join(MUSCULOSKELETAL)` discipline, which the pinned 3.3 evidence rows depend on.
     """
 
     edges: dict[str, set[str]] = {}
     escaped: set[str] = set()
     for node in ast.walk(tree):
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            escaped.update(
+                item.id
+                for item in node.elts
+                if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Load)
+            )
+            continue
+        if isinstance(node, ast.Dict):
+            escaped.update(
+                item.id
+                for item in (*node.keys, *node.values)
+                if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Load)
+            )
+            continue
         if isinstance(node, ast.Assign):
             targets: list[ast.expr] = list(node.targets)
             value: ast.expr | None = node.value

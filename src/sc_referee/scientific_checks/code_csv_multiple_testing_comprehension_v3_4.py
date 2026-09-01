@@ -19,6 +19,18 @@ Two properties are asserted on every lowering, per design section 4.3:
 
 Nothing here classifies, assigns a corrected position, chooses an API, or reads display text,
 identifier spelling, comments, or reports.  Admission is a set of syntactic facts about the AST.
+
+The 3.4 adversarial audit's round-2 pass closed two admission predicates here.  Both are
+narrowings: they can only withhold an admission that previously fired, so every row they touch
+keeps its frozen 3.3 result byte-for-byte.
+
+* ``module_sequences`` now proves the generator's sequence *object* stable, not just its
+  *name*, over the whole alias component -- the same closure round 1 gave the sibling
+  correction lane, imported from that lane rather than restated.
+* ``admitted_comprehensions`` now refuses a collected name that carries a second name for the
+  same collection.  Section 4.2 forbids post-construction mutation of the collected name, and a
+  store written through an alias is exactly that, written where the clause's census cannot
+  reach it.
 """
 
 from __future__ import annotations
@@ -29,6 +41,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 
+import sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 as cm
 from sc_referee.core.ids import sha256_digest
 from sc_referee.scientific_checks.code_csv_multiple_testing_admission_census_v3_4 import (
     record_admission,
@@ -92,7 +105,18 @@ def _stored_or_mutated_names(node: ast.AST) -> frozenset[str]:
 
 
 def module_sequences(tree: ast.Module) -> dict[str, tuple[object, ...]]:
-    """Flat literal list/tuple displays bound exactly once and never mutated."""
+    """Flat literal list/tuple displays bound exactly once and whose object is never mutated.
+
+    One reaching Store proves the *name* is stable.  It does not prove the list the generator
+    iterates never changes: `SCREENED = OUTCOMES` followed by `SCREENED.remove(...)` leaves the
+    single Store on `OUTCOMES` standing while the family the comprehension visits at runtime is
+    a different one from the literal read here.  The sequence *object* is therefore proved
+    stable over the whole alias component, exactly as the sibling correction lane proves it:
+    `cm._alias_edges`, `cm._object_mutated_names`, and `cm._sequence_object_is_stable` are the
+    round-1 audit-fix helpers themselves, imported rather than restated so the two lanes cannot
+    drift apart.  They follow the frozen B1/B4 record-mutation discipline in
+    `rm._record_boundary_reason`, under which passing a name to a call is not a mutation.
+    """
 
     counts: dict[str, int] = {}
     values: dict[str, tuple[object, ...]] = {}
@@ -122,10 +146,14 @@ def module_sequences(tree: ast.Module) -> dict[str, tuple[object, ...]]:
     unstable = {
         name for node in ast.walk(tree) for name in _stored_or_mutated_names(node) if name in values
     }
+    edges, escaped = cm._alias_edges(tree)
+    mutated = cm._object_mutated_names(tree)
     return {
         name: value
         for name, value in values.items()
-        if counts.get(name) == 1 and name not in unstable
+        if counts.get(name) == 1
+        and name not in unstable
+        and cm._sequence_object_is_stable(name, edges=edges, escaped=escaped, mutated=mutated)
     }
 
 
@@ -229,9 +257,20 @@ class ComprehensionAdmission:
 def admitted_comprehensions(
     tree: ast.Module, outcome_columns: tuple[str, ...]
 ) -> tuple[ComprehensionAdmission, ...]:
-    """Every statement matching the closed section-4 grammar, in source order."""
+    """Every statement matching the closed section-4 grammar, in source order.
+
+    Section 4.2's collected-name clause -- exactly one Store, no rebinding, and no
+    post-construction mutation -- is proved by ``_stored_or_mutated_names``, which reads a store
+    written through the collected name itself.  A second name for the same collection defeats
+    that census outright: ``adjusted = results`` followed by ``adjusted[name]["p"] = ...`` is a
+    post-construction mutation the clause forbids, written where the clause cannot see it, and
+    the analyzer refuses to classify the identical program when the same store is written
+    through ``results``.  A collected name that is aliased, or that escapes into a container or
+    a field, is therefore refused rather than admitted on an unprovable clause.
+    """
 
     sequences = module_sequences(tree)
+    target_edges, target_escaped = cm._alias_edges(tree)
     result: list[ComprehensionAdmission] = []
     for statement in ast.walk(tree):
         if isinstance(statement, ast.Assign):
@@ -286,6 +325,8 @@ def admitted_comprehensions(
             for node in ast.walk(tree)
             if node is not statement
         ):
+            continue
+        if target_edges.get(target_name) or target_name in target_escaped:
             continue
         result.append(
             ComprehensionAdmission(

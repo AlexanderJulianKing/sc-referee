@@ -112,6 +112,31 @@ _SHADOWED_ENUMERATE_ROWS = (
     "correct-ap-shadowed-enumerate-definition-diverging",
 )
 
+# The round-2 audit-fix oracle: the comprehension lane's sequence-object closure, the container
+# display residual left open by round 1, and the collected-name clause evaded through an alias.
+_AUDIT_FIX_R2_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_4/audit-fix-r2-oracle"
+).resolve()
+_AUDIT_FIX_R2_SOURCES = cast(
+    "dict[str, tuple[str, bytes]]",
+    runpy.run_path(str(_AUDIT_FIX_R2_ROOT / "fixture_sources.py"))["fixture_sources"](),
+)
+_AUDIT_FIX_R2_ORACLE = json.loads(
+    (_AUDIT_FIX_R2_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8")
+)
+_AUDIT_FIX_R2_ROWS = cast("list[dict[str, Any]]", _AUDIT_FIX_R2_ORACLE["rows"])
+_AUDIT_FIX_R2_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_R2_ROWS}
+_ESCAPED_SEQUENCE_ROWS = tuple(
+    str(row["fixture_name"])
+    for row in _AUDIT_FIX_R2_ROWS
+    if row["expected_gate"] == "sequence-object-stability"
+)
+_R2_MOVEMENT_ROWS = {
+    "positive-comprehension-e17-p3-unaltered": ("candidate", "none", (), 6),
+    "positive-comprehension-sequence-alias-without-mutation": ("candidate", "none", (), 6),
+    "positive-ap-e17-p6-unaltered": ("candidate", "strict_subset", (0, 1, 2), 7),
+}
+
 
 def _outcome_tuple(value: Any) -> tuple[str, str, tuple[int, ...], int | None]:
     return (
@@ -1177,3 +1202,158 @@ def test_both_narrowings_keep_the_pinned_e17_p6_movement(
     assert _outcome_tuple(row["outcome"]) == ("candidate", "strict_subset", (0, 1, 2), 7)
     assert row["census"]["enumerate"] == 1
     assert row["census"]["cap"] == 1
+
+
+# --------------------------------------------------------------------------------------
+# Audit fix round 2: the comprehension lane's sequence object, and the collected name
+# --------------------------------------------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r2_rows() -> dict[str, dict[str, Any]]:
+    """Execute every round-2 source through the shipped 3.4 analyzer and the frozen 3.3 one."""
+
+    rows: dict[str, dict[str, Any]] = {}
+    for name, (case_key, source) in _AUDIT_FIX_R2_SOURCES.items():
+        outcome, census = _run_source(case_key, source)
+        rows[name] = {
+            "case_key": case_key,
+            "source": source,
+            "outcome": outcome,
+            "census": census,
+            "frozen": _run_v33(case_key, source),
+        }
+    return rows
+
+
+def test_audit_fix_round_2_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_R2_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_R2_ROWS) == 12
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_R2_ROWS) == 5
+    assert set(_AUDIT_FIX_R2_ROWS_BY_NAME) == set(_AUDIT_FIX_R2_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_R2_SOURCES.items()
+    } == {
+        name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_R2_ROWS_BY_NAME.items()
+    }
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_R2_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_12_audit_fix_round_2_rows_execute(
+    row: dict[str, Any], audit_fix_r2_rows: dict[str, dict[str, Any]]
+) -> None:
+    observed = audit_fix_r2_rows[str(row["fixture_name"])]
+    assert _outcome_tuple(observed["outcome"]) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+        cast("int | None", row.get("expected_authorized_count")),
+    )
+    assert observed["census"] == row["expected_admission_census"]
+    # Design section 3.3 steps 5 and 6: a refused admission returns the frozen 3.3 row unchanged.
+    identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
+    assert identical is bool(row["expected_frozen_v33_identical"])
+
+
+def test_no_audit_fix_round_2_correct_analysis_row_becomes_a_candidate(
+    audit_fix_r2_rows: dict[str, dict[str, Any]],
+) -> None:
+    """The five correct-analysis rows are complete corrections or single-outcome tests."""
+
+    correct = [row for row in _AUDIT_FIX_R2_ROWS if row["correct_analysis"]]
+    assert len(correct) == 5
+    assert not [
+        str(row["fixture_name"])
+        for row in correct
+        if audit_fix_r2_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
+    ]
+
+
+@pytest.mark.parametrize("name", _ESCAPED_SEQUENCE_ROWS)
+def test_escaped_sequence_object_refuses_at_the_comprehension_sequence_gate(name: str) -> None:
+    """Mutation kill: dropping the alias half of the comprehension closure readmits these.
+
+    The assertion is that the escaped sequence never enters the comprehension lane's own
+    sequence table.  A downstream abstention would not distinguish the fix from the upstream
+    frozen scope census arriving first, which is exactly what happened on the reported probe.
+    """
+
+    row = _AUDIT_FIX_R2_ROWS_BY_NAME[name]
+    case_key, source = _AUDIT_FIX_R2_SOURCES[name]
+    escaped = [str(item) for item in row["expected_escaped_sequence_names"]]
+    assert escaped, "the row pins no escaped sequence, so the assertion would be vacuous"
+    sequences = module_sequences(ast.parse(source))
+    assert [item for item in escaped if item in sequences] == []
+    # Non-vacuity: every one of those names resolves on the unaltered source of the same case.
+    control = next(
+        other
+        for other, (other_key, _other_source) in _AUDIT_FIX_R2_SOURCES.items()
+        if other_key == case_key and other.startswith("positive-") and other.endswith("-unaltered")
+    )
+    _control_key, control_source = _AUDIT_FIX_R2_SOURCES[control]
+    assert set(escaped) <= set(module_sequences(ast.parse(control_source)))
+
+
+@pytest.mark.parametrize("name", _ESCAPED_SEQUENCE_ROWS)
+def test_escaped_sequence_object_refuses_in_the_correction_lane_too(name: str) -> None:
+    """Mutation kill: dropping the whole closure readmits these in both lanes at once.
+
+    The two lanes share one closure by import rather than by restatement, so the escape is
+    asserted against the correction lane's sequence table as well.  A closure that diverged
+    would leave one of the two assertions standing.
+    """
+
+    row = _AUDIT_FIX_R2_ROWS_BY_NAME[name]
+    _case_key, source = _AUDIT_FIX_R2_SOURCES[name]
+    escaped = [str(item) for item in row["expected_escaped_sequence_names"]]
+    assert [item for item in escaped if item in _module_sequences(ast.parse(source))] == []
+
+
+def test_the_two_lanes_share_one_sequence_object_closure() -> None:
+    """The comprehension lane calls the round-1 helpers themselves, not a copy of them."""
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_comprehension_v3_4 as comprehension,
+    )
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    assert comprehension.cm is correction
+    for helper in ("_alias_edges", "_object_mutated_names", "_sequence_object_is_stable"):
+        assert getattr(comprehension.cm, helper) is getattr(correction, helper)
+
+
+def test_collected_name_alias_refuses_where_the_same_store_through_the_name_admits(
+    audit_fix_r2_rows: dict[str, dict[str, Any]],
+) -> None:
+    """Mutation kill: dropping the collected-name alias closure readmits the aliased store.
+
+    The pair is the whole argument.  The two sources carry the identical nested store; they
+    differ only in whether it is written through the collected name or through a second name
+    for the same collection.  Section 4.2 permits the first, which is the shape the pinned
+    corpus row uses, and forbids the second, which its census cannot see.
+    """
+
+    aliased = "comprehension-collected-target-alias-store"
+    through_name = "positive-comprehension-collected-target-store-through-name"
+    for name, admitted in ((aliased, 0), (through_name, 1)):
+        case_key, source = _AUDIT_FIX_R2_SOURCES[name]
+        columns = _outcome_columns(case_key, source)
+        assert len(admitted_comprehensions(ast.parse(source), columns)) == admitted, name
+        assert audit_fix_r2_rows[name]["census"]["comprehension"] == admitted, name
+    # Both abstain to the same frozen reason, so the closure changes the admission, not the row.
+    assert _outcome_tuple(audit_fix_r2_rows[aliased]["outcome"]) == _outcome_tuple(
+        audit_fix_r2_rows[through_name]["outcome"]
+    )
+
+
+@pytest.mark.parametrize("name", sorted(_R2_MOVEMENT_ROWS))
+def test_round_2_narrowings_keep_every_pinned_movement(
+    name: str, audit_fix_r2_rows: dict[str, dict[str, Any]]
+) -> None:
+    """Mutation kill: a closure that refused a live alias, or every display, loses these."""
+
+    assert _outcome_tuple(audit_fix_r2_rows[name]["outcome"]) == _R2_MOVEMENT_ROWS[name]
+    assert audit_fix_r2_rows[name]["outcome"] != audit_fix_r2_rows[name]["frozen"]
