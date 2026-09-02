@@ -45,6 +45,7 @@ from __future__ import annotations
 import ast
 import copy
 import hashlib
+from collections import Counter
 from collections.abc import Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
@@ -699,6 +700,500 @@ def record_derived_names(tree: ast.Module, collection_aliases: frozenset[str]) -
     return derivation.names()
 
 
+#: Round 5: the builtins that hand each element of the iterables beside them to a callable.
+#: `map(f, X)` and `filter(f, X)` apply `f` to the elements of `X`, so an `f` that stores through
+#: its first parameter is a store into the records `X` yields.
+_ELEMENT_CALLBACK_BUILTINS = frozenset({"map", "filter"})
+#: The builtins that apply a `key=` callable to each element of their first argument.
+_KEY_CALLBACK_BUILTINS = frozenset({"sorted", "min", "max"})
+
+#: The edge parameter that means "any parameter of the callee".  A starred argument forwards an
+#: unknown position, so it is bound to every parameter at once and is captured when any of them
+#: stores.
+_ANY_PARAMETER = "*"
+
+
+def _capture_roots(node: ast.expr) -> frozenset[str]:
+    """The names an argument expression hands the callee an object *of*.
+
+    `rescale(record, len(OUTCOMES))` hands `rescale` the object `record` names, so a store
+    through the parameter it binds is a store through `record`.  `rescale(results.values(), n)`
+    and `rescale(results[name], n)` hand it the collection's records, so the root is `results`.
+    `rescale(record["p"] * len(OUTCOMES), n)` hands it a float, so it has no root at all: the
+    enumeration is the round-4 record-derived forms read backwards, not every name that appears
+    in the argument.  The keys view is excluded for the reason round 4 excludes it -- a key is
+    not a record -- and every other call form is a value the callee cannot store into.
+    """
+
+    if isinstance(node, ast.Starred):
+        return _capture_roots(node.value)
+    if isinstance(node, ast.NamedExpr):
+        target = node.target
+        walrus = frozenset({target.id}) if isinstance(target, ast.Name) else frozenset[str]()
+        return _capture_roots(node.value) | walrus
+    if isinstance(node, ast.Name):
+        return frozenset({node.id})
+    if isinstance(node, (ast.Attribute, ast.Subscript)):
+        return _capture_roots(node.value)
+    if isinstance(node, ast.Call):
+        function = node.func
+        if isinstance(function, ast.Attribute):
+            if function.attr in _RECORD_VIEW_METHODS | _SHALLOW_COPY_METHODS:
+                return _capture_roots(function.value)
+            if function.attr in _RECORD_LOOKUP_METHODS:
+                return _capture_roots(function.value)
+            return frozenset()
+        if isinstance(function, ast.Name) and function.id in (
+            _ITERABLE_WRAPPERS | _MAPPING_WRAPPERS | {"enumerate", "zip", "next"}
+        ):
+            roots: set[str] = set()
+            for argument in node.args:
+                roots |= _capture_roots(argument)
+            return frozenset(roots)
+    return frozenset()
+
+
+def _parameter_slots(
+    node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda,
+) -> tuple[tuple[str, ...], str | None, frozenset[str], str | None]:
+    """The positional slots, the `*args` bucket, the keyword-bindable names, and `**kwargs`."""
+
+    arguments = node.args
+    positional = tuple(argument.arg for argument in (*arguments.posonlyargs, *arguments.args))
+    keyword_bindable = frozenset(
+        argument.arg for argument in (*arguments.args, *arguments.kwonlyargs)
+    )
+    vararg = arguments.vararg.arg if arguments.vararg is not None else None
+    kwarg = arguments.kwarg.arg if arguments.kwarg is not None else None
+    return positional, vararg, keyword_bindable, kwarg
+
+
+def _all_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda) -> frozenset[str]:
+    positional, vararg, keyword_bindable, kwarg = _parameter_slots(node)
+    names = set(positional) | set(keyword_bindable)
+    if vararg is not None:
+        names.add(vararg)
+    if kwarg is not None:
+        names.add(kwarg)
+    return frozenset(names)
+
+
+def _callee_body(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda) -> ast.Module:
+    """The callee's body as a module, so the round-3 and round-4 closures read it unchanged."""
+
+    if isinstance(node, ast.Lambda):
+        return ast.Module(body=[ast.Expr(value=node.body)], type_ignores=[])
+    return ast.Module(body=list(node.body), type_ignores=[])
+
+
+@dataclass(frozen=True)
+class _CaptureEdge:
+    """One call argument, the parameter it binds, and the names it hands over."""
+
+    owner: int
+    callee: int
+    parameter: str
+    roots: frozenset[str]
+
+
+class _HelperStores:
+    """Round 5: a call to a project-local helper that stores through the parameter it binds.
+
+    Rounds 3 and 4 close the bindings a correction store can travel through *inside one scope*.
+    They leave one route open, and the round-4 oracle pinned it by name: the record is handed to
+    a project-local helper that writes through its own, differently named parameter.
+
+    ```python
+    def bonferroni_adjust(entry, n_tests):
+        entry["p"] = min(entry["p"] * n_tests, 1.0)
+
+    for name, record in results.items():
+        bonferroni_adjust(record, len(OUTCOMES))
+    ```
+
+    Every declared outcome is corrected, and the row was published as an accusation that the
+    family was never corrected, because argument passing is a non-capture under the frozen
+    discipline and nothing binds `entry` to the record.  Round 4's module-wide name match closes
+    the spelling where the parameter happens to reuse the caller's name and nothing else, so the
+    disposition turned on the parameter name alone.
+
+    The narrowing is one edge.  A call whose callee resolves to a project-local definition in the
+    same module makes the *call site* a mutation of each argument whose bound parameter is stored
+    through in the callee body.  Three things follow, and each is a deliberate boundary.
+
+    **Callee resolution is by definition, not by name shape.**  A callee resolves only to a
+    `def`, an `async def`, a name bound once to a `lambda`, or a method of a class defined in
+    this module, and only when the name has exactly one such definition and is bound nowhere
+    else -- not imported, not reassigned, not a parameter.  Builtins and library calls resolve to
+    nothing and stay non-captures, which is the frozen `len(OUTCOMES)`,
+    `", ".join(MUSCULOSKELETAL)`, `print(record)`, `sorted(results.items())` discipline that
+    rounds 1 to 4 all preserve.  A helper imported from a sibling module is outside the single
+    file this recognizer reads and stays a non-capture; the round-5 oracle pins that row.
+
+    **A parameter is stored through when the round-3 and round-4 closures say so.**  The callee
+    body is read as a module and the parameter is seeded as both a mapping of records and a
+    sequence of records, so `entry["p"] = ...`, `entry.update(...)`, `row = entry` followed by a
+    store through `row`, `for entry in entries: entry["p"] = ...`, and a display escape of the
+    parameter all count.  A parameter the callee only reads does not, which is what keeps a
+    read-only helper on an uncorrected family a true accusation.  The parameter is seeded as a
+    sequence here where a module-level bare iteration target is not, because the boundary that
+    forced the module-level exclusion -- a collection whose seed does not say whether iterating
+    it yields keys, floats, or records -- does not apply to a parameter, which is seeded by
+    whatever the call site hands it and whose store the frozen engine cannot see either way.
+
+    **Recursion resolves to a fixpoint.**  The storing set only grows, so a cyclic or mutually
+    recursive callee graph converges rather than needing a conservative refusal, and a helper
+    that only calls itself never becomes storing.  Star-args forwarding is bound to every
+    parameter at once: `forward(record, n)` into `def forward(*args): rescale(*args)` captures
+    `record` because some parameter of `rescale` stores, which is the conservative reading the
+    audit brief asks for and needs no separate rule.
+
+    Names are matched module-wide, as they are in rounds 1 to 4, so a capture recorded inside one
+    helper body is read against the module's names too.  A name reused in two scopes can only add
+    captures, so the error is toward refusal.
+    """
+
+    def __init__(self, tree: ast.Module) -> None:
+        self._definitions: dict[int, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
+        self._edges: list[_CaptureEdge] = []
+        self._storing: set[tuple[int, str]] = set()
+        self._census: dict[int, tuple[frozenset[str], frozenset[str]]] = {}
+        self._reached: dict[tuple[int, str], frozenset[str]] = {}
+        self._collect(tree)
+        self._resolve()
+
+    # -- resolution ---------------------------------------------------------------------
+
+    def _collect(self, tree: ast.Module) -> None:
+        methods: dict[str, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] = {}
+        method_ids: set[int] = set()
+        owner_class: dict[int, str] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            table = methods.setdefault(node.name, {})
+            for item in node.body:
+                if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    table[item.name] = item
+                    method_ids.add(id(item))
+                    owner_class[id(item)] = node.name
+
+        # A name is a resolvable callee only when this module holds exactly one definition of
+        # it and binds it nowhere else.  A `def` binds its name with no `ast.Name` store, so a
+        # single store means the name was reassigned; a `lambda` binding is that one store.
+        stores: Counter[str] = Counter()
+        parameters: set[str] = set()
+        imported: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+                stores[node.id] += 1
+            elif isinstance(node, ast.arg):
+                parameters.add(node.arg)
+            elif isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    imported.add((alias.asname or alias.name).split(".")[0])
+        rebound = set(stores) | parameters
+
+        functions: dict[str, list[ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda]] = {}
+        classes: dict[str, list[ast.ClassDef]] = {}
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if id(node) not in method_ids:
+                    functions.setdefault(node.name, []).append(node)
+            elif isinstance(node, ast.ClassDef):
+                classes.setdefault(node.name, []).append(node)
+            elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target, value = node.targets[0], node.value
+                if isinstance(target, ast.Name) and isinstance(value, ast.Lambda):
+                    functions.setdefault(target.id, []).append(value)
+
+        resolved_functions: dict[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
+        for name, candidates in functions.items():
+            if len(candidates) != 1 or name in imported or name in parameters:
+                continue
+            only = candidates[0]
+            if stores[name] != (1 if isinstance(only, ast.Lambda) else 0):
+                continue
+            resolved_functions[name] = only
+
+        resolved_classes: dict[str, str] = {}
+        for name, class_nodes in classes.items():
+            if len(class_nodes) == 1 and name not in imported and name not in rebound:
+                resolved_classes[name] = name
+
+        instances: dict[str, str] = {}
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                continue
+            target, value = node.targets[0], node.value
+            if not isinstance(target, ast.Name) or not isinstance(value, ast.Call):
+                continue
+            if not isinstance(value.func, ast.Name) or value.func.id not in resolved_classes:
+                continue
+            if _name_stable(tree, target.id):
+                instances[target.id] = value.func.id
+
+        for definition in resolved_functions.values():
+            self._definitions[id(definition)] = definition
+        for table in methods.values():
+            for definition in table.values():
+                self._definitions[id(definition)] = definition
+
+        self._scan_calls(
+            tree,
+            functions=resolved_functions,
+            classes=resolved_classes,
+            methods=methods,
+            instances=instances,
+            imported=imported,
+            rebound=rebound,
+            owner_class=owner_class,
+        )
+
+    def _scan_calls(
+        self,
+        tree: ast.Module,
+        *,
+        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
+        classes: Mapping[str, str],
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+        instances: Mapping[str, str],
+        imported: frozenset[str] | set[str],
+        rebound: frozenset[str] | set[str],
+        owner_class: Mapping[int, str],
+    ) -> None:
+        parents = _parents(tree)
+
+        def enclosing(node: ast.AST) -> tuple[int, str | None]:
+            current: ast.AST | None = parents.get(node)
+            while current is not None:
+                if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                    owner = id(current)
+                    class_name = owner_class.get(owner)
+                    if class_name is not None:
+                        return owner, class_name
+                    return owner, None
+                current = parents.get(current)
+            return 0, None
+
+        def resolve_method(
+            class_name: str, attribute: str
+        ) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
+            table = methods.get(class_name)
+            if table is None:
+                return None
+            return table.get(attribute)
+
+        def decorator_names(
+            node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda,
+        ) -> frozenset[str]:
+            if isinstance(node, ast.Lambda):
+                return frozenset()
+            return frozenset(item.id for item in node.decorator_list if isinstance(item, ast.Name))
+
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            owner, owner_class_name = enclosing(node)
+            self._record_callback_edges(node, owner, functions, imported, rebound)
+            function = node.func
+            callee: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | None = None
+            offset = 0
+            if isinstance(function, ast.Name):
+                callee = functions.get(function.id)
+            elif isinstance(function, ast.Attribute) and isinstance(function.value, ast.Name):
+                receiver = function.value.id
+                if receiver in classes:
+                    callee = resolve_method(receiver, function.attr)
+                    offset = 0
+                elif receiver in instances:
+                    callee = resolve_method(instances[receiver], function.attr)
+                    offset = 1
+                elif owner_class_name is not None and receiver == self._self_name(owner, parents):
+                    callee = resolve_method(owner_class_name, function.attr)
+                    offset = 1
+            if callee is None:
+                continue
+            decorators = decorator_names(callee)
+            if "staticmethod" in decorators:
+                offset = 0
+            elif "classmethod" in decorators:
+                offset = 1
+            self._record_edges(node, owner=owner, callee=callee, offset=offset)
+
+    def _self_name(self, owner: int, parents: Mapping[ast.AST, ast.AST]) -> str | None:
+        definition = self._definitions.get(owner)
+        if definition is None:
+            return None
+        positional, _vararg, _keyword, _kwarg = _parameter_slots(definition)
+        return positional[0] if positional else None
+
+    def _record_callback_edges(
+        self,
+        node: ast.Call,
+        owner: int,
+        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
+        imported: frozenset[str] | set[str],
+        rebound: frozenset[str] | set[str],
+    ) -> None:
+        """`map`, `filter`, and the `key=` builtins apply a callable to the elements beside it."""
+
+        function = node.func
+        if not isinstance(function, ast.Name):
+            return
+        if function.id in imported or function.id in rebound or function.id in functions:
+            return
+        if function.id in _ELEMENT_CALLBACK_BUILTINS and node.args:
+            callable_node, iterables = node.args[0], node.args[1:]
+        elif function.id in _KEY_CALLBACK_BUILTINS and node.args:
+            keyword = next((item for item in node.keywords if item.arg == "key"), None)
+            if keyword is None:
+                return
+            callable_node, iterables = keyword.value, node.args[:1]
+        else:
+            return
+        callee = self._callback_definition(callable_node, functions)
+        if callee is None:
+            return
+        positional, vararg, _keyword_bindable, _kwarg = _parameter_slots(callee)
+        parameter = positional[0] if positional else vararg
+        if parameter is None:
+            return
+        roots: set[str] = set()
+        for iterable in iterables:
+            roots |= _capture_roots(iterable)
+        if roots:
+            self._edges.append(_CaptureEdge(owner, id(callee), parameter, frozenset(roots)))
+
+    def _callback_definition(
+        self,
+        node: ast.expr,
+        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
+    ) -> ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | None:
+        if isinstance(node, ast.Lambda):
+            self._definitions.setdefault(id(node), node)
+            return node
+        if isinstance(node, ast.Name):
+            return functions.get(node.id)
+        return None
+
+    def _record_edges(
+        self,
+        node: ast.Call,
+        *,
+        owner: int,
+        callee: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda,
+        offset: int,
+    ) -> None:
+        positional, vararg, keyword_bindable, kwarg = _parameter_slots(callee)
+        index = offset
+        for argument in node.args:
+            roots = _capture_roots(argument)
+            if isinstance(argument, ast.Starred):
+                if roots:
+                    self._edges.append(_CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots))
+                # A starred argument consumes an unknown number of slots, so no later
+                # positional argument can be bound by index.
+                index = len(positional) + 1
+                continue
+            parameter = (
+                positional[index]
+                if index < len(positional)
+                else (vararg if vararg is not None else None)
+            )
+            index += 1
+            if parameter is not None and roots:
+                self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots))
+        for keyword in node.keywords:
+            roots = _capture_roots(keyword.value)
+            if not roots:
+                continue
+            if keyword.arg is None:
+                self._edges.append(_CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots))
+                continue
+            if keyword.arg in keyword_bindable:
+                parameter = keyword.arg
+            elif kwarg is not None:
+                parameter = kwarg
+            else:
+                continue
+            self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots))
+
+    # -- the storing fixpoint -----------------------------------------------------------
+
+    def _body_census(self, callee: int) -> tuple[frozenset[str], frozenset[str]]:
+        if callee not in self._census:
+            body = _callee_body(self._definitions[callee])
+            _edges, escaped = _alias_edges(body)
+            self._census[callee] = (escaped, _object_mutated_names(body))
+        return self._census[callee]
+
+    def _reached_names(self, callee: int, parameter: str) -> frozenset[str]:
+        """The parameter's alias component, closed under the round-4 record-derived forms."""
+
+        key = (callee, parameter)
+        if key not in self._reached:
+            body = _callee_body(self._definitions[callee])
+            edges, _escaped = _alias_edges(body)
+            component = {parameter}
+            frontier = [parameter]
+            while frontier:
+                current = frontier.pop()
+                for neighbour in edges.get(current, ()):
+                    if neighbour not in component:
+                        component.add(neighbour)
+                        frontier.append(neighbour)
+            derivation = _RecordDerivation(frozenset(component))
+            for name in component:
+                derivation.sequences[name] = _RECORD
+            derivation.resolve(body)
+            self._reached[key] = frozenset(component) | derivation.names()
+        return self._reached[key]
+
+    def _edge_is_storing(self, edge: _CaptureEdge) -> bool:
+        if edge.parameter != _ANY_PARAMETER:
+            return (edge.callee, edge.parameter) in self._storing
+        return any(callee == edge.callee for callee, _parameter in self._storing)
+
+    def _reaches_a_store(self, callee: int, parameter: str) -> bool:
+        names = self._reached_names(callee, parameter)
+        escaped, mutated = self._body_census(callee)
+        if names & (escaped | mutated):
+            return True
+        return any(
+            edge.roots & names and self._edge_is_storing(edge)
+            for edge in self._edges
+            if edge.owner == callee
+        )
+
+    def _resolve(self) -> None:
+        changed = True
+        while changed:
+            changed = False
+            for callee, definition in self._definitions.items():
+                for parameter in sorted(_all_parameters(definition)):
+                    if (callee, parameter) in self._storing:
+                        continue
+                    if self._reaches_a_store(callee, parameter):
+                        self._storing.add((callee, parameter))
+                        changed = True
+
+    def captured_names(self) -> frozenset[str]:
+        """Every name handed to a project-local helper that stores through what it binds."""
+
+        captured: set[str] = set()
+        for edge in self._edges:
+            if self._edge_is_storing(edge):
+                captured |= edge.roots
+        return frozenset(captured)
+
+
+def helper_captured_names(tree: ast.Module) -> frozenset[str]:
+    """Round 5: the names a project-local helper stores through the parameter they bind."""
+
+    return _HelperStores(tree).captured_names()
+
+
 def record_collection_alias_unresolved(tree: ast.Module) -> bool:
     """True when a store or mutation of a record collection hides behind a second name for it.
 
@@ -726,12 +1221,21 @@ def record_collection_alias_unresolved(tree: ast.Module) -> bool:
     the same mutation census the alias component is checked against.  Reads through them stay
     admissible, which is what keeps the ordinary presentation loop a true accusation.
 
+    Round 5 adds one more census against the same names.  `helper_captured_names` returns every
+    name handed to a project-local callee that stores through the parameter the argument binds,
+    so `bonferroni_adjust(record, len(OUTCOMES))` into a helper writing `entry["p"] = ...`
+    refuses exactly as a direct store through `record` does.  Unlike the mutation census, the
+    capture census is checked for the collection's own name too: the collection's own stores are
+    excluded because the frozen engine judges them, and a store written inside a helper through a
+    differently named parameter is not one the frozen engine sees.
+
     Names are matched module-wide rather than per scope, as they are in rounds 1 to 3.  A name
     reused in two scopes can only add edges, so the error is toward refusal.
     """
 
     edges, escaped = _alias_edges(tree)
     mutated = _object_mutated_names(tree)
+    captured = helper_captured_names(tree)
     for collection in record_collection_names(tree):
         component = {collection}
         frontier = [collection]
@@ -745,6 +1249,8 @@ def record_collection_alias_unresolved(tree: ast.Module) -> bool:
             if name in escaped:
                 return True
             if name != collection and name in mutated:
+                return True
+            if name in captured:
                 return True
     return False
 
@@ -2258,6 +2764,7 @@ __all__ = [
     "CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST",
     "CorrectionModelResult",
     "analyze_correction_model",
+    "helper_captured_names",
     "record_collection_alias_unresolved",
     "record_collection_names",
     "record_derived_names",

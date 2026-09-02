@@ -40,6 +40,18 @@ published as an accusation.  The predicate now enumerates every record-derived b
 mapping views and their wrappers, the subscript and lookup forms, the walrus, comprehension, and
 `async for` spellings, and every chain of them -- and refuses on the same reason.  The ordering
 rule, the admissions, the reason set, and the abstention paths are untouched.
+
+The round-5 audit fix follows the store into the next scope, which is the one route round 4 named
+and left open.  A correct, complete Bonferroni pass whose per-record correction is written inside
+a project-local helper -- `def bonferroni_adjust(entry, n_tests): entry["p"] = min(entry["p"] *
+n_tests, 1.0)`, called as `bonferroni_adjust(record, len(OUTCOMES))` -- was still published as an
+accusation, because argument passing is a non-capture under the frozen discipline and nothing
+binds `entry` to the record.  A call whose callee resolves to a definition in this module now
+makes the call site a mutation of every argument whose bound parameter is stored through in the
+callee body, checked against the same name sets and landing on the same reason.  Builtins,
+library calls, and helpers imported from other modules resolve to nothing and stay non-captures,
+which is the frozen `len(OUTCOMES)` discipline every earlier round preserves.  The ordering rule,
+the admissions, the reason set, and the abstention paths are again untouched.
 """
 
 from __future__ import annotations
@@ -106,6 +118,14 @@ def _record_collection_alias_unresolved(content: bytes) -> bool:
     defect through a loop target rather than through an alias edge, and the enumeration in
     `record_derived_names` covers the mapping views, their wrappers, the subscript and lookup
     forms, the walrus, comprehension, and `async for` spellings, and every chain of them.
+
+    Round 5 follows the store into the next scope.  `bonferroni_adjust(record, len(OUTCOMES))`
+    into a project-local helper that writes `entry["p"] = ...` corrects every declared outcome
+    and was invisible to round 4 for the same reason `record["p"] = ...` was invisible to round
+    3: argument passing is a non-capture, so nothing bound the parameter to the record.  A call
+    whose callee resolves to a definition in this module is now a mutation of the arguments whose
+    parameters it stores through; builtins, library calls, and helpers from other modules resolve
+    to nothing and stay non-captures.
 
     This is a narrowing of an inherited defect.  The byte-frozen v3 and v3.3 lanes carry it and
     stay byte-identical; the active 3.4 binding supersedes them, and only 3.4 is narrowed.  The

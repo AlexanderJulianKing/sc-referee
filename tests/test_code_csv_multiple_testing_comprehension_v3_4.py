@@ -197,9 +197,20 @@ _RECORD_DERIVED_ROWS = tuple(
     for row in _AUDIT_FIX_R4_ROWS
     if row["expected_gate"] == "record-derived-binding"
 )
-# The one correct-analysis row round 4 leaves accused.  Argument passing stays a non-capture, so a
-# helper storing through its own differently named parameter is outside this closure.
-_R4_OPEN_RESIDUAL = {"correct-record-in-helper-distinct-parameter-name"}
+# Round 4 left exactly one correct-analysis row accused: the record handed to a helper storing
+# through its own differently named parameter.  Round 5 closes it, so the round-4 residual set is
+# now empty and the row is pinned again in the round-5 oracle as the confirmed probe.
+_R4_CLOSED_IN_ROUND_5 = {"correct-record-in-helper-distinct-parameter-name"}
+_R4_OPEN_RESIDUAL: set[str] = set()
+# The round-4 oracle rows the round-5 closure moves, as (round-4 pin, round-5 disposition).  The
+# oracle files are evidence and stay unedited: the round-4 pin records what round 4 measured, and
+# this map is where the move is declared, so a silent edit of either side fails.
+_R5_MOVES_R4_ROWS: dict[str, tuple[tuple[str, str, tuple[int, ...], int | None], ...]] = {
+    "correct-record-in-helper-distinct-parameter-name": (
+        ("candidate", "none", (), 6),
+        ("abstain", "pvalue-family-collection-unresolved", (), None),
+    ),
+}
 _R4_READ_ONLY_ROWS = frozenset(
     name for name in _AUDIT_FIX_R4_SOURCES if name.startswith("positive-read-only-")
 )
@@ -252,6 +263,77 @@ _R4_MOVEMENT_ROWS = {
     "positive-read-only-items-loop-record-verdict": ("candidate", "none", (), 6),
     "positive-read-only-list-values-loop-summary": ("candidate", "none", (), 6),
     "positive-covered-family-with-read-only-record-iteration": (
+        "covered",
+        "complete",
+        (0, 1, 2, 3, 4, 5),
+        6,
+    ),
+}
+
+
+# The round-5 audit-fix oracle: the project-local storing-helper closure.  Round 4 enumerates
+# every binding a correction store can travel through inside one scope; round 5 follows the store
+# into another scope, which is the one route round 4 named and left open.
+_AUDIT_FIX_R5_ROOT = Path(
+    "evaluation/development/multitest-code-slice-v3_4/audit-fix-r5-oracle"
+).resolve()
+_AUDIT_FIX_R5_SOURCES = cast(
+    "dict[str, tuple[str, bytes]]",
+    runpy.run_path(str(_AUDIT_FIX_R5_ROOT / "fixture_sources.py"))["fixture_sources"](),
+)
+_AUDIT_FIX_R5_ORACLE = json.loads(
+    (_AUDIT_FIX_R5_ROOT / "EXPECTED_ROWS.json").read_text(encoding="utf-8")
+)
+_AUDIT_FIX_R5_ROWS = cast("list[dict[str, Any]]", _AUDIT_FIX_R5_ORACLE["rows"])
+_AUDIT_FIX_R5_ROWS_BY_NAME = {str(row["fixture_name"]): row for row in _AUDIT_FIX_R5_ROWS}
+_HELPER_STORE_ROWS = tuple(
+    str(row["fixture_name"])
+    for row in _AUDIT_FIX_R5_ROWS
+    if row["expected_gate"] == "helper-parameter-store"
+)
+# The one correct-analysis row round 5 leaves accused.  This recognizer reads a single source
+# file, so a helper defined in a sibling project module resolves to nothing it can read.
+_R5_OPEN_RESIDUAL = {"correct-record-in-helper-imported-from-a-sibling-module"}
+# The name each refused row hands to a storing helper, named rather than inferred from its
+# outcome.  `results` is the collection itself, which the closure checks for capture even though
+# its own stores are excluded from the mutation census.
+_R5_CAPTURING_ROWS = {
+    "correct-record-in-helper-distinct-parameter-name": {"record"},
+    "correct-record-in-helper-storing-through-a-local-alias": {"record"},
+    "correct-record-in-helper-storing-via-a-nested-helper": {"record"},
+    "correct-record-in-helper-storing-conditionally": {"record"},
+    "correct-record-in-helper-mutating-via-update": {"record"},
+    "correct-record-in-helper-defined-after-its-use": {"record"},
+    "correct-record-in-helper-keyword-argument": {"record"},
+    "correct-record-in-helper-through-star-args-forwarding": {"record"},
+    "correct-record-in-helper-through-double-star-forwarding": {"record"},
+    "correct-record-in-lambda-bound-to-a-name": {"record"},
+    "correct-record-in-lambda-applied-through-map": {"results"},
+    "correct-record-in-static-method-of-a-project-local-class": {"record"},
+    "correct-collection-in-helper-iterating-internally": {"results"},
+    "correct-values-view-in-helper-iterating-internally": {"results"},
+    "boundary-read-only-helper-calling-a-method-on-its-parameter": {"record"},
+}
+# The rows whose every call over a record-derived name is a read or a builtin.
+_R5_NON_CAPTURING_ROWS = frozenset(
+    {
+        "positive-read-only-helper-on-uncorrected-family",
+        "positive-read-only-helper-on-the-whole-collection",
+        "positive-builtin-calls-over-record-derived-names",
+        "positive-explicit-loop-uncorrected-family",
+        "positive-covered-family-with-a-read-only-helper",
+        "positive-comprehension-e17-p3-unaltered",
+        "positive-ap-e17-p6-unaltered",
+    }
+)
+_R5_MOVEMENT_ROWS = {
+    "positive-comprehension-e17-p3-unaltered": ("candidate", "none", (), 6),
+    "positive-ap-e17-p6-unaltered": ("candidate", "strict_subset", (0, 1, 2), 7),
+    "positive-explicit-loop-uncorrected-family": ("candidate", "none", (), 6),
+    "positive-read-only-helper-on-uncorrected-family": ("candidate", "none", (), 6),
+    "positive-read-only-helper-on-the-whole-collection": ("candidate", "none", (), 6),
+    "positive-builtin-calls-over-record-derived-names": ("candidate", "none", (), 6),
+    "positive-covered-family-with-a-read-only-helper": (
         "covered",
         "complete",
         (0, 1, 2, 3, 4, 5),
@@ -1798,28 +1880,37 @@ def test_audit_fix_round_4_oracle_is_independent_and_source_complete() -> None:
 def test_all_45_audit_fix_round_4_rows_execute(
     row: dict[str, Any], audit_fix_r4_rows: dict[str, dict[str, Any]]
 ) -> None:
-    observed = audit_fix_r4_rows[str(row["fixture_name"])]
-    assert _outcome_tuple(observed["outcome"]) == (
+    name = str(row["fixture_name"])
+    observed = audit_fix_r4_rows[name]
+    pinned = (
         str(row["expected_outcome"]),
         str(row["expected_reason"]),
         tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
         cast("int | None", row.get("expected_authorized_count")),
     )
+    if name in _R5_MOVES_R4_ROWS:
+        before, after = _R5_MOVES_R4_ROWS[name]
+        assert pinned == before, "the round-4 oracle pin is evidence and may not be edited"
+        expected, expected_identical = after, False
+    else:
+        expected, expected_identical = pinned, bool(row["expected_frozen_v33_identical"])
+    assert _outcome_tuple(observed["outcome"]) == expected
     assert observed["census"] == row["expected_admission_census"]
     identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
-    assert identical is bool(row["expected_frozen_v33_identical"])
+    assert identical is expected_identical
 
 
-def test_the_only_correct_analysis_row_left_accused_is_the_named_open_residual(
+def test_no_correct_analysis_row_in_the_round_4_oracle_is_left_accused(
     audit_fix_r4_rows: dict[str, dict[str, Any]],
 ) -> None:
-    """Thirty-five rows are complete Bonferroni corrections.  Exactly one is still accused.
+    """Thirty-five rows are complete Bonferroni corrections.  None of them is still accused.
 
-    The one is `correct-record-in-helper-distinct-parameter-name`: the record is passed to a
-    helper that stores through its own, differently named parameter.  Argument passing stays a
-    non-capture under the frozen discipline, so nothing binds that parameter to the record and
-    round 4 does not close the row.  It is pinned as an open false accusation rather than left to
-    a later audit, and this test is what keeps the residual set from growing quietly.
+    Round 4 left exactly one accused -- `correct-record-in-helper-distinct-parameter-name`, the
+    record handed to a helper storing through its own, differently named parameter -- and pinned
+    it as an open false accusation rather than leaving it to a later audit.  Round 5 closes it,
+    so the residual set is empty and this test is what keeps it from growing quietly.  The row
+    the oracle still declares open is asserted to be exactly the one round 5 closed, so the
+    declaration cannot be quietly edited away either.
     """
 
     accused = {
@@ -1828,13 +1919,19 @@ def test_the_only_correct_analysis_row_left_accused_is_the_named_open_residual(
         if row["correct_analysis"]
         and audit_fix_r4_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
     }
-    assert accused == _R4_OPEN_RESIDUAL
+    assert accused == _R4_OPEN_RESIDUAL == set()
     declared = {
         str(row["fixture_name"])
         for row in _AUDIT_FIX_R4_ROWS
         if row.get("expected_open_false_accusation")
     }
-    assert declared == _R4_OPEN_RESIDUAL
+    assert declared == _R4_CLOSED_IN_ROUND_5
+    assert _outcome_tuple(audit_fix_r4_rows[next(iter(_R4_CLOSED_IN_ROUND_5))]["outcome"]) == (
+        "abstain",
+        "pvalue-family-collection-unresolved",
+        (),
+        None,
+    )
 
 
 @pytest.mark.parametrize("name", _RECORD_DERIVED_ROWS)
@@ -2197,3 +2294,416 @@ def test_mutation_kill_h_treating_a_bare_iteration_target_as_a_record_costs_four
         assert _r4_outcome(_R4_PROBE) == _R4_REFUSED, "the real probe refuses either way"
     for key in rows:
         assert _corpus_outcome(key)[0] == "candidate", key
+
+
+# --- Round 5: the project-local storing-helper closure ---------------------------------
+
+
+@pytest.fixture(scope="module")
+def audit_fix_r5_rows() -> dict[str, dict[str, Any]]:
+    rows: dict[str, dict[str, Any]] = {}
+    for name, (case_key, source) in _AUDIT_FIX_R5_SOURCES.items():
+        outcome, census = _run_source(case_key, source)
+        rows[name] = {
+            "case_key": case_key,
+            "source": source,
+            "outcome": outcome,
+            "census": census,
+            "frozen": _run_v33(case_key, source),
+        }
+    return rows
+
+
+def test_audit_fix_round_5_oracle_is_independent_and_source_complete() -> None:
+    assert _AUDIT_FIX_R5_ORACLE["provenance"]["implementation_output_used"] is False
+    assert len(_AUDIT_FIX_R5_ROWS) == 25
+    assert sum(bool(row["correct_analysis"]) for row in _AUDIT_FIX_R5_ROWS) == 18
+    assert set(_AUDIT_FIX_R5_ROWS_BY_NAME) == set(_AUDIT_FIX_R5_SOURCES)
+    assert {
+        name: "sha256:" + hashlib.sha256(source).hexdigest()
+        for name, (_case_key, source) in _AUDIT_FIX_R5_SOURCES.items()
+    } == {
+        name: str(row["fixture_source_sha256"]) for name, row in _AUDIT_FIX_R5_ROWS_BY_NAME.items()
+    }
+    # Every fixture is a syntactically valid program, so no row can pass on a parse failure.
+    for _name, (_case_key, source) in _AUDIT_FIX_R5_SOURCES.items():
+        ast.parse(source)
+
+
+@pytest.mark.parametrize("row", _AUDIT_FIX_R5_ROWS, ids=lambda row: row["fixture_name"])
+def test_all_25_audit_fix_round_5_rows_execute(
+    row: dict[str, Any], audit_fix_r5_rows: dict[str, dict[str, Any]]
+) -> None:
+    observed = audit_fix_r5_rows[str(row["fixture_name"])]
+    assert _outcome_tuple(observed["outcome"]) == (
+        str(row["expected_outcome"]),
+        str(row["expected_reason"]),
+        tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+        cast("int | None", row.get("expected_authorized_count")),
+    )
+    assert observed["census"] == row["expected_admission_census"]
+    identical = _outcome_tuple(observed["outcome"]) == _outcome_tuple(observed["frozen"])
+    assert identical is bool(row["expected_frozen_v33_identical"])
+
+
+def test_the_only_correct_analysis_row_left_accused_is_the_imported_helper(
+    audit_fix_r5_rows: dict[str, dict[str, Any]],
+) -> None:
+    """Eighteen rows are correct analyses.  Exactly one is still accused.
+
+    The one is `correct-record-in-helper-imported-from-a-sibling-module`: this recognizer reads a
+    single source file, so a callee defined in another module resolves to nothing it can read.
+    Refusing on an unresolvable callee would refuse every builtin and library call the pinned
+    evidence rows depend on, so the row stays accused and is pinned rather than left to a later
+    audit.  Closing it means widening what the recognizer reads, not what it infers.
+    """
+
+    accused = {
+        str(row["fixture_name"])
+        for row in _AUDIT_FIX_R5_ROWS
+        if row["correct_analysis"]
+        and audit_fix_r5_rows[str(row["fixture_name"])]["outcome"].state == "candidate"
+    }
+    assert accused == _R5_OPEN_RESIDUAL
+    declared = {
+        str(row["fixture_name"])
+        for row in _AUDIT_FIX_R5_ROWS
+        if row.get("expected_open_false_accusation")
+    }
+    assert declared == _R5_OPEN_RESIDUAL
+
+
+@pytest.mark.parametrize("name", _HELPER_STORE_ROWS)
+def test_a_helper_parameter_store_lands_on_its_through_name_siblings_frozen_reason(
+    name: str, audit_fix_r5_rows: dict[str, dict[str, Any]]
+) -> None:
+    """The reason pin is recomputed from the sibling rather than transcribed from 3.4 output.
+
+    3.3 classifies these rows, so the round-1/round-2 authority -- the frozen reason for the row
+    itself -- is unavailable.  The authority is the frozen 3.3 reason for the identical program
+    with the same correction written through the collection's own name.  The equality is
+    asserted three ways: shipped 3.4 on the helper row, the oracle pin, and the live frozen 3.3
+    row of the sibling.
+    """
+
+    row = _AUDIT_FIX_R5_ROWS_BY_NAME[name]
+    sibling = str(row["expected_reason_sibling"])
+    assert sibling in _AUDIT_FIX_R5_SOURCES, name
+    sibling_key, sibling_source = _AUDIT_FIX_R5_SOURCES[sibling]
+    sibling_frozen = _run_v33(sibling_key, sibling_source)
+    observed = audit_fix_r5_rows[name]["outcome"]
+    assert sibling_frozen.state == "abstain"
+    assert observed.state == "abstain"
+    assert (
+        observed.reason_or_classification
+        == sibling_frozen.reason_or_classification
+        == str(row["expected_reason"])
+    )
+    # The pair really is the same program up to where the store is written: the frozen pipeline
+    # classifies the helper spelling and refuses the through-name one.
+    assert audit_fix_r5_rows[name]["frozen"].state == "candidate"
+
+
+def test_the_closed_reason_set_is_unchanged_by_round_5() -> None:
+    """Round 5 adds no reason: it emits the reason rounds 3 and 4 do, already in the set of 61."""
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_4 import (
+        _COLLECTION_ALIAS_REASON,
+    )
+
+    assert _COLLECTION_ALIAS_REASON in _CLOSED_REASONS
+    assert len(_CLOSED_REASONS) == 61
+    for row in _AUDIT_FIX_R5_ROWS:
+        if row["expected_outcome"] == "abstain":
+            assert str(row["expected_reason"]) in _CLOSED_REASONS
+
+
+@pytest.mark.parametrize("name", sorted(_R5_CAPTURING_ROWS))
+def test_every_refused_row_names_a_captured_binding(name: str) -> None:
+    """Non-vacuity: the closure fires because a helper captured a name, not by accident.
+
+    Each refused row is asserted to hand a specific name to a storing helper, named here rather
+    than inferred from the row's outcome, and each read-only control is asserted to capture
+    nothing at all.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        helper_captured_names,
+    )
+
+    _case_key, source = _AUDIT_FIX_R5_SOURCES[name]
+    assert _R5_CAPTURING_ROWS[name] <= helper_captured_names(ast.parse(source)), name
+
+
+@pytest.mark.parametrize("name", sorted(_R5_NON_CAPTURING_ROWS))
+def test_a_read_only_or_builtin_call_captures_no_tracked_name(name: str) -> None:
+    """The closure is over stores.  A live helper call that only reads captures no tracked name.
+
+    The capture set itself is not empty on these rows and is not meant to be: P3's own
+    `compare_settings(roadside[outcome], park[outcome])` calls a project-local helper that reads
+    `park_values.mean()`, which the frozen receiver-method census counts as a mutation of the
+    two data frames.  Neither of those names is the record collection or anything derived from
+    it, and that is exactly the assertion: no name the round-3 and round-4 closures track is
+    captured here.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        helper_captured_names,
+        record_collection_alias_unresolved,
+        record_collection_names,
+        record_derived_names,
+    )
+
+    _case_key, source = _AUDIT_FIX_R5_SOURCES[name]
+    tree = ast.parse(source)
+    captured = helper_captured_names(tree)
+    for collection in record_collection_names(tree):
+        tracked = record_derived_names(tree, frozenset({collection}))
+        assert captured & tracked == frozenset(), (name, collection)
+    assert record_collection_alias_unresolved(tree) is False, name
+
+
+def test_the_read_only_controls_really_do_resolve_their_callee() -> None:
+    """The controls must hold because the helper only reads, not because the name never resolved.
+
+    P3's own presentation loop binds `verdict` and `result`, and a name this module binds twice
+    is not a resolvable callee.  A control spelled with one of those names would pass for the
+    wrong reason, so the two read-only helpers are asserted to be resolvable definitions this
+    module binds exactly once.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        _HelperStores,
+    )
+
+    for name, helper in (
+        ("positive-read-only-helper-on-uncorrected-family", "significance_label"),
+        ("positive-read-only-helper-on-the-whole-collection", "collection_summary"),
+    ):
+        _case_key, source = _AUDIT_FIX_R5_SOURCES[name]
+        tree = ast.parse(source)
+        resolved = _HelperStores(tree)
+        definitions = {
+            node.name
+            for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and id(node) in resolved._definitions
+        }
+        assert helper in definitions, name
+        # And the call really is in the source, so the row is not passing on a missing edit.
+        assert helper.encode("utf-8") + b"(" in source, name
+
+
+def test_recursion_and_mutual_recursion_resolve_to_a_fixpoint() -> None:
+    """A cyclic callee graph converges rather than needing a conservative refusal.
+
+    Mutual recursion that never stores stays non-storing; mutual recursion that stores at one hop
+    makes both sides storing and captures the caller's argument.  Both are asserted on
+    hand-written modules so neither depends on a fixture.  The storing cycle also captures
+    `entry`, the helpers' own parameter name, because names are matched module-wide exactly as
+    they are in rounds 1 to 4: a name reused in two scopes can only add captures.
+    """
+
+    from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
+        helper_captured_names,
+    )
+
+    read_only_cycle = ast.parse(
+        "def left(entry):\n"
+        "    return right(entry)\n"
+        "\n"
+        "def right(entry):\n"
+        "    return left(entry)\n"
+        "\n"
+        "left(record)\n"
+    )
+    storing_cycle = ast.parse(
+        "def left(entry):\n"
+        '    entry["p"] = 1.0\n'
+        "    return right(entry)\n"
+        "\n"
+        "def right(entry):\n"
+        "    return left(entry)\n"
+        "\n"
+        "right(record)\n"
+    )
+    assert helper_captured_names(read_only_cycle) == frozenset()
+    assert helper_captured_names(storing_cycle) == frozenset({"record", "entry"})
+
+
+def test_rounds_3_and_4_rows_are_unmoved_by_round_5(
+    audit_fix_r3_rows: dict[str, dict[str, Any]],
+    audit_fix_r4_rows: dict[str, dict[str, Any]],
+) -> None:
+    """Round 5 adds one edge and moves no earlier row except the residual it was written to close.
+
+    The round-3 canary `correct-explicit-loop-collection-helper-argument` -- the collection handed
+    to a helper that stores through its parameter -- keeps the frozen reason the round-3 oracle
+    pins for it, so the disposition round 3 left open is decided without moving the row.
+    """
+
+    for row in _AUDIT_FIX_R3_ROWS:
+        name = str(row["fixture_name"])
+        assert _outcome_tuple(audit_fix_r3_rows[name]["outcome"]) == (
+            str(row["expected_outcome"]),
+            str(row["expected_reason"]),
+            tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+            cast("int | None", row.get("expected_authorized_count")),
+        ), name
+    assert _outcome_tuple(
+        audit_fix_r3_rows["correct-explicit-loop-collection-helper-argument"]["outcome"]
+    ) == ("abstain", "unresolved-manual-correction-present", (), None)
+    moved = {
+        str(row["fixture_name"])
+        for row in _AUDIT_FIX_R4_ROWS
+        if _outcome_tuple(audit_fix_r4_rows[str(row["fixture_name"])]["outcome"])
+        != (
+            str(row["expected_outcome"]),
+            str(row["expected_reason"]),
+            tuple(cast("list[int]", row.get("expected_corrected_positions", []))),
+            cast("int | None", row.get("expected_authorized_count")),
+        )
+    }
+    assert moved == set(_R5_MOVES_R4_ROWS)
+
+
+@pytest.mark.parametrize("name", sorted(_R5_MOVEMENT_ROWS))
+def test_round_5_keeps_every_pinned_movement_and_every_true_accusation(
+    name: str, audit_fix_r5_rows: dict[str, dict[str, Any]]
+) -> None:
+    """A closure that refused on the call rather than on the store would lose all seven."""
+
+    assert _outcome_tuple(audit_fix_r5_rows[name]["outcome"]) == _R5_MOVEMENT_ROWS[name]
+
+
+# --- Round-5 named mutation kills: apply, confirm, revert, record ----------------------
+
+
+def _r5_outcome(name: str) -> tuple[str, str, tuple[int, ...], int | None]:
+    case_key, source = _AUDIT_FIX_R5_SOURCES[name]
+    outcome, _census = _run_source(case_key, source)
+    return _outcome_tuple(outcome)
+
+
+_R5_PROBE = "correct-record-in-helper-distinct-parameter-name"
+_R5_READ_ONLY_PROBE = "positive-read-only-helper-on-uncorrected-family"
+_R5_ACCUSED = ("candidate", "none", (), 6)
+_R5_REFUSED = ("abstain", "pvalue-family-collection-unresolved", (), None)
+
+
+def test_mutation_kill_i_dropping_the_interprocedural_edge_readmits_the_confirmed_probe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: no call is ever a capture, which is the pre-round-5 discipline exactly.
+
+    Apply the mutant, confirm the confirmed blocker and every other newly closed row come back as
+    the accusations the audit reproduced, revert, and confirm the refusals return.  Recorded:
+    this is the whole round-5 delta, and the round-4 probe still refuses under it, so the two
+    rounds are shown to close different routes rather than the same one twice.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    for name in _HELPER_STORE_ROWS:
+        assert _r5_outcome(name) == _R5_REFUSED, name
+    with monkeypatch.context() as patch:
+        patch.setattr(correction, "helper_captured_names", lambda tree: frozenset())
+        for name in _HELPER_STORE_ROWS:
+            assert _r5_outcome(name) == _R5_ACCUSED, name
+        # The round-4 route is a different one and is untouched by this mutant.
+        assert _r4_outcome("correct-iteration-items-unpack-record-store") == _R4_REFUSED, (
+            "the round-4 iteration probe still refuses"
+        )
+    for name in _HELPER_STORE_ROWS:
+        assert _r5_outcome(name) == _R5_REFUSED, name
+
+
+def test_mutation_kill_j_treating_every_call_argument_as_a_capture_loses_the_e17_p6_movement(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: a name read into any call argument is a capture, builtins and library calls too.
+
+    Round 5 could have been written that way and would have closed the same probe.  Apply the
+    mutant, confirm the pinned E17 P6 `strict_subset` movement is LOST and the read-only control
+    on the uncorrected family loses its accusation, revert, and confirm both come back.
+    Recorded: the frozen `len(OUTCOMES)` and `", ".join(MUSCULOSKELETAL)` non-capture discipline
+    is what callee resolution exists to preserve, and the cost of dropping it is a pinned
+    movement, not a stylistic difference.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    real = correction._object_mutated_names
+
+    def every_call_argument_is_a_capture(tree: ast.Module) -> frozenset[str]:
+        extra = {
+            argument.id
+            for node in ast.walk(tree)
+            if isinstance(node, ast.Call)
+            for argument in (*node.args, *(item.value for item in node.keywords))
+            if isinstance(argument, ast.Name) and isinstance(argument.ctx, ast.Load)
+        }
+        return real(tree) | frozenset(extra)
+
+    assert _r5_outcome("positive-ap-e17-p6-unaltered") == (
+        "candidate",
+        "strict_subset",
+        (0, 1, 2),
+        7,
+    )
+    assert _r5_outcome(_R5_READ_ONLY_PROBE) == _R5_ACCUSED
+    with monkeypatch.context() as patch:
+        patch.setattr(correction, "_object_mutated_names", every_call_argument_is_a_capture)
+        assert _r5_outcome("positive-ap-e17-p6-unaltered") == (
+            "abstain",
+            "unresolved-manual-correction-present",
+            (),
+            None,
+        ), "the pinned E17 P6 strict_subset movement is lost"
+        assert _r5_outcome(_R5_READ_ONLY_PROBE) == _R5_REFUSED
+        assert _r5_outcome(_R5_PROBE) == _R5_REFUSED, "the real probe refuses either way"
+    assert _r5_outcome("positive-ap-e17-p6-unaltered") == (
+        "candidate",
+        "strict_subset",
+        (0, 1, 2),
+        7,
+    )
+    assert _r5_outcome(_R5_READ_ONLY_PROBE) == _R5_ACCUSED
+
+
+def test_mutation_kill_k_treating_a_read_only_helper_as_storing_costs_a_true_accusation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Mutant: every parameter of every resolvable callee is treated as stored through.
+
+    Apply the mutant, confirm the read-only helper control on a genuinely uncorrected family and
+    the read-only helper on the whole collection both lose their accusations, revert, and confirm
+    both come back.  Recorded: the closure is over stores, not over calls, and this is also the
+    non-vacuity proof that those two controls resolve their callee -- a control whose helper name
+    never resolved would be unmoved by this mutant.
+    """
+
+    from sc_referee.scientific_checks import (
+        code_csv_multiple_testing_correction_model_v3_4 as correction,
+    )
+
+    controls = (_R5_READ_ONLY_PROBE, "positive-read-only-helper-on-the-whole-collection")
+    for name in controls:
+        assert _r5_outcome(name) == _R5_ACCUSED, name
+    with monkeypatch.context() as patch:
+        patch.setattr(
+            correction._HelperStores,
+            "_reaches_a_store",
+            lambda self, callee, parameter: True,
+        )
+        for name in controls:
+            assert _r5_outcome(name) == _R5_REFUSED, name
+        assert _r5_outcome("positive-explicit-loop-uncorrected-family") == _R5_ACCUSED, (
+            "the baseline with no helper at all is unmoved"
+        )
+        assert _r5_outcome(_R5_PROBE) == _R5_REFUSED, "the real probe refuses either way"
+    for name in controls:
+        assert _r5_outcome(name) == _R5_ACCUSED, name

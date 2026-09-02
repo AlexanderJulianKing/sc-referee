@@ -468,3 +468,69 @@ recall including E17 `6/6`, the question census `28 -> 27`, and the frozen 3.1/3
 are re-demonstrated unchanged. Blind scoring, promotion arithmetic, role maps, sealed audit bytes,
 wording, contract profile `1.2.0`, qualified lanes, and GrantPins remain unchanged; sealed E17
 stays `4/6`.
+
+**Adversarial audit fix, round 5.** Round 4 closed every binding a correction store can travel
+through inside one scope and named the one route it could not reach. The custodian reproduced that
+route through the real contract and audit pipeline: a correct, complete Bonferroni correction over
+the declared family, written as
+
+```python
+def bonferroni_adjust(entry, n_tests):
+    entry["p"] = min(entry["p"] * n_tests, 1.0)
+
+
+for name, record in results.items():
+    bonferroni_adjust(record, len(OUTCOMES))
+```
+
+is classified `candidate`/`none` over the uncorrected family. Round 4 enumerates `record`
+correctly; the store it looks for is not there. The store is `entry["p"] = ...`, argument passing
+is a non-capture under the frozen discipline, and nothing binds `entry` to the record. Round 4's
+names are matched module-wide, so the twin program whose helper parameter is also called `record`
+already refused: the disposition turned on the parameter name alone.
+
+Round 5 adds one edge. A call whose callee resolves to a project-local definition in the same
+module makes the call site a mutation of every argument whose bound parameter is stored through in
+the callee body. That mutation is checked against the round-3 and round-4 name sets exactly as a
+direct store is, and it lands on the same reason, `pvalue-family-collection-unresolved`, which the
+through-name sibling already carries. No reason is invented and the closed set stays at 61. The
+narrowing again lives only in the v3.4 modules and is applied to classifications only, so the
+byte-frozen lanes are unchanged and no frozen abstention reason can move.
+
+Three dispositions are deliberate. Callee resolution is by definition, not by name shape: a callee
+resolves only to a `def`, an `async def`, a name bound once to a `lambda`, or a method of a class
+defined in this module, and only when the name has exactly one such definition and this module
+binds it nowhere else. Methods resolve through the class name, through a variable bound once to a
+constructor call on that class, or through the enclosing method's own first parameter, with
+`staticmethod` and `classmethod` deciding the receiver; `map` and `filter` resolve their callable
+and apply it to the elements of the iterables beside them, as do `sorted`, `min`, and `max` for
+`key=`. Everything else resolves to nothing and stays a non-capture, which is the frozen
+`len(OUTCOMES)`, `", ".join(MUSCULOSKELETAL)`, `print(record)`, `sorted(results.items())`
+discipline the pinned evidence rows depend on. Argument binding covers the positional slots, the
+keyword names, and both star buckets: a starred or double-starred argument forwards an unknown
+position, so it is bound to every parameter of its callee at once and is captured when any of them
+stores, which is the conservative reading and needs no rule of its own. Recursion resolves to a
+fixpoint rather than to a conservative refusal, because the storing set only grows.
+
+A parameter is stored through when the round-3 and round-4 closures say so, run over the callee
+body with the parameter seeded as both a mapping of records and a sequence of them. The seeding
+difference from the module level is deliberate: a bare `for x in X` target is left opaque at module
+level because the collection's seed does not say whether iterating it yields keys, floats, or
+records, and a parameter has no seed at all -- it holds whatever the call site handed it.
+
+Two boundaries are recorded rather than hidden. A helper defined in a sibling project module stays
+a false accusation, because this recognizer reads one source file and refusing on an unresolvable
+callee would refuse every builtin and library call the pinned evidence rows depend on; the row is
+carried in the round-5 oracle with `expected_open_false_accusation`, and closing it means widening
+what the recognizer reads rather than what it infers. A helper that only reads its parameter, but
+reads it with a method call, is refused, because round 5 reuses the frozen B1/B4 receiver-method
+census unchanged rather than enumerating which method names are safe; no row in the 170 evidence
+sources, the 245 fixtures, or the 50 corpus adapter rows has that shape, so the cost is a pinned
+hypothetical rather than a measured loss, and it too is carried as an oracle row.
+
+Both pinned 3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows,
+every none-flip population including the round-1, round-2, round-3, and round-4 rows, the E10-E17
+retro recall including E17 `6/6`, the question census `28 -> 27`, and the frozen 3.1/3.2/3.3 anchor
+bytes are re-demonstrated unchanged. The round-4 residual set is now empty. Blind scoring,
+promotion arithmetic, role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified
+lanes, and GrantPins remain unchanged; sealed E17 stays `4/6`.
