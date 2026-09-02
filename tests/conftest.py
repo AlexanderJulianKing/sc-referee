@@ -136,9 +136,7 @@ def pytest_addoption(parser: pytest.Parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
-) -> None:
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
     for item in items:
         name = getattr(item, "originalname", None) or item.name
         if item.path.name in _SERIAL_MODULES or (item.path.name, name) in _SERIAL_TESTS:
