@@ -1,0 +1,30 @@
+{
+ "envelope": "blind-envelope-18-2026-09-01",
+ "class": "multiple-testing",
+ "detector": "code_csv_multiple_testing 3.4.0 (development lane), repo f85d4f45 (dev/dependence-growth merge of dev/mt-34 after audit-fix rounds 1-7)",
+ "design_lineage": "3.0 record model + 3.1 questions/attestations + 3.2 AP(C,POS) recognition + 3.3 terminal-presentation/helper-record proofs + 3.4 comprehension normalization, record-derived-binding closure (r3-r4) and fail-closed interprocedural closure (r5-r7); E17-retro 6/6 going in",
+ "contract_note": "the fifteen contracts frozen 2026-09-01T20:20Z on the round-4 detector were re-frozen 2026-09-02 into method-contract-r7/ on the merged detector (only the check implementation digest differed; role authority identical); originals left sealed; see CUSTODY_LOG",
+ "hard_stops": {
+  "negative_candidates": "0/9 accusation candidates PASS",
+  "findings_anywhere": "0 PASS (30 bundles)",
+  "replay": "15/15 identical module_evaluation_digest PASS",
+  "class_fa_window": "0 FA in all 135 available class-specific blind cases PASS"
+ },
+ "first_contact_recall": "2/6 (caught: P1 uncorrected 4-family, P4 uncorrected 3-family)",
+ "positive_misses": {
+  "P2": "hierarchical-gatekeeping-present",
+  "P3": "test-operand-lineage-unresolved",
+  "P5": "pvalue-family-collection-unresolved (the reason the 3.4 record-derived/interprocedural closure lands on; recon pending)",
+  "P6": "authorized-reader-lineage-unavailable"
+ },
+ "true_clearance": "N1 covered/complete (0,1,2,3,4)/5 on a role-map negative: the clearance is true; zero-false-clearance holds",
+ "question_layer": "material_questions on every case; 1 ConditionalConcern (N2); none counted as catches per blind protocol",
+ "blind_review_summary": {
+  "reviewer_recall": "6/6 positives flagged MISSTEP",
+  "reviewer_fa": "1 (N6)",
+  "note": "reviewer verdicts MISSTEP 7 / SOUND 8 / UNCERTAIN 0, completed before any audit output existed"
+ },
+ "class_tally": "window E17+E18 = 4/6 + 2/6 = 6/12; promotion threshold 7/12 NOT reached",
+ "scoring_isolation": "scored from semantic.lock.json registry observations only (e18-tools/score_envelope.py, calibrated on E17); no attestations supplied in any blind run; ROLE_MAP opened only after DRIVER-DONE",
+ "scored_at": "2026-09-02T17:21:13Z"
+}
