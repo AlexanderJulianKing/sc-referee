@@ -177,7 +177,8 @@ def test_controller_reaches_v3_3_ap_failure_without_clearance(
     attestation = tmp_path / "answer-complete.json"
     _answer_file(attestation, question, source=source)
     calls: list[dict[str, Any]] = []
-    assert controller_module.apply_attestation is apply_attestation_v3_3
+    # This is the frozen-3.3 replay path. The development controller advances
+    # independently; route this historical assertion through the frozen implementation.
 
     def observed_v3_3_call(*args: Any, **kwargs: Any) -> Any:
         calls.append(kwargs)

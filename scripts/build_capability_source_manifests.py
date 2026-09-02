@@ -1553,6 +1553,52 @@ def main() -> None:
         "docs/implementation/MULTITEST-3.3-TERMINAL-PRESENTATION-DESIGN-2026-08-30.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v3_3)
+    multiple_testing_v3_4 = deepcopy(multiple_testing_v3_3)
+    multiple_testing_v3_4["detector_version"] = "3.4.0"
+    multiple_testing_v3_4["description"] = (
+        "Normalizes one exact contract-order comprehension into the explicit-loop record graph "
+        "and admits the enumerate row table and the adjacent if-cap fold, only where the "
+        "unchanged multiple-testing 3.3 pipeline abstained."
+    )
+    multiple_testing_v3_4["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_4.py"
+    )
+    multiple_testing_resource_v3_4 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_4.py"
+    )
+    multiple_testing_v3_4["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_4:"
+            "BoundedCodeCsvMultipleTestingConflictV3_4Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_4.read_bytes()),
+    }
+    multiple_testing_v3_4["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_named_disqualifiers_refuse_their_admission"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_all_245_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_4.py::test_e17_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_extension_b_is_not_in_the_shipped_recognizer_set"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_4.py::test_open_corpus_is_byte_identical_to_v3_3"
+        ],
+    }
+    multiple_testing_v3_4["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_4)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )

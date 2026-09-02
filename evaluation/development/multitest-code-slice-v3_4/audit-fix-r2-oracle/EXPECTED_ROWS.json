@@ -1,0 +1,271 @@
+{
+  "profile": "multitest-v3.4-audit-fix-r2-admission-closure-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-09-01",
+    "audit_identity": "MT 3.4 adversarial audit round 2: the comprehension lane's sequence-object gap, the container-display residual left open by round 1, and the collected-name clause evaded through an alias",
+    "design_document": "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md",
+    "design_revision": "0",
+    "implementation_output_used": false,
+    "reason_authority": "Every abstention reason below is the byte-frozen 3.3 analyzer's own reason for the same source. Design section 3.3 steps 5 and 6 require an abstaining 3.4 re-analysis to return that reason unchanged, so the pin is a restatement of the ordering rule rather than a transcription of 3.4 output. The test recomputes the frozen 3.3 row live and asserts three-way equality, so a wrong pin fails rather than passes."
+  },
+  "rows": [
+    {
+      "fixture_name": "correct-ap-selection-sequence-dict-display-escape",
+      "fixture_source_sha256": "sha256:f2b44a0f66d3d4d1b1d860fdfe4dd95ec1d842b304fb070428f47484d0c6c5f3",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "PLAN = {\"family\": MUSCULOSKELETAL} then PLAN[\"family\"].extend(OUTCOMES[3:])",
+        "design_clause": "audit round 2 residual on the round-1 blocker; design section 6.2 position derivation",
+        "design_text": "The selection sequence is grown to the full declared family before the loop runs, so every outcome's p-value is multiplied by the number of comparisons and capped. Round 1 refused a bare Name bound to a non-Name target, but a container display binds the same object with no Store, no augmented assignment, and no method call whose receiver is a Name, so the round-1 census sees nothing move. The recognizer still reads three names and accuses a complete seven-outcome correction of being a strict subset."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["MUSCULOSKELETAL"],
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-ap-selection-sequence-list-display-escape",
+      "fixture_source_sha256": "sha256:4b55ca55485f7e5a211497665f317e31a28c7edcbfc823d567cbe2edb9dfd4d9",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "PLAN = [MUSCULOSKELETAL] then PLAN[0].extend(OUTCOMES[3:])",
+        "design_clause": "audit round 2 residual on the round-1 blocker; design section 6.2 position derivation",
+        "design_text": "The same complete seven-outcome correction, captured by a list display rather than a dict display. Carrying both spellings is what proves the closure covers the display forms as a class rather than one punctuation of one of them."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["MUSCULOSKELETAL"],
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-comprehension-dict-display-escape-shrunk-to-one",
+      "fixture_source_sha256": "sha256:039681bf6e1f0bbcd596184a34831550b4dde0a04c7508f625e9732bda74c23e",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "PLAN = {\"family\": OUTCOMES} then PLAN[\"family\"][1:] = []",
+        "design_clause": "audit round 2 blocker; design section 4.2 generator-sequence resolution",
+        "design_text": "The generator sequence is cut to a single outcome before the comprehension runs, so one test is judged against one fixed threshold and no correction is owed at all. The recognizer reads the six-name literal, lowers the comprehension to six per-outcome tests, and accuses an absent correction over a family of six that never exists."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["OUTCOMES"],
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-comprehension-attribute-escape-shrunk-to-one",
+      "fixture_source_sha256": "sha256:eb9612e744a2c0804d82f0bcf93517f32c963b85ad0eaa23aea9bbc2d4461b6f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "PLAN.family = OUTCOMES then PLAN.family[1:] = []",
+        "design_clause": "audit round 2 blocker; design section 4.2 generator-sequence resolution",
+        "design_text": "The same single-outcome runtime family, reached by binding the sequence to a record field instead of a container display. The field write is round 1's own escape half, which the comprehension lane did not carry."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["OUTCOMES"],
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-comprehension-walrus-escape-shrunk-to-one",
+      "fixture_source_sha256": "sha256:021533007c504a30d6a9dd5304eca759bd62e25f9a1688a44cb237c4104fa6c1",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "_PLAN = (PRIMARY := OUTCOMES) then PRIMARY[1:] = []",
+        "design_clause": "audit round 2 blocker; design section 4.2 generator-sequence resolution",
+        "design_text": "The same single-outcome runtime family, reached by a walrus binding. A walrus is a binding like any other, so it aliases like any other, and the frozen 3.3 outcome-sequence census does not follow it."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["OUTCOMES"],
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "comprehension-sequence-alias-remove",
+      "fixture_source_sha256": "sha256:518a6b96aab526510166b4787a4443f86f0c6849be07cfd45c97744481ccbca8",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "SCREENED = OUTCOMES then SCREENED.remove(\"zinc_mg_kg\")",
+        "design_clause": "audit round 2 gate pin; design section 4.2 generator-sequence resolution",
+        "design_text": "The shape the round-1 builder reported. Five outcomes are tested uncorrected, so the row is not a correct analysis and its abstention is not a recall claim; what it pins is that the admission is refused at the sequence-object gate rather than left to an upstream scope refusal that happens to arrive first."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["OUTCOMES"],
+      "expected_outcome": "abstain",
+      "expected_reason": "analysis-scope-structure-unsupported",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "comprehension-subscript-escape-remove",
+      "fixture_source_sha256": "sha256:2dc38ccd9ab4b509935e28350d63f4d689cfbb8d4895175052849b7add13d1ae",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "REGISTRY[\"family\"] = OUTCOMES then REGISTRY[\"family\"].remove(\"zinc_mg_kg\")",
+        "design_clause": "audit round 2 gate pin; design section 4.2 generator-sequence resolution",
+        "design_text": "Round 1's escape half, reached from the comprehension lane. Five outcomes are tested uncorrected, so this row pins the gate rather than a recall claim, and it is the row that separates the upstream frozen scope census from the lane's own admission: the frozen census follows Name-to-Name bindings only, so it passes this source."
+      },
+      "expected_gate": "sequence-object-stability",
+      "expected_escaped_sequence_names": ["OUTCOMES"],
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "comprehension-collected-target-alias-store",
+      "fixture_source_sha256": "sha256:4a4429e9e6d7914ead1065d6c1e30f19ea731251ed89836863478986ca742c8b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "adjusted = results then adjusted[name][\"p\"] = min(adjusted[name][\"p\"] * len(OUTCOMES), 1.0)",
+        "design_clause": "audit round 2 blocker; design section 4.2 collected-name clause",
+        "design_text": "Section 4.2 requires the collected name to carry no post-construction mutation. The store here is exactly such a mutation, written through a second name for the same collection, where the clause's census cannot see it. The paired control writes the identical store through the collected name itself, and the analyzer refuses to classify that source, so admitting this one turns a refusal into a classification on the strength of a name."
+      },
+      "expected_gate": "collected-name-aliasing",
+      "expected_escaped_sequence_names": [],
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-comprehension-e17-p3-unaltered",
+      "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P3 source, unaltered",
+        "design_clause": "audit round 2 non-vacuity control; design section 6.1 admitted comprehension",
+        "design_text": "A closure that refused every sequence, or every collected name, would lose the pinned P3 movement here."
+      },
+      "expected_gate": null,
+      "expected_escaped_sequence_names": [],
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-comprehension-sequence-alias-without-mutation",
+      "fixture_source_sha256": "sha256:d4ebc716d9e04f52dd0cd2eb11301e06117abc67ddfd43ab16b422ca1050053b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "PRIMARY_OUTCOMES = OUTCOMES, read in the report line and never mutated",
+        "design_clause": "audit round 2 non-vacuity control; frozen B1/B4 record-mutation closure",
+        "design_text": "The closure refuses mutation, not aliasing. A live alias that nothing mutates leaves the generator sequence exactly as its literal shows, so the movement stands and the mutated rows are refused for the mutation rather than for the alias."
+      },
+      "expected_gate": null,
+      "expected_escaped_sequence_names": [],
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-comprehension-collected-target-store-through-name",
+      "fixture_source_sha256": "sha256:e3ce4def97f7a177e4d142fbbc1c556d929d78e386ab3ab4a6bb3d8673bc8964",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "results[name][\"p\"] = min(results[name][\"p\"] * len(OUTCOMES), 1.0), written through the collected name",
+        "design_clause": "audit round 2 non-vacuity control; design section 4.2 collected-name clause",
+        "design_text": "The identical store, written where the frozen clause can see it. Section 4.2 permits a store into a record the collection holds, which is the shape the pinned corpus row uses, so the admission stands here and the aliased row is refused for the alias rather than for the store."
+      },
+      "expected_gate": null,
+      "expected_escaped_sequence_names": [],
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-ap-e17-p6-unaltered",
+      "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P6 source, unaltered",
+        "design_clause": "audit round 2 non-vacuity control; design section 6.1 admitted iterator and 6.2 position derivation",
+        "design_text": "The container-display escape is a further narrowing of the round-1 closure, so the pinned P6 movement is re-demonstrated here rather than assumed."
+      },
+      "expected_gate": null,
+      "expected_escaped_sequence_names": [],
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "expected_corrected_positions": [0, 1, 2],
+      "expected_authorized_count": 7,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,1114 @@
+{
+ "profile": "multitest-v3.4-audit-fix-r7-uniform-fail-closed-oracle-v1",
+ "rows": [
+  {
+   "fixture_name": "correct-record-in-held-append-then-setitem",
+   "fixture_source_sha256": "sha256:59defc63b34f7bd4834e9d8a5d731c846c2259251c07b228e5e506f499a82003",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "held.append(record); for target in held: operator.setitem(target, \"p\", ...)",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "`append` puts the collection's own record object into `held` without copying it, so `held` is a list of the family's records and the loop over it corrects every one of them. The insertion is read-only with respect to the record, which is why the call itself is admitted; what round 6 lost is the record's role, so the element the second loop binds was not tracked and the store through it was invisible."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-held-extend-then-setitem",
+   "fixture_source_sha256": "sha256:263f3d99bcb687b6fba3a465c6a1422a2f3baba40868d7153fa8c90d05990143",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "held.extend(results.values()); for target in held: operator.setitem(target, \"p\", ...)",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "`extend` is `append` over a whole view: the values view hands out the collection's own record objects and the list keeps them. The element shape of the argument is what the container's elements become, so the loop target is a record and the store through it is a store into the family."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-held-container-subscript-store",
+   "fixture_source_sha256": "sha256:d163878becd44b2c610544fcd49131d6bbaef8fb51b2f97c6a6cb6ed6c7e107b",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "held.extend(results.values()); held[index][\"p\"] = ...",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "The store is written through the container rather than through an element name. A nested subscript store is not one of the fill or query forms the insertion container is allowed, so the frozen mutation census refuses `held` exactly as it refuses any other derived name."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-set-display-then-iterated",
+   "fixture_source_sha256": "sha256:085edf57f43f1a3f50a878158d1f968ace463d3ae9f6bde187e4ba9f571e4f1c",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "for target in {record}: operator.setitem(target, \"p\", ...)",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "A set display written around a record hands that record out again when it is iterated. The list and tuple spellings were closed in round 6; the set spelling is the same container."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-dict-display-values-view",
+   "fixture_source_sha256": "sha256:611dd72d65497ff2806cd1a227b638faa50f3b2bd4937ff85ee9028aa49e9565",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "holder = {\"row\": record}; for target in holder.values(): operator.setitem(target, \"p\", ...)",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "A dictionary display written around a record is a container keyed by whatever stands beside it, so its values view hands the record back. Iterating the display itself would yield keys, which is why the mapping role and not the sequence role is what the display carries."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-registry-dict-insertion",
+   "fixture_source_sha256": "sha256:de5d1d1b3e0486732c3af334bfeef79ca88ebc4c55655770254439c5c0f3b9ab",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "registry[name] = record; registry[key][\"p\"] = ...",
+    "design_clause": "audit round 7 rule A(1); blocker 2, allowlisted container insertion loses the record role",
+    "design_text": "A subscript store is an insertion: `registry` holds the collection's own record objects, and the nested subscript store through it corrects the whole family. The insertion itself is a fill and is allowed; the nested store is not, so the container is refused."
+   },
+   "expected_gate": "value-flow-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-through-a-returned-generator-expression",
+   "fixture_source_sha256": "sha256:168127507fde3d92a99f4ea85fd0731a670b46b2888f5426f40e2f77721ac8fa",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def stream(entry): return (entry for _ in range(1))",
+    "design_clause": "audit round 7 rule A(2); blocker 3, return flow misses generators and returned closures",
+    "design_text": "A generator expression is an object that hands out whatever its element expression names. Its element is the parameter itself, so the helper hands the record straight back and the loop over the result binds the record. Round 6 read every lazy display as fresh."
+   },
+   "expected_gate": "lazy-display-return-flow",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-through-a-returned-lambda",
+   "fixture_source_sha256": "sha256:e52fe786c7935880684c026927a62f823ec12df5a389d29b096ce1912bf75207",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def getter(entry): return lambda: entry; target = getter(record)()",
+    "design_clause": "audit round 7 rule A(2); blocker 3, return flow misses generators and returned closures",
+    "design_text": "A `lambda` is the same lazy display one call later: its body names the parameter, so the closure the helper returns carries the record, and calling a callable that already carries the record yields the record."
+   },
+   "expected_gate": "lazy-display-return-flow",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-through-a-lambda-in-a-dict-literal",
+   "fixture_source_sha256": "sha256:9bd62037c9db679d2ee52dc9ebc7fb51ec6ec0a377184dcc001232f2276bfdbe",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "table = {\"fn\": rescale, \"row\": record}; table[\"fn\"](table[\"row\"])",
+    "design_clause": "audit round 7 rule A(2); blocker 3, return flow misses generators and returned closures",
+    "design_text": "The dictionary display carries both a storing callable and the record, and the record is read out of it and handed to the callable read out beside it. The display escape refuses the record and the dictionary-entry callee is unresolvable, so the call fails closed twice over."
+   },
+   "expected_gate": "lazy-display-return-flow",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-through-a-sequence-parameter-sorted",
+   "fixture_source_sha256": "sha256:d59d70ed4199eb166b0fae129f529f2c0428cea45fe81d2e289ffb26779fdc3e",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def ordering(rows): return sorted(rows, key=len); ordered = ordering(list(results.values()))",
+    "design_clause": "audit round 7 rule A(2); blocker 3, return flow misses generators and returned closures",
+    "design_text": "The mirror image of the mapping-key boundary. The argument is a SEQUENCE of records, so iterating it yields the records themselves and the sorted list the helper returns holds them. The key boundary applies to mappings and to nothing else."
+   },
+   "expected_gate": "lazy-display-return-flow",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-transform-through-a-storing-wrapper",
+   "fixture_source_sha256": "sha256:5db401075b2a0fd779c7148769b92fca87df1e2c22b48c144902fb708eb006e5",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def wrapper(entry): direct(entry); Series(...).transform(wrapper)",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "`wrapper` writes nothing in its own body, so a callable classification built from the direct body census reads it as read-only. The interprocedural storing fixpoint says otherwise, and the callable position is therefore decided after the fixpoint has run. `transform` is a callback-bearing method and is not on the never-allowlisted set, so this row is decided by the callable classification and by nothing else."
+   },
+   "expected_gate": "callable-position-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-series-map-through-an-attribute-callable",
+   "fixture_source_sha256": "sha256:f06a30b543082616aced6b046a328789ba9cf795ff54176bd99213c7fbc0e6e7",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "holder.fn = rescale; Series(...).map(holder.fn)",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "A callable held in an attribute of a project object does not resolve to any definition this module can read, so it is storing by default. Only a bound method of a tracked container, whose spelling is on the closed read-only method set, is admitted in a callable position."
+   },
+   "expected_gate": "callable-position-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-sorted-key-through-a-dict-get-callable",
+   "fixture_source_sha256": "sha256:02fc1b809848d2a381e6fd92bdfd48601fe75c56acd1ab6e4ab1d45da71f0970",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "sorted(results.values(), key=ADJUSTERS.get(\"bonferroni\"))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The callable is the result of a call, so nothing about it resolves. Round 6 asked whether the expression was known to carry a storing callable and admitted it because the question had no answer; the question is now the other way round. The read-only `key=` control beside this row is what shows the answer is not simply `no`."
+   },
+   "expected_gate": "callable-position-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-map-through-an-identity-chain",
+   "fixture_source_sha256": "sha256:523158f110773e546a243a836c7812cff4b0683bde469d627c0f9e9af104c4d6",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "list(map(pass_two(rescale), results.values()))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "Two identity functions between the definition and the callable position are enough to hide a storing callable from any propagation keyed on names and containers. A call expression in a callable position is unresolvable and therefore storing."
+   },
+   "expected_gate": "callable-position-fail-closed",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-a-storing-wrapper",
+   "fixture_source_sha256": "sha256:62851de2d36edf1f3b465811c785bb9360042daf790c2b869b65ebe5b88206ad",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def wrapper(entry): direct(entry); Series(...).apply(wrapper)",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "`apply` is on the never-allowlisted callee set, so the callable beside it is never consulted and this row is decided by the other half of the rule: a callback-bearing call writes through its RECEIVER, and the receiver here is a Series built from the collection's own records. Round 6 reached the receiver's roots only when it already knew the argument carried a storing callable, which is exactly what it could not decide."
+   },
+   "expected_gate": "callback-receiver-roots",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-an-attribute-callable",
+   "fixture_source_sha256": "sha256:01e7afb5c9d2f202320b6d4970570d15c7fde5e81a926fbf1ebbbb36647950ec",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "holder.fn = rescale; Series(...).apply(holder.fn)",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The same receiver route with the callable held in an attribute. Under round 6 the callable was unreadable, so the receiver was never reached and the correction was invisible."
+   },
+   "expected_gate": "callback-receiver-roots",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-a-dict-get-callable",
+   "fixture_source_sha256": "sha256:d4c5228b5ec010a9fd5294aba01d0d619be8bfe3151723da3485b726812a7c9a",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "Series(...).apply(ADJUSTERS.get(\"bonferroni\"))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The same receiver route with the callable taken out of a dictionary by call."
+   },
+   "expected_gate": "callback-receiver-roots",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-an-identity-chain",
+   "fixture_source_sha256": "sha256:bc352c60c56bb7c79b1c55502b41e747aa3ea972dc196036ae7c93fe7e85ca67",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "Series(...).apply(pass_two(rescale))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The same receiver route with the callable returned by a chain of identity functions."
+   },
+   "expected_gate": "callback-receiver-roots",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-a-comprehension-callable",
+   "fixture_source_sha256": "sha256:66354c8087cd7a9728041ae854afc998ef821bd216fc86f6dfb6f3c44b1e8948",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "adjusters = [lambda entry, n=n: ... for n in [len(OUTCOMES)]]; Series(...).apply(adjusters[0])",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The same shape, already closed before this round: the round-6 definition escape refuses a lambda whose body stores through a free-variable route wherever it is written, so the comprehension that produces it is what refuses. Measured under the round-7 receiver mutant and unmoved by it, which is what makes it a control for the four rows above rather than a fifth instance of them."
+   },
+   "expected_gate": "inherited-closure",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-apply-through-functools-partial",
+   "fixture_source_sha256": "sha256:c03179e0d9419834322c9e236032e969ec877a2c269cc9555e77d03c99f88035",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "Series(...).apply(functools.partial(rescale_n, n=len(OUTCOMES)))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The same shape, already closed before this round: `functools.partial` of a storing definition is a storing callable under the round-6 propagation, and a call carrying one reaches the receiver's roots in round 6 too. Measured under the round-7 receiver mutant and unmoved by it."
+   },
+   "expected_gate": "inherited-closure",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-json-namespace-masquerade",
+   "fixture_source_sha256": "sha256:93bc39cd3aa97b4d544c3f613bda2490de9abf5eaa13b1d828587a93d55848ac",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "class Mutator: @staticmethod def dumps(entry, family_size): ...; json = Mutator",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The receiver spelling `json` is bound by an assignment, not by an import, so it is not the library module and the qualified allowlist entry does not apply. It is a bare class alias, which resolves to the class, whose `dumps` staticmethod stores through the record it is handed."
+   },
+   "expected_gate": "import-resolved-allowlist",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-an-aliased-storing-library-function",
+   "fixture_source_sha256": "sha256:b9d3d8f3b16b9fef66f721b8925a21f981a447509945e3608987f57377f46704",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "from operator import setitem as put; put(record, \"p\", ...)",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The local alias says nothing about what the name denotes. The import resolves it to `operator.setitem`, which is not an allowlisted target, so the call fails closed however it is spelled locally."
+   },
+   "expected_gate": "import-resolved-allowlist",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-writer-rebound-to-a-project-class",
+   "fixture_source_sha256": "sha256:3b5c52558a343cd951444ef22f33f0918437986531194e71c66d082d767100a2",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "class LocalWriter: def writerow(self, entry): ...; writer = LocalWriter(); writer.writerow(record)",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "`writerow` is admitted only on a receiver bound exactly once to a `csv` writer constructor. This receiver is bound to a project-local class, so the method resolves to that class's own definition and its store through the record is seen."
+   },
+   "expected_gate": "import-resolved-allowlist",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-record-in-a-masquerade-beside-a-real-import",
+   "fixture_source_sha256": "sha256:d0e2556b07aad8c4a2ec46fe585a5bdf3ef8e1778bdfa6d0af8103e388540fd9",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "import json; class Mutator: ...; json = Mutator; json.dumps(record, 6)",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The same masquerade written beside a genuine `import json`. The upstream API-resolution gate sees one name bound both by an import and by an assignment and declines the source before the classification closure is reached, so the row carries that gate's frozen reason. It is recorded because it is a complete correct Bonferroni pass and must never be accused."
+   },
+   "expected_gate": "earlier-gate-refusal",
+   "expected_outcome": "abstain",
+   "expected_reason": "api-resolution-ambiguous",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true
+  },
+  {
+   "fixture_name": "correct-record-in-a-yield-helper",
+   "fixture_source_sha256": "sha256:bfdbd31d59f0cb3a1ed4b7877afbbcb0d416db7aab779cdabf1c28738b96e766",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "def stream(entry): yield entry; for target in stream(record): ...",
+    "design_clause": "audit round 7 rule A(2); blocker 3, return flow misses generators and returned closures",
+    "design_text": "A generator function is the eager spelling of the returned generator expression. The frozen helper gate declines any source with a `yield` in a helper before the classification closure is reached, so the row keeps that gate's reason. Recorded as a pin: the shape is closed, but not by this round's rule."
+   },
+   "expected_gate": "earlier-gate-refusal",
+   "expected_outcome": "abstain",
+   "expected_reason": "helper-async-decorator-or-yield-unsupported",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true
+  },
+  {
+   "fixture_name": "correct-record-in-map-over-a-held-container",
+   "fixture_source_sha256": "sha256:b4702c4ca740929cf07de8590349132dc35830b33ed5709fb778f2d6f87bf18d",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "held.extend(results.values()); list(map(rescale, held))",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "`map` hands each element of the container to the storing callable beside it, and the container holds the collection's records. The frozen consumer proof declines this source earlier, so the row carries that reason; it is recorded because the pass is correct and complete and must never be accused."
+   },
+   "expected_gate": "earlier-gate-refusal",
+   "expected_outcome": "abstain",
+   "expected_reason": "unresolved-pvalue-consumer",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true
+  },
+  {
+   "fixture_name": "positive-import-alias-json",
+   "fixture_source_sha256": "sha256:cc6ffcf40a24544c34655ac32a76ad71c5afb132c212986ebc492032be8ef662",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "import json as payload; print(payload.dumps(results))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The alias resolves to `json.dumps`, which is an allowlisted target, so the call is read-only and the family it serializes is still uncorrected. Round 6 matched the receiver spelling and refused a family that really was left uncorrected."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-from-import-alias-dumps",
+   "fixture_source_sha256": "sha256:63bc3b3be252faa1a4481476b354cb313fa1a4e33d844ebe5278e6846e1486d6",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "from json import dumps as serialize; print(serialize(results))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "A bare name resolves the same way a qualified one does: the import says `json.dumps`, and the local spelling is not consulted."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-json-dumps-through-a-plain-import",
+   "fixture_source_sha256": "sha256:d1ad7faa91a299b3529db42a11bcd8be1ecd9ecae536f35d8c26f5727901088c",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "import json; print(json.dumps(results))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The unaliased control for the two rows above. It keeps its accusation in every round, and it is here so that the alias rows are shown to differ from it only in the import spelling."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-copy-deepcopy-of-the-collection",
+   "fixture_source_sha256": "sha256:9fdd9ecb76f54b6c514fc9d0abfa757fb40719228fff12a529d093cb91eda454",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "snapshot = copy.deepcopy(results); print(len(snapshot))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "`copy.deepcopy` builds a new object graph and cannot write into the one it reads, and the snapshot it returns is not the collection's records. The family is untouched and uncorrected."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-copy-copy-and-math-log",
+   "fixture_source_sha256": "sha256:4058b73e7cfffa374f03c3952663d04efd48cb3bbf26f7d9342b3cc5c82637bd",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "snapshot = copy.copy(results); print(len(snapshot), math.log(len(results)))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "`copy.copy` and the `math` reducers return a new container and a new number respectively. The `math` entries are the scalar-returning siblings of the already-measured `statistics` reducers, and this is the row that puts them on the list."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-pprint-of-the-collection",
+   "fixture_source_sha256": "sha256:e57edcf3ea488c93ebe4228c92e3c50cab0ead7ea924a74b658875a78105db45",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "pprint.pprint(results)",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "A reporting API that formats what it is handed. It is the `print` of the standard library and is admitted on the same ground."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-csv-dictwriter-writerow",
+   "fixture_source_sha256": "sha256:e14be0a21779efc91ebf774988cf59c1278a3d44770249cd0554cd7acccf4617",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "writer = csv.DictWriter(handle, fieldnames=[...]); writer.writerow(record)",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The receiver is bound exactly once to a `csv` writer constructor, so `writerow` is that library's method and it serializes the record it is handed. Every record of the family is written out and none of them is corrected."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-seen-index-and-count",
+   "fixture_source_sha256": "sha256:d165846aa22009c41d36a7497a67348be409f080712a93e9c26ebfa308c86343",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "seen.append(record); print(seen.index(record), seen.count(record))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "The insertion makes `seen` a container of the family's records, and rule A(1) is what puts it there. `index` and `count` locate a record in it without writing into either, so the container is filled and read and the family stays uncorrected. This is the row that decides the insertion container is judged on its stores rather than on the insertion itself."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-transform-with-a-read-only-project-helper",
+   "fixture_source_sha256": "sha256:cafda23ae58bd4124a0484702e111a5ba36786415091b3e42714e57068ba0010",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "Series(list(results.values())).transform(reader) with def reader(entry): return entry[\"p\"]",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The control for the callable classification: the same callback-bearing method with a project-local helper that provably only reads. It keeps its accusation, so the rule is shown to admit as well as refuse rather than refusing every callback in sight."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-sorted-key-read-only-lambda",
+   "fixture_source_sha256": "sha256:12ff731efdb94da9a491e99b5c6d28933fdf7418eac1be8f26826f227f88e504",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "sorted(results.values(), key=lambda row: row[\"p\"])",
+    "design_clause": "audit round 7 rule B; blocker 4, storing-callable propagation is incomplete",
+    "design_text": "The measured read-only `key=` control, one call away from its storing sibling above."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-sorted-key-bound-method",
+   "fixture_source_sha256": "sha256:c0b2b26a8fbcc359c0764ca82522d5b46d618f0e0a16934ce05f8202da0d1433",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "print(sorted(results, key=results.get))",
+    "design_clause": "audit round 7 rule C; blockers 1 and 5, the allowlist keyed on spellings",
+    "design_text": "A bound method of a tracked container standing in a callable position. `get` reads its receiver and writes into nothing, so the callable is admitted and the sort is read-only. This is the row that decides the closed read-only bound-method set."
+   },
+   "expected_gate": "read-only-allowlist",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-functools-wraps-read-only-helper",
+   "fixture_source_sha256": "sha256:6718f2b43d86d3f2f10bd1c363f9147b8255f0c9afe6809f739848c604e959cb",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "def logged(func): @functools.wraps(func) def wrapper(entry): return func(entry); ...",
+    "design_clause": "audit round 7 semantics fix D(3); blocker 5, a genuine functools.wraps wrapper",
+    "design_text": "The decorator returns a wrapper that only forwards its argument to the wrapped function and writes through nothing, so the decorated name behaves argument for argument like the read-only helper it decorates. The proof is structural: one parameter, one returned nested definition, no store, and no call but a call of the decorator's own parameter."
+   },
+   "expected_gate": "forwarding-decorator",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-summarize-keys-fresh",
+   "fixture_source_sha256": "sha256:357de3ffd9716572c210bdfe99b53abda9ba652fdef926c38e9a93c612a9de52",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "def summarize(table): return {\"names\": list(table)}",
+    "design_clause": "audit round 7 rule A(3); blocker 6, freshness follows mapping keys into a fresh result",
+    "design_text": "Iterating a mapping yields its keys, and a key is not a record. The dictionary the helper returns holds strings, so the caller's store into it cannot reach the family, which really was left uncorrected. This is the module-level bare-iteration boundary applied one scope in."
+   },
+   "expected_gate": "mapping-key-freshness",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-summarize-sorted-keys-fresh",
+   "fixture_source_sha256": "sha256:235ab87c65edf5f3efa9d841ca00eef1121f4c288be9e244d4b0e199438d4df8",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "def summarize(table): return {\"names\": sorted(table)}",
+    "design_clause": "audit round 7 rule A(3); blocker 6, freshness follows mapping keys into a fresh result",
+    "design_text": "The same boundary through a different wrapper. `sorted`, `list`, `tuple`, `iter`, `reversed`, `enumerate`, and `zip` all iterate; `dict` copies and is deliberately not one of them."
+   },
+   "expected_gate": "mapping-key-freshness",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-class-scope-lookup",
+   "fixture_source_sha256": "sha256:6a152f27fbc8ddafb3ee334d488c3fe3f116bb871a77a9c8336c9ae706262097",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "def inspect(entry): ...; class Report: def inspect(self): ...; def show(self, entry): return inspect(entry)",
+    "design_clause": "audit round 7 semantics fix D(1); blocker 7, class scopes in function lexical lookup",
+    "design_text": "Python resolves the bare `inspect` inside `Report.show` to the module-level function; a class namespace is not an enclosing lexical scope. Round 6 walked method to class to module and resolved it to the storing method, so a read-only helper lost the accusation its uncorrected family had earned."
+   },
+   "expected_gate": "class-scope-resolution",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "boundary-unawaited-async-call",
+   "fixture_source_sha256": "sha256:a0728ec16da432f56932fe82180556623069694ab23cb76dfdba1755b7323856",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "async def inspect(entry): entry[\"scratch\"] = 1; inspect(record)",
+    "design_clause": "audit round 7 pin E; the round-5 async disposition",
+    "design_text": "Calling an `async def` without awaiting it creates a coroutine and runs no body, so the store never happens and the family really is left uncorrected. The disposition stays conservative: this recognizer does not reason about awaits, and adding that reasoning is a widening no evidence row asks for. Recorded as a cost rather than closed."
+   },
+   "expected_gate": "inherited-boundary",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "boundary-lru-cache-decorated-read-only-helper",
+   "fixture_source_sha256": "sha256:758eb4ef1056641f6bff1a356bdfcc2ee40ddd0a1cc668ca4de059389590fc10",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "@functools.lru_cache(maxsize=None) def show(entry): ...",
+    "design_clause": "audit round 6 decorator transparency; round 7 pin",
+    "design_text": "The decorator is a library call this module cannot read, so what the decorated name really runs is unknown and the call fails closed. The forwarding-decorator proof covers a project-local wrapper and deliberately not an arbitrary library decorator. Inherited from round 6 unchanged."
+   },
+   "expected_gate": "inherited-boundary",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "boundary-record-inserted-by-subscript-into-a-second-mapping",
+   "fixture_source_sha256": "sha256:4d805783487e379d7c4ac2f9bead77665fd23a9b3ed8310a60f38238cc197cdd",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "registry[name] = record; print(len(registry))",
+    "design_clause": "rounds 1 and 2, the display and field escape",
+    "design_text": "A bare name bound into a subscript location escapes into a place whose later mutations are not enumerable, which is the round-1 and round-2 rule and is why the storing sibling of this row refuses. The read-only spelling pays for it. Inherited unchanged; rule A(1) does not widen or narrow it."
+   },
+   "expected_gate": "inherited-boundary",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "boundary-read-only-helper-calling-values-on-its-parameter",
+   "fixture_source_sha256": "sha256:ce99434c18e0b2276f3fe9a256d8f365144fff723b36773a3b9faf0b80aa70d3",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "def collect(table): return [row[\"p\"] for row in table.values()]",
+    "design_clause": "the frozen receiver-method census",
+    "design_text": "The frozen B1/B4 census reads any receiver method call as an in-place mutation of the receiver, so a helper that calls `.values()` on its parameter is read as storing through it. This is the same cost the round-6 oracle pins for `.keys()`, `.items()`, and `.copy()`, one more method along."
+   },
+   "expected_gate": "inherited-boundary",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "boundary-read-only-pandas-apply",
+   "fixture_source_sha256": "sha256:07f55926e4050ed30e896b443f461c90692a5a0a14228229712e2812c5edcb52",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "Series(list(results.values())).apply(reader) with def reader(entry): return entry[\"p\"]",
+    "design_clause": "the never-allowlisted callee set",
+    "design_text": "`apply` is on the never-allowlisted set, so a call spelled that way fails closed whatever the callable beside it does. The set is what stops the whole Direction-1 apply class, and the price is a read-only apply over an uncorrected family. Inherited from round 6 unchanged."
+   },
+   "expected_gate": "inherited-boundary",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "correct-explicit-loop-record-store-through-name",
+   "fixture_source_sha256": "sha256:6bd19b48d9b54445d21007d81c0bada35c6599ca81081ee6b1be275bfc9b241f",
+   "correct_analysis": true,
+   "derivation": {
+    "audit_probe_shape": "for name in results: results[name][\"p\"] = min(results[name][\"p\"] * len(OUTCOMES), 1.0)",
+    "design_clause": "the frozen 3.3 reason authority",
+    "design_text": "The identical program with the same complete correction written through the collection's own name. The frozen 3.3 pipeline refuses it because the member each store names cannot be resolved, and that reason is the reason every closed row above carries."
+   },
+   "expected_gate": "reason-authority",
+   "expected_outcome": "abstain",
+   "expected_reason": "pvalue-family-collection-unresolved",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+  },
+  {
+   "fixture_name": "positive-explicit-loop-uncorrected-family",
+   "fixture_source_sha256": "sha256:d1e9a8b1dfa179436566db2eb4e7fc1d8623ef5ad05cfb1d4ee734a04a04fe08",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the explicit-loop rewrite with no block at all",
+    "design_clause": "the pinned 3.4 P3 movement",
+    "design_text": "The baseline every other row is one block away from: the family is collected and never corrected, and the row is the accusation the whole closure exists to preserve."
+   },
+   "expected_gate": "movement-control",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-covered-family-with-a-library-call",
+   "fixture_source_sha256": "sha256:789be0493a9c8eaf95bfe3ce01d1872293b48108114a6e2cd690737a85645869",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the correction carried out on the threshold, with print(len(results)) beside it",
+    "design_clause": "the coverage guard",
+    "design_text": "A complete correction written on the decision threshold rather than on the p-values, with a live read-only library call over the collection beside it. Coverage classifications are guarded by the same closure, and this row is what shows guarding them costs nothing."
+   },
+   "expected_gate": "movement-control",
+   "expected_outcome": "covered",
+   "expected_reason": "complete",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 0,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": true,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5
+   ]
+  },
+  {
+   "fixture_name": "positive-comprehension-e17-p3-unaltered",
+   "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the sealed E17 P3 source, carried unaltered",
+    "design_clause": "the pinned 3.4 P3 movement",
+    "design_text": "The sealed source itself, with no edit of any kind. Its `candidate`/`none` classification over an authorized family of 6 is the movement this whole slice exists for."
+   },
+   "expected_gate": "movement-control",
+   "expected_outcome": "candidate",
+   "expected_reason": "none",
+   "expected_admission_census": {
+    "cap": 0,
+    "comprehension": 1,
+    "enumerate": 0,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_authorized_count": 6,
+   "expected_corrected_positions": []
+  },
+  {
+   "fixture_name": "positive-ap-e17-p6-unaltered",
+   "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+   "correct_analysis": false,
+   "derivation": {
+    "audit_probe_shape": "the sealed E17 P6 source, carried unaltered",
+    "design_clause": "the pinned 3.4 AP movement",
+    "design_text": "The sealed source itself, with no edit of any kind. Its `strict_subset` classification over corrected positions (0, 1, 2) of an authorized family of 7 is the movement mutation kill (c) shows is lost when the allowlist is keyed on spellings again."
+   },
+   "expected_gate": "movement-control",
+   "expected_outcome": "candidate",
+   "expected_reason": "strict_subset",
+   "expected_admission_census": {
+    "cap": 1,
+    "comprehension": 0,
+    "enumerate": 1,
+    "terminal-ifexp": 0
+   },
+   "expected_frozen_v33_identical": false,
+   "expected_authorized_count": 7,
+   "expected_corrected_positions": [
+    0,
+    1,
+    2
+   ]
+  }
+ ],
+ "provenance": {
+  "implementation_output_used": false,
+  "authored_from": [
+   "the round-7 design: rule A value flow fails closed like callee flow, rule B callable positions fail closed, rule C the allowlist keyed on import-resolved targets, and the three resolution-semantics fixes D(1) to D(3)",
+   "the frozen 3.3 reason carried by the through-name sibling row",
+   "the Codex round-6 adversarial audit ledger, whose eight blockers and two direction ledgers these rows reproduce as anchored edits of the sealed E17 P3 source with the explicit-loop rewrite"
+  ],
+  "source_construction": "each row is one anchored edit of the sealed E17 P3 analysis source: the collection comprehension is rewritten as the equivalent explicit loop, one block is placed immediately after the collection statement, and any definitions are placed immediately before `def main():` with any imports after `from scipy import stats`",
+  "corrected_positions_note": "the corrected-position tuples of the classified movement rows are read back from the source rather than authored, because they are properties of the sealed case and are pinned identically by the round-2 through round-6 oracles",
+  "earlier_gate_note": "three correct-analysis rows carry a frozen reason other than the through-name sibling's, because an upstream gate -- API resolution, the helper yield census, and the p-value consumer proof -- declines the source before the classification closure is reached. They are recorded because a complete correct Bonferroni pass must never be accused, whichever gate is what keeps it from being accused."
+ }
+}

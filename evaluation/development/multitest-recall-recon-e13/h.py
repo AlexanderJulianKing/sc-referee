@@ -19,7 +19,7 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2_2 import
     analyze_code_csv_multiple_testing_dataflow,
 )
 
-REPO = Path("/Users/alexanderking/Desktop/random_stuff/sc-referee-vnext")
+REPO = Path(__file__).resolve().parents[3]
 E10 = REPO / "evaluation/development/blind-envelope-10-2026-08-24/cases"
 E11 = REPO / "evaluation/development/blind-envelope-11-2026-08-25/cases"
 E12 = REPO / "evaluation/development/blind-envelope-12-2026-08-26/cases"

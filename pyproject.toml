@@ -32,6 +32,7 @@ dev = [
   "mypy>=1.10",
   "pytest>=8.2",
   "pytest-cov>=5.0",
+  "pytest-xdist>=3.6",
   "ruff>=0.6",
   "types-jsonschema>=4.22",
   "types-PyYAML>=6.0",
@@ -147,6 +148,7 @@ testpaths = ["tests"]
 pythonpath = [".", "src", "evaluation/src"]
 markers = [
   "retired_report_lane: withdrawn report-evidence qualification lane; historical only",
+  "serial: wall-clock- or order-sensitive; run outside the opt-in parallel pass",
 ]
 
 [tool.ruff]

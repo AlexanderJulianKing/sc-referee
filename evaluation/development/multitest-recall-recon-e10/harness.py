@@ -3,7 +3,7 @@ from collections import Counter
 from pathlib import Path
 from decimal import Decimal, InvalidOperation
 
-REPO = Path("/Users/alexanderking/Desktop/random_stuff/sc-referee-vnext")
+REPO = Path(__file__).resolve().parents[3]
 CASES = REPO/"evaluation/development/blind-envelope-10-2026-08-24/cases"
 sys.path.insert(0, str(REPO/"src"))
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v1 import (

@@ -1,0 +1,994 @@
+{
+  "profile": "multitest-v3.4-audit-fix-r4-record-derived-binding-closure-oracle-v1",
+  "rows": [
+    {
+      "fixture_name": "correct-iteration-items-unpack-record-store",
+      "fixture_source_sha256": "sha256:a8d98cfb5450ff93bf8bde404801ff700b4fd7d749b260db43cea046b28e9ff0",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): record[\"p\"] = min(record[\"p\"] * len(OUTCOMES), 1.0)",
+        "design_clause": "audit round 4 confirmed BLOCKER; design section 3.3 ordering rule steps 3 and 5",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The round-3 audit reported this shape by name.  It is the plainest spelling of the class: a loop target bound from a mapping view holds the record itself, and round 3's Name-to-Name alias edges cannot reach it."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-values-loop-record-store",
+      "fixture_source_sha256": "sha256:faedb2dee8b3abaa6fa082f2326521eb645c8151c9c422cb7421b2624cd0a48f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in results.values(): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: values view",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The values view hands out the same record objects the collection holds."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-iter-values-record-store",
+      "fixture_source_sha256": "sha256:4681431ea5acd266d4f6039232e8108b4f729f9d1dfa4e2e4815429422e2805e",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in iter(results.values()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: iter() wrapper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `iter` re-wraps an iterable without copying what it yields."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-enumerate-values-record-store",
+      "fixture_source_sha256": "sha256:8d5e9086abec811497c4a1b0df4bf0bdaab49897481bfb88f9c9e55a70cacaaa",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for index, record in enumerate(results.values()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: enumerate wrapper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `enumerate` pairs an index with each element; the index is not a record and the second element is."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-enumerate-items-nested-unpack-record-store",
+      "fixture_source_sha256": "sha256:f0616307e7b4b807deca35609f98849223d885219f1b2765ce997eeefe27aa16",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for index, (name, record) in enumerate(results.items()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: nested unpack under enumerate",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The record is two unpack levels down, so the closure has to distribute the element shape through a nested target rather than only over a flat one."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-zip-values-record-store",
+      "fixture_source_sha256": "sha256:4f5b4abdad458ee23a0ccc20fdaea19940c7642981594e34b16684863fd53d91",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record, label in zip(results.values(), OUTCOMES): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: zip wrapper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `zip` pairs elements positionally, so only the position that reads the values view is a record."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-sorted-items-record-store",
+      "fixture_source_sha256": "sha256:bd4711c60a3fa85327a544af9a027e2d6534a1c02a62931d8062c632ff9c1aa1",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in sorted(results.items()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: sorted wrapper over the items view",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `sorted` reorders the same objects."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-sorted-values-keyed-record-store",
+      "fixture_source_sha256": "sha256:8484408580ef71063bfea5e5405087a0cc3e54b847800f635ce47e901aecb454",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in sorted(results.values(), key=...): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: sorted wrapper with a key callable",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The key callable reads each record and returns something else; it does not change what the loop target is bound to."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-list-values-record-store",
+      "fixture_source_sha256": "sha256:2a2317882e1c6a97a09f6b46b4df83fe88d30bad1721eacc1165ca9850a1e0d3",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in list(results.values()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: list wrapper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `list` copies the container, not the records inside it."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-reversed-list-values-record-store",
+      "fixture_source_sha256": "sha256:93cc7aaf5a26fe5d3b63f3d23e816edef07ec45ca5d93dee18c353c2737de19f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in reversed(list(results.values())): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: nested wrappers",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  Two wrappers deep is the same binding; the closure resolves the wrapper chain rather than matching one spelling."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-tuple-values-record-store",
+      "fixture_source_sha256": "sha256:ae6d4d3aba16ac24a39ee8c3a465dae7edf09931679d4095c0e0cf3bedc64504",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in tuple(results.values()): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: tuple wrapper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `tuple` copies the container, not the records inside it."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-dict-copy-items-record-store",
+      "fixture_source_sha256": "sha256:e26e2e298d8d214144e83186c678c2030bc293269c0ecaa8f72c149b7b594238",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in dict(results).items(): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 1: shallow mapping copy, then the items view",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `dict(X)` is a shallow copy: a different mapping holding the same record objects, so a store through one of its records changes what the original collection reads."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-iteration-comprehension-target-record-store",
+      "fixture_source_sha256": "sha256:c96869dcd2e4d76ea23f4b7df5cb43780b01b36693520986dd03325240e64592",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "[record.update({\"p\": ...}) for record in results.values()]",
+        "design_clause": "record-derived binding form 1: comprehension target",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A comprehension generator binds its target exactly as a `for` statement does."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-subscript-subscript-bound-record-store",
+      "fixture_source_sha256": "sha256:e3e5ccce0314022064d279c1a6b9be2ee76f26252ff05170ae8fcf2d1b8085b6",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "record = results[name]; record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 2: subscript",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A subscript of the collection is the record itself."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-subscript-get-bound-record-store",
+      "fixture_source_sha256": "sha256:78ef337d77518ec0530425970ff116d56727098f4579181a3f11de52cd90654c",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "record = results.get(name); record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 2: get lookup",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `get` hands out the stored record, not a copy."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-subscript-setdefault-bound-record-store",
+      "fixture_source_sha256": "sha256:240a83201cb3defd6133b0d59f2c1a7fb3bd9435e90e7dcec302bb02ba91845d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "record = results.setdefault(name, {...}); record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 2: setdefault lookup",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `setdefault` hands out the stored record when the key is present, which it always is here."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-subscript-list-values-index-record-store",
+      "fixture_source_sha256": "sha256:e777d5fba7340032bdcf2d3495dffdb1cc13422e97bf777109d1bbfae1a82e4f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "record = list(results.values())[index]; record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 2: index into a wrapped view",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  Indexing a list built from the values view is the same record the collection holds."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-walrus-get-bound-record-store",
+      "fixture_source_sha256": "sha256:e1774d63fd05f2f5f1400b7503c12e0e81fbcfcfb7299e108199e6262f245418",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "if (record := results.get(name)) is not None: record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 3: walrus over a lookup",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A walrus is a binding like any other, so it binds a record like any other."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-walrus-container-loop-record-store",
+      "fixture_source_sha256": "sha256:89b7d24e97241ea3f62fa0e5bc9c16b7ef5a4dabb5c1a67529ccf2026f36645f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in (family := list(results.values())): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 3: walrus over a container",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The walrus names the container and the loop target names its elements; both are enumerated."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-chained-alias-items-unpack-record-store",
+      "fixture_source_sha256": "sha256:47085c334acb3f19a64549b4358fabb30ad17123b3ff70bfd18a3ef8ae22732f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "adjusted = results; for name, record in adjusted.items(): record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 4: a view of a round-3 alias",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The chain starts at a round-3 alias edge and continues through a mapping view."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-chained-container-name-then-loop-record-store",
+      "fixture_source_sha256": "sha256:340296e82249f7e3fb87242afaaf546bb8720ca944b6142729b4adfcc5a291e0",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "family = list(results.values()); for record in family: record[\"p\"] = ...",
+        "design_clause": "record-derived binding form 4: a name for the container, then its elements",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The container is named first and iterated later, so nothing in one statement shows both halves of the binding."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-chained-record-rebound-to-a-third-name-record-store",
+      "fixture_source_sha256": "sha256:6c3407a57b8879af7eff9f6566ead4852df8646445081140bf089acf67a273a9",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): target = record; target[\"p\"] = ...",
+        "design_clause": "record-derived binding form 4: a record rebound to a third name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A bare rebinding of a record is undirected exactly as the round-3 alias edge is."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-chained-nested-loop-inside-items-unpack-record-store",
+      "fixture_source_sha256": "sha256:f2a94ed2c5d9d7fce588a1cf483111a8360b0f82556669696d7ef898245c4b72",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): for field in (\"p\",): record[field] = ...",
+        "design_clause": "record-derived binding form 4: a nested loop inside the record loop",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The store is two loops deep and its key is itself a loop variable, so nothing about the store statement names the family."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-collection-copy-method-items-record-store",
+      "fixture_source_sha256": "sha256:36221f4c0538eeb1507923823495680ac7be6eb43d4173f25be0a620d8713566",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "copied = results.copy(); for name, record in copied.items(): record[\"p\"] = ...",
+        "design_clause": "build-agent invention: shallow copy by method rather than by `dict()`",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `X.copy()` is the same shallow copy `dict(X)` makes, one method call away from the enumerated form."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-collection-dict-unpack-display-items-record-store",
+      "fixture_source_sha256": "sha256:d7fe92080c88651cfb0c8dc2ff2c77c93dcace249dad5128eb92e90e6acdd245",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "copied = {**results}; for name, record in copied.items(): record[\"p\"] = ...",
+        "design_clause": "build-agent invention: shallow copy by dictionary unpacking",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The unpacking display reads the collection into a mapping display, which the round-2 display-escape half already refuses; the row is carried so that the two halves are pinned as covering it together."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-generator-expression-consumed-later-record-store",
+      "fixture_source_sha256": "sha256:e4a55ccf41a293db46e05f20cb93a8cb0aae4d2a9520e4377e210eae0f132b5f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "pending = (entry for entry in results.values()); for record in pending: record[\"p\"] = ...",
+        "design_clause": "build-agent invention: a generator expression consumed by a later loop",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The generator's own target and the consuming loop's target are different names, so the chain only closes if a comprehension that yields records is itself a container of them."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-record-update-method-record-store",
+      "fixture_source_sha256": "sha256:e5918498051938cbd3f5f21b97c439b83b22a43892d76a3424f58ac669ea476c",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in results.values(): record.update({\"p\": ...})",
+        "design_clause": "build-agent invention: mutation by dict method rather than by subscript store",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `update` is a receiver method call, which the frozen B1/B4 mutation census already counts; what round 4 adds is that the receiver is a tracked name."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-record-dunder-setitem-record-store",
+      "fixture_source_sha256": "sha256:349cdedc0a0a99a69f802aba8f8801e6baab66e649080215fa200b1553e943b6",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in results.values(): record.__setitem__(\"p\", ...)",
+        "design_clause": "build-agent invention: mutation by the dunder spelling of the subscript store",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The dunder spelling is a receiver method call rather than a subscript store, so it exercises a different half of the mutation census on the same binding."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-record-subscript-augmented-assign-record-store",
+      "fixture_source_sha256": "sha256:ce6e558ec9f383ae5a6e3214a55cec173d453c7f8807e031f6c9802ef8076b14",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in results.values(): record[\"p\"] *= len(OUTCOMES)",
+        "design_clause": "build-agent invention: augmented assignment into the record",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  An augmented assignment is the third arm of the frozen mutation census."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-invented-record-escapes-into-a-container-display-record-store",
+      "fixture_source_sha256": "sha256:b7d00b8bf190cab6752e7a2c55e08c14fc811a8b9a6167bc0fcdd0ba739ded6f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): REGISTRY = {\"latest\": record}; REGISTRY[\"latest\"][\"p\"] = ...",
+        "design_clause": "build-agent invention: the record escapes into a container display and is stored through the display",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The store names neither the collection nor the record: it names a display the record was read into.  This is the round-2 escape argument applied to a record rather than to a sequence, and it is why the escape half is carried over record-derived names at all."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "partial-next-iter-values-single-record-store",
+      "fixture_source_sha256": "sha256:e3fdba50b4dbc4accffd50b85e990a1416c9deaf5d5a3f48eee3b98aee6b6335",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "first = next(iter(results.values())); first[\"p\"] = ...",
+        "design_clause": "record-derived binding form 2: next() over a wrapped view",
+        "design_text": "One member of the six is multiplied by the family size, so this is not a complete correction and the row is not a correct analysis.  It is carried because it is the only enumerated spelling that binds a record with no loop at all, and because a store into one member is still a store the frozen engine cannot see.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  This store is written through a name bound to the record itself, which is not a name for the collection and not an alias edge, so the correction is invisible to the engine and the row is read as a family that was never corrected.  The binding resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-explicit-loop-record-store-through-name",
+      "fixture_source_sha256": "sha256:6bd19b48d9b54445d21007d81c0bada35c6599ca81081ee6b1be275bfc9b241f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name in results: results[name][\"p\"] = ...",
+        "design_clause": "reason authority for every refused row above",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The store is written through the collection's own name, so the frozen engine sees it and refuses because the member the store names cannot be resolved.  That refusal is the reason authority: every row above is the identical program differing only in the binding the store travels through, so it lands on this row's frozen 3.3 reason and no reason is added."
+      },
+      "expected_gate": null,
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-keys-view-store-through-name",
+      "fixture_source_sha256": "sha256:68d3d087faa648c5ba46dc0be0aa1e45c342423ffe59508179c8ce17de321423",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name in results.keys(): results[name][\"p\"] = ...",
+        "design_clause": "verification that the keys view needs no closure",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  `X.keys()` hands out keys, and the store a key reaches is written through the collection's own name, so the frozen pipeline already refuses this row and there is no false accusation for the key half of the enumeration to close.  The row is carried so that stays true: were the keys view ever to reach a classification, this row would become a false accusation of the round-4 kind."
+      },
+      "expected_gate": null,
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-shared-parameter-name",
+      "fixture_source_sha256": "sha256:1785ce88b1bfaf4e4db7dd5de6eb83194781a72159f0b682c89a77aa0fc19acd",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): rescale(record, len(OUTCOMES)), where the helper writes record[\"p\"] through a parameter also named `record`",
+        "design_clause": "record-in-helper disposition, shared parameter name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The call argument is a non-capture, so nothing binds the helper's parameter to the record.  The row refuses anyway, because names are matched module-wide and the helper's parameter reuses the caller's name, which puts the helper's store on a tracked name.  The refusal is real and its cause is the module-wide matching rounds 1 to 3 already accept, not a decision about what a parameter aliases."
+      },
+      "expected_gate": "record-derived-binding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-distinct-parameter-name",
+      "fixture_source_sha256": "sha256:5d5806ae2403ad720ad9ec6269bbd3143e3952ea165a72fb8a42b85b6c1661ac",
+      "correct_analysis": true,
+      "expected_open_false_accusation": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): rescale(record, len(OUTCOMES)), where the helper writes entry[\"p\"] through a parameter named `entry`",
+        "design_clause": "record-in-helper disposition, distinct parameter name; the round-4 named open residual",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The call argument is a non-capture under the frozen discipline, so nothing binds `entry` to the record, and with the parameter renamed the module-wide name match that refuses the shared-name spelling does not fire.  The row is therefore still classified candidate/none: a live false accusation that round 4 does not close.  Closing it would mean deciding what a helper parameter aliases, which is wider than this closure and is the same question the round-3 oracle left open for the collection-argument spelling.  It is pinned here so the residual is a recorded row rather than a later discovery, and so the pair records that the disposition turns on the parameter name."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-items-loop-summary",
+      "fixture_source_sha256": "sha256:d1e6e470c4f5d4e60f7afd318e9a2953939eba013b47a4f3e235842ba147dbad",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): print(... record[\"p\"])",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  A live items-view binding that is only read.  The closure is over stores and mutations, so this family, which really was left uncorrected, keeps its accusation."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-values-loop-summary",
+      "fixture_source_sha256": "sha256:94692ec7023fc990e46fe6d4675894a5a39ab0ff74c905e10b38d1a28e433f45",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "for record in results.values(): print(... record[\"p\"])",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  The values-view spelling of the same read-only presentation."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-enumerate-values-loop-summary",
+      "fixture_source_sha256": "sha256:2f69ecf5fc9c3748f4ea503fae0512a37cba93f183e60df94c8c2d939d779594",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "for position, record in enumerate(results.values()): print(... record[\"p\"])",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  The enumerate spelling, which also binds an index that is not a record."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-items-loop-key-method-call",
+      "fixture_source_sha256": "sha256:0e43ed8cc1fe12b3e766bdb78a389c11d4e95a81ac5984ad28740cb9288e2dd5",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): print(name.replace(\"_\", \" \") ...)",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  The over-refusal guard.  The key half of the unpack receives a receiver method call, which the mutation census counts.  Treating the key element as a record would refuse this row and swallow a true accusation, so the key half is deliberately not a record."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-items-loop-record-verdict",
+      "fixture_source_sha256": "sha256:a64ee53112d89223ef3a23478fd70808a1abd19247621121056178a3e507c43b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): flag = \"SIGNIFICANT\" if record[\"p\"] < ALPHA else ...",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  The single most common correct presentation idiom: the verdict is read from the record through the enumerated binding.  Refusing reads would lose this row and the E17 P3 movement with it."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-list-values-loop-summary",
+      "fixture_source_sha256": "sha256:333df2752815d18bae21f5efe6425fbfd511cba5616df4b6b7e7950750680bac",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "family = list(results.values()); for record in family: print(... record[\"p\"])",
+        "design_clause": "non-vacuity control: reads through a record-derived binding",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold with no correction anywhere, so the accusation is true and the row must keep it.  The chained container spelling, read only.  A closure that refused chains rather than stores would lose this row."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-explicit-loop-uncorrected-family",
+      "fixture_source_sha256": "sha256:d1e9a8b1dfa179436566db2eb4e7fc1d8623ef5ad05cfb1d4ee734a04a04fe08",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the explicit-loop collection with no correction and no second binding of any kind",
+        "design_clause": "non-vacuity baseline for the six read-only controls",
+        "design_text": "The family is collected and every verdict is read at the plain declared threshold, so the accusation is true.  This is the row the six read-only controls are one inserted read away from, which is what makes their kept candidates evidence about the closure rather than about the family."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-covered-family-with-read-only-record-iteration",
+      "fixture_source_sha256": "sha256:ea8349ad72a147c600a2488c453442d1c272666d5cf3a3359825b2193931e04e",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the declared threshold divided by the family size, with a live read-only items-view binding alongside it",
+        "design_clause": "coverage guard: the closure sits on the classification path, which carries coverage classifications too",
+        "design_text": "The correction is complete and is carried out on the threshold rather than on the p-values, so every declared position is covered.  The closure guards coverage classifications exactly as it guards candidate ones, and this row is what shows guarding them costs nothing: the record-derived binding is present and only read, so the coverage record survives intact."
+      },
+      "expected_gate": null,
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-comprehension-e17-p3-unaltered",
+      "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P3 source, carried unaltered",
+        "design_clause": "pinned 3.4 movement on the classification path",
+        "design_text": "P3 binds `result = results[outcome]` in its presentation loop, which is an enumerated record-derived binding, and only reads it.  The row is a genuinely uncorrected family whose 3.4 comprehension admission moves it from a frozen 3.3 abstention to a classification, so a closure that refused binding rather than storing would take the movement with it."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-ap-e17-p6-unaltered",
+      "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P6 source, carried unaltered",
+        "design_clause": "pinned 3.4 movement on the classification path",
+        "design_text": "The second pinned 3.4 movement, whose strict-subset coverage record is reached through the enumerate and cap admissions.  It is carried unaltered so the closure is shown not to disturb a partial-coverage classification."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2
+      ],
+      "expected_authorized_count": 7,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      }
+    }
+  ],
+  "provenance": {
+    "audit_date": "2026-09-01",
+    "audit_identity": "MT 3.4 adversarial audit round 4: a correct, complete Bonferroni correction written through the ITERATED RECORD VALUE -- `for name, record in results.items(): record[\"p\"] = min(record[\"p\"] * len(OUTCOMES), 1.0)` -- is classified candidate/none over the uncorrected family, because a loop target bound from a mapping view is not one of the Name-to-Name alias edges the round-3 closure follows",
+    "design_document": "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md",
+    "design_revision": "0",
+    "implementation_output_used": false,
+    "reason_authority": "Round 4 works on the classification side, so the byte-frozen 3.3 analyzer's reason for the row itself is not available: 3.3 classifies these rows, which is the defect.  The authority is instead the frozen 3.3 reason for the row's THROUGH-NAME SIBLING -- the identical program with the identical correction written through the collection's own name.  Each refused row names its sibling in `expected_reason_sibling`, and the test recomputes the sibling's frozen 3.3 row live and asserts the shipped 3.4 reason for the derived row equals it, so a wrong pin fails rather than passes.  No reason is added to the closed set of 61.",
+    "named_open_residual": "`correct-record-in-helper-distinct-parameter-name` is a live false accusation that round 4 does NOT close.  Argument passing stays a non-capture under the frozen discipline, so a helper that receives the record and stores through its own differently named parameter is invisible to the closure.  The row is pinned with `expected_open_false_accusation` so the residual is a recorded row rather than a later discovery, and its shared-parameter-name twin records that the disposition turns on the parameter name alone.",
+    "inherited_defect": "The defect is present in the byte-frozen v3 and v3.3 lanes and is narrowed only in v3.4, which supersedes them in the active development binding.  The frozen lanes are unchanged and stay byte-identical."
+  }
+}

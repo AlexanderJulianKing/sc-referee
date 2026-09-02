@@ -221,3 +221,528 @@ three cases carried publication-surface questions, not MT correction-scope quest
 unrelated MaterialQuestion may be removed. Wording, contract profile, qualified lanes, blind
 scoring, and the asymmetric attestation rule remain unchanged; answer-guided proof may do nothing
 that the answer-removed path cannot reproduce.
+
+## Comprehension, iterator, and cap 3.4 amendment
+
+The accepted design
+`docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md`, Revision 0,
+has raw SHA-256 `2f7bd77e1020777c9fcdc5573edc87c43567ba153fd3fc1f801926752993c854`
+and advances only the development check, adapter, and detector to `3.4.0`. Version 3.4 adds three
+narrow syntactic admissions, specifies a fourth that is not shipped, and records one reason defect
+without correcting it. It adds no scientific classification rule, test API, correction form,
+threshold, family-position source, row-mask route, reader, reducer, record mutation, conclusion
+polarity, or wording rule.
+
+**Observed trigger attribution.** Instrumented execution of the shipped 3.3 hierarchy guard shows
+that E17 P3 `a2e031f79e31c80fd900` stops at exactly one tracked control, the line 71 columns 35-54
+`result['p'] < ALPHA` compare, with **zero** p-origins, no correction control, and all six contract
+outcome headers. The control is tracked only by the outcome-headers branch of `_control_tracked`,
+so `hierarchical-gatekeeping-present` asserts a gate that was never demonstrated. The zero-p-origin
+finding is the same fact that causes the miss: the dict comprehension is never normalized into the
+record model, so `result["p"]` resolves to no p-origin. E17 P6 `b4e507c4b55954752f14` tracks no
+hierarchy control at all; it is blocked by `enumerate(OUTCOMES, start=1)` failing the bare-Name row
+table and by the cap reassignment competing with the product in the single-reaching-fold proof.
+Both walls are spelling, not science: an author who writes the same computation as an explicit loop
+with `min(p * F, 1.0)` was already caught.
+
+**Extension A, the comprehension grammar and its lowering.** One `ast.Assign` or `ast.AnnAssign`
+with a single `ast.Name` target whose value is a one-generator `ast.DictComp` or `ast.ListComp`,
+whose generator is not async and carries no `ifs`, whose target is a simple Name, whose iterable is
+a bare Name resolving to a stable module sequence that is order-equal to the contract outcome
+tuple, whose dict key is exactly the generator target, and whose element is one closed `SCALAR`
+call or one flat literal record of `SCALAR` values that loads the generator target, is lowered to
+the equivalent explicit loop. The collected name must have exactly one Store or Del in the whole
+module and may never be augmented, deleted, subscript-stored, or receiver-mutated elsewhere.
+`ast.Lambda`, `ast.NamedExpr`, `ast.Await`, `ast.Yield`, `ast.YieldFrom`, `ast.IfExp`,
+`ast.Starred`, any nested comprehension, `ast.JoinedStr`, `ast.Slice`, and any keyword-carrying
+call inside the element are absolute refusals. The lowering is a graph fact: production builds an
+`ast.Module` and never rewrites source text. Element identity and idempotence are asserted at
+runtime on every lowering.
+
+**Extension B is specified and not shipped.** The print-only terminal `IfExp` production is stated
+in full in design section 5 with its three named verdict-store disqualifiers. It is not installed
+in the shipped recognizer set. The executed evidence is decisive in both directions: across all 170
+evidence cases and all 245 fixtures it admits zero positions on any abstaining row, and on E16 P4
+its one admitted `IfExp` position at `(82, 35, 82, 60)` collides with the 3.3 single-occurrence
+requirement in `prove_terminal_presentation`, which then returns `None` and loses a pinned
+candidate/`none` `N=7`. A later delta that wants the shape must first decide what
+`prove_terminal_presentation` should do with more than one admissible position, which is a 3.3
+design question and is not answered here.
+
+**Extension C, the `enumerate` row table.** `_complete_rows` admits `enumerate(NAME)` and
+`enumerate(NAME, start=K)` when the callee is the unshadowed simple Name `enumerate`, there is
+exactly one positional argument and it is a bare Name resolving through the unchanged
+`_module_sequences` to a stable flat literal sequence, keywords are absent or exactly one `start=`
+with an integer literal that is not a bool, the loop target is an exact two-element tuple or list of
+distinct simple Names, the sequence length equals the contract family size, and the sequence
+elements in order equal the contract outcome tuple. Position derivation is unchanged: positions come
+from the index in the sequence, so `K` is never consulted and `start=0`, `start=1`, and an absent
+`start` produce the identical row table. The counter is bound in every row to a distinguished object
+that is neither a `bool` nor any contract outcome string, so `_static_bool` returns `None` for it,
+`_positions_for` then refuses, and a membership test against a contract name set is false on every
+row. Any use of the counter in the correction or decision path therefore refuses. That is a property
+of the binding, not a lint against the identifier.
+
+**Extension D, the adjacent if-cap.** The exact pair `X = A * B` immediately followed, in the same
+block, by an `ast.If` with no `orelse` whose test is one of `X > 1`, `X >= 1`, `1 < X`, `1 <= X`
+against a numeric one that is not a bool, and whose body holds exactly one `ast.Assign` writing a
+numeric one to the same Name, is one fold equal to `min(A * B, 1.0)`. It changes exactly three
+things and nothing else: the cap reassignment is excluded from the competing-assignment set in the
+single-reaching-fold proof; the cap `ast.If` is transparent in `_positions_for`, because it chooses
+between `A * B` and `1.0` for the same position rather than selecting family positions; and the
+surrogate lowering drops the whole cap statement together with its fold, exactly as
+`min(A * B, 1.0)` does. Without the surrogate drop the retained `1.0` reads as a second decision
+threshold and abstains at `unresolved-decision-threshold`. Factor resolution, name-set selection,
+transport proofs, conclusion consumption, and classification are untouched. The if-cap and `min`
+spellings of the same complete correction produce identical coverage records.
+
+**Extension E is recorded and not applied.** The observed mislabel is real: when only the
+outcome-headers branch of `_control_tracked` matches, the analyzer has proved that a control reads
+outcome columns and has proved neither a p-origin, a correction dependence, nor an
+execution-prevention edge, yet it emits `hierarchical-gatekeeping-present`. The specified routing to
+the already-registered `pvalue-control-dependence-unresolved` was executed side by side with the
+unrouted reason on every row. It relabels **zero** of the 170 evidence cases and **ten** fixtures,
+eight of which are frozen gatekeeping controls whose reason is already accurate. The discriminator
+that would separate them is whether the control's owner subtree contains a registered test and
+whether `can_prevent_slice` holds for an exit edge under it, which is a real design item rather than
+a routing tweak. Version 3.4 therefore keeps the current reason and records the defect and its
+measured blast radius. No new reason is invented, and the closed set stays at 61.
+
+**The hierarchy registry stays global, and the ordering rule is load-bearing.** Version 3.4 removes
+no node kind and no owner class from the control registry, and section 8 would have changed only
+which reason is emitted, never whether an abstention occurs. The analyzer runs every unchanged
+adapter precondition and global census on original bytes, then the complete unchanged 3.3 pipeline.
+A classification is returned untouched and no 3.4 admission is attempted. Only on an abstention is
+the source re-analyzed with the comprehension normalization supplied as a graph fact and the
+section-6 and section-7 admissions inside the AP recognizer, and that re-analysis is adopted only if
+it is itself a classification; otherwise the step-2 abstention reason is returned byte-for-byte. An
+earlier revision normalized unconditionally and lost the pinned E16 P3 and E16 P4 candidates. Six
+executed rows re-analyze to a different wall than 3.3 recorded, so the rule is exercised rather than
+decorative. Classification, correction recognition, row completeness, and wording remain unchanged.
+
+**Executed movement set, none-flip, and admission census.** The movement set is exactly
+`{E17:P3 -> candidate/none, corrected_positions {}, N=6}` and
+`{E17:P6 -> candidate/strict_subset, corrected_positions {0,1,2}, N=7}`. All 155 earlier evidence
+rows, all other thirteen E17 rows, and all 50 corpus adapter rows are outcome-identical; corpus
+score remains `0/25` correct and `19/25` misstep. None-flip is zero in every measured population:
+corpus-correct `0/25`, opened negatives `0/72`, all correct fixtures `0/194`, cumulative-v3 correct
+`0/62`, B5 expression variants `0/63`, 3.1 laundering-adjacent `0/16`, AP correct `0/13`, frozen
+gatekeeping `0/12`, 3.3 terminal and helper correct `0/17`, and the new 3.4 correct set `0/11`. The
+executed admission census over 170 cases and 245 fixtures is comprehension 16, `enumerate` 16, cap
+5, terminal `IfExp` 0.
+
+**Question census and prototype/final asymmetry.** The no-attestation correction-scope census moves
+`28 -> 27`, removing exactly `E17:P6:b4e507c4b55954752f14` because the ambiguity its
+MaterialQuestion asked about resolved into a demonstrated candidate. No non-MT MaterialQuestion is
+removed, and E17 P3 contributed nothing to the removal set because
+`hierarchical-gatekeeping-present` is not a qualifying reason. Fidelity between the design prototype
+and the final implementation is asymmetric at integration boundaries. The prototype spliced
+normalized source text and its AP recognizer therefore read normalized bytes; production supplies
+the normalization only as a graph fact and never rewrites source, so its AP recognizer reads the
+original bytes. Production is consequently stricter on exactly two correct-analysis fixtures,
+`correct-comprehension-corrected-family` and `correct-terminal-verdict-rebound-into-name`, which
+abstain at `unresolved-decision-threshold` byte-identically to frozen 3.3 where the prototype
+reached covered/`complete`. None-flip evidence transfers to a stricter implementation; a positive
+movement does not. The final implementation independently re-demonstrates E17 P3 and E17 P6 at
+their exact pinned outcomes through the real adapter and controller path, and a conservative
+abstention on either of those two pinned candidates would be a stop rather than permission to loosen
+the design. Blind scoring, promotion arithmetic, role maps, sealed audit bytes, wording, contract
+profile `1.2.0`, qualified lanes, GrantPins, and the asymmetric attestation rule remain unchanged;
+sealed E17 stays `4/6` and is never rescored.
+
+**Adversarial audit fixes, rounds 1 to 3.** Three narrowings were added after the 3.4 build, each
+demonstrated on executed probes rather than argued from symmetry. Rounds 1 and 2 withhold a 3.4
+admission: the sequence-object closure proves the *object* behind a selection-sequence name stable
+rather than only the name, over the whole alias component and including container, field, and
+walrus display escapes, and the comprehension lane shares that closure by import rather than by
+restatement. A withheld admission returns the row to its frozen 3.3 abstention byte-for-byte, so
+neither round can move a public record.
+
+Round 3 is different in kind and is recorded here as a **narrowing of an inherited defect**. The
+route it closes carries no 3.4 admission at all. A correct, complete Bonferroni correction over the
+declared family, written as
+
+```python
+adjusted = results
+for name in adjusted:
+    adjusted[name]["p"] = min(adjusted[name]["p"] * len(OUTCOMES), 1.0)
+```
+
+is classified `candidate`/`none` over the uncorrected family by the byte-frozen 3.3 pipeline on its
+own, and step 3 of the ordering rule returns that classification untouched. The identical program
+with the same store written through `results` abstains at `pvalue-family-collection-unresolved`.
+The frozen engine reconstructs family membership from the stores written through the collection's
+own name, so through `results` it sees an unresolvable store and refuses, while through `adjusted`
+it sees no store on the collection at all and reads a family whose every member still carries its
+raw p. The alias hides the correction rather than resolving the family, so the accusation is false
+in the strongest sense available: the analysis it accuses is correct, and the analyzer already
+refuses to judge the same analysis written one line differently.
+
+The defect is present in the byte-frozen v3 and v3.3 lanes. Those lanes are unchanged and stay
+byte-identical; the narrowing lives only in the v3.4 modules, which supersede them in the active
+development binding, and no frozen abstention reason anywhere can move because the closure is
+applied to classifications only. Before a classification is returned -- the frozen one at step 3 or
+the re-analysed one at step 5 -- no other name for the record collection may receive a store, a
+mutation, or a display escape, over the whole alias component and whole-module rather than per
+scope. A refused classification lands on `pvalue-family-collection-unresolved`, which is the frozen
+reason its through-name sibling already carries; no reason is invented and the closed set stays at
+61. A record collection is a name bound once to an empty mapping or list, or to one comprehension,
+and filled by subscript store; list builders filled by `append` are excluded because the frozen
+B1/B4 closure in `_record_boundary_reason` already refuses a second name for a tracked builder.
+
+Two boundaries are deliberate and are pinned by non-vacuity rows. Reads through an alias are never
+refused, so a genuinely uncorrected family with a live second name for its record collection keeps
+its `candidate`/`none` row. Passing the collection to a call is not a capture, which is the frozen
+`len(OUTCOMES)` discipline the pinned 3.3 evidence rows depend on; a correction written inside a
+helper the collection is passed to is already refused by the frozen pipeline at
+`unresolved-manual-correction-present`, so no false accusation exists there and argument-passing
+semantics are untouched. A store through an alias that cannot have reached any conclusion is
+refused with the rest, because whether a store is dead is a question about statement order that
+this closure does not answer and its through-name spelling is refused too.
+
+The round-3 movement set is exactly seven oracle rows, all in the refusing direction. Both pinned
+3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows, every none-flip
+population, the E10-E17 retro recall including E17 `6/6`, the question census `28 -> 27`, and the
+frozen 3.1/3.2/3.3 anchor bytes are re-demonstrated unchanged. Blind scoring, promotion arithmetic,
+role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified lanes, and GrantPins
+remain unchanged; sealed E17 stays `4/6`.
+
+**Adversarial audit fix, round 4.** The round-3 audit found one route the round-3 closure does not
+cover, and it is the same defect reached through a different binding. A correct, complete
+Bonferroni correction over the declared family, written as
+
+```python
+for name, record in results.items():
+    record["p"] = min(record["p"] * len(OUTCOMES), 1.0)
+```
+
+is classified `candidate`/`none` over the uncorrected family. `record` is not a second name for the
+collection, so no alias edge binds it, and `results.items()` is a call on the collection's own
+name, which round 3 excludes because the collection's own stores are exactly what the frozen engine
+already judges. The store is invisible to the engine for the round-3 reason: family membership is
+reconstructed from the stores written through the collection's own name, and this store names
+`record`.
+
+Rounds 1 to 3 each closed one binding form and the next audit found another. Round 4 closes the
+class instead, by enumerating every binding that reaches a record rather than matching the spelling
+that was reported. A record-derived binding is any name bound to one of the collection's records,
+to the collection itself, or to a container of its records: the mapping views `values()` and
+`items()`, the wrappers `iter`, `list`, `tuple`, `sorted`, `reversed`, `enumerate`, and `zip`, the
+shallow copies `dict(X)` and `X.copy()`, the lookups `X[k]`, `X.get(k)`, `X.setdefault(k, ...)`,
+and `X.pop(k)`, `next(...)` over any of them, an index into any of them, a comprehension that
+yields records, the walrus and `async for` spellings of each, tuple and nested unpacking of any of
+them, and any chain of the above. A store, an in-place mutation, or a display escape through any of
+them refuses the classification exactly as round 3 does, on the same reason,
+`pvalue-family-collection-unresolved`, which the through-name sibling already carries. No reason is
+invented and the closed set stays at 61. The narrowing again lives only in the v3.4 modules and is
+applied to classifications only, so the byte-frozen lanes are unchanged and no frozen abstention
+reason can move.
+
+Three boundaries are deliberate and each is pinned by a non-vacuity row and an executable mutation
+kill. Reads are never refused: `for name, record in results.items(): flag = record["p"] < ALPHA` is
+the single most common correct presentation idiom, six read-only controls on genuinely uncorrected
+families keep their accusations, and the pinned E17 P3 movement is built on the same shape. The key
+half of an `items()` unpack is not a record: a key is not a record, the store a key reaches is
+written through the collection's own name and is already refused, and treating the key as a record
+would swallow a true accusation whose presentation loop calls a method on the key. The target of a
+bare `for x in X` is not a record either: iterating a mapping yields keys and iterating a collected
+p-value table yields floats, and the collection's seed does not say which. Four pinned rows are
+true accusations that survive only because of that boundary -- E10 P5 and E12 P5, whose partial
+Holm adjustment is written `for row, adjusted in zip(primary, p_adjusted): row["p_adjusted"] = ...`
+with the `multipletests` call itself plainly visible, and two open-corpus missteps that read a loop
+variable of a tracked list into a display. Enumerating those targets closes no demonstrated route
+in exchange, because where a bare iteration really does hand out records the store it reaches is
+`X[k][...]`, written through the collection's own name and already refused.
+
+One residual is named rather than left to a later audit. Argument passing stays a non-capture under
+the frozen discipline, so a helper that receives the record and stores through its own,
+differently named parameter is outside this closure and its row is still classified
+`candidate`/`none`. It is carried in the round-4 oracle as an open false accusation, alongside the
+twin whose helper parameter reuses the caller's name and which therefore refuses through
+whole-module name matching. Closing it would mean deciding what a helper parameter aliases, which
+is the same wider question the round-3 oracle left open for the collection-argument spelling.
+
+Both pinned 3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows,
+every none-flip population including the round-1, round-2, and round-3 rows, the E10-E17 retro
+recall including E17 `6/6`, the question census `28 -> 27`, and the frozen 3.1/3.2/3.3 anchor bytes
+are re-demonstrated unchanged. Blind scoring, promotion arithmetic, role maps, sealed audit bytes,
+wording, contract profile `1.2.0`, qualified lanes, and GrantPins remain unchanged; sealed E17
+stays `4/6`.
+
+**Adversarial audit fix, round 5.** Round 4 closed every binding a correction store can travel
+through inside one scope and named the one route it could not reach. The custodian reproduced that
+route through the real contract and audit pipeline: a correct, complete Bonferroni correction over
+the declared family, written as
+
+```python
+def bonferroni_adjust(entry, n_tests):
+    entry["p"] = min(entry["p"] * n_tests, 1.0)
+
+
+for name, record in results.items():
+    bonferroni_adjust(record, len(OUTCOMES))
+```
+
+is classified `candidate`/`none` over the uncorrected family. Round 4 enumerates `record`
+correctly; the store it looks for is not there. The store is `entry["p"] = ...`, argument passing
+is a non-capture under the frozen discipline, and nothing binds `entry` to the record. Round 4's
+names are matched module-wide, so the twin program whose helper parameter is also called `record`
+already refused: the disposition turned on the parameter name alone.
+
+Round 5 adds one edge. A call whose callee resolves to a project-local definition in the same
+module makes the call site a mutation of every argument whose bound parameter is stored through in
+the callee body. That mutation is checked against the round-3 and round-4 name sets exactly as a
+direct store is, and it lands on the same reason, `pvalue-family-collection-unresolved`, which the
+through-name sibling already carries. No reason is invented and the closed set stays at 61. The
+narrowing again lives only in the v3.4 modules and is applied to classifications only, so the
+byte-frozen lanes are unchanged and no frozen abstention reason can move.
+
+Three dispositions are deliberate. Callee resolution is by definition, not by name shape: a callee
+resolves only to a `def`, an `async def`, a name bound once to a `lambda`, or a method of a class
+defined in this module, and only when the name has exactly one such definition and this module
+binds it nowhere else. Methods resolve through the class name, through a variable bound once to a
+constructor call on that class, or through the enclosing method's own first parameter, with
+`staticmethod` and `classmethod` deciding the receiver; `map` and `filter` resolve their callable
+and apply it to the elements of the iterables beside them, as do `sorted`, `min`, and `max` for
+`key=`. Everything else resolves to nothing and stays a non-capture, which is the frozen
+`len(OUTCOMES)`, `", ".join(MUSCULOSKELETAL)`, `print(record)`, `sorted(results.items())`
+discipline the pinned evidence rows depend on. Argument binding covers the positional slots, the
+keyword names, and both star buckets: a starred or double-starred argument forwards an unknown
+position, so it is bound to every parameter of its callee at once and is captured when any of them
+stores, which is the conservative reading and needs no rule of its own. Recursion resolves to a
+fixpoint rather than to a conservative refusal, because the storing set only grows.
+
+A parameter is stored through when the round-3 and round-4 closures say so, run over the callee
+body with the parameter seeded as both a mapping of records and a sequence of them. The seeding
+difference from the module level is deliberate: a bare `for x in X` target is left opaque at module
+level because the collection's seed does not say whether iterating it yields keys, floats, or
+records, and a parameter has no seed at all -- it holds whatever the call site handed it.
+
+Two boundaries are recorded rather than hidden. A helper defined in a sibling project module stays
+a false accusation, because this recognizer reads one source file and refusing on an unresolvable
+callee would refuse every builtin and library call the pinned evidence rows depend on; the row is
+carried in the round-5 oracle with `expected_open_false_accusation`, and closing it means widening
+what the recognizer reads rather than what it infers. A helper that only reads its parameter, but
+reads it with a method call, is refused, because round 5 reuses the frozen B1/B4 receiver-method
+census unchanged rather than enumerating which method names are safe; no row in the 170 evidence
+sources, the 245 fixtures, or the 50 corpus adapter rows has that shape, so the cost is a pinned
+hypothetical rather than a measured loss, and it too is carried as an oracle row.
+
+Both pinned 3.4 movements, all 170 evidence rows, all 245 fixtures, all 50 corpus adapter rows,
+every none-flip population including the round-1, round-2, round-3, and round-4 rows, the E10-E17
+retro recall including E17 `6/6`, the question census `28 -> 27`, and the frozen 3.1/3.2/3.3 anchor
+bytes are re-demonstrated unchanged. The round-4 residual set is now empty. Blind scoring,
+promotion arithmetic, role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified
+lanes, and GrantPins remain unchanged; sealed E17 stays `4/6`.
+
+**Adversarial audit fix, round 6.** Round 5 read every callee it could not resolve as a
+non-capture. The round-4 and round-5 adversarial audit demonstrated fourteen deployed routes
+through that reading, each a complete and correct Bonferroni pass over the declared family
+classified `candidate`/`none` over the uncorrected family, and the custodian rebuilt every one of
+them as a real project and confirmed the disposition through the real contract and audit pipeline.
+The routes are `dict.update(record, p=...)` and `operator.setitem(record, ...)`;
+`functools.partial(rescale, family_size=6)`, a static method stored in a name,
+`ADJUSTERS["bonferroni"](record, 6)`, a storing lambda held in a list, a decorator-supplied
+wrapper, and `setattr` on a property-setter wrapper; a storing callback reaching every record
+through `pd.Series(...).apply(rescale)`, and a helper handed `[results[name]]`; a returned alias
+and a returned values view; a no-argument closure over the collection and a default argument bound
+to the record; and six shapes in which the correcting helper is defined exactly once in the scope
+the call site reads it from but round 5's module-wide shadow census refused to resolve it.
+
+Round 6 decides those calls, in both directions, and adds no reason. A call that is handed a
+tracked object -- the collection, a round-3 alias, or a round-4 mapping, sequence, or record
+binding -- is a mutation of that object unless the callee is a project-local definition whose body
+only reads what it binds, or is a read-only builtin or library API on a closed allowlist. Calls
+with no tracked argument are untouched, so the frozen `len(OUTCOMES)` and
+`", ".join(MUSCULOSKELETAL)` non-capture discipline every earlier round preserves is exactly as it
+was. The allowlist is measured rather than chosen: a census over the 245 prototype fixtures, the
+E10-E17 envelope cases, the open-corpus rows, and the round-1 through round-5 oracle sources
+reports every callee that receives a tracked argument anywhere in the evidence base, and exactly
+those are on it together with their obvious read-only siblings -- the builtins `len` (45 rows),
+`zip` (22), `list` (6), `sorted` (6), `enumerate` (5), `set` (5), `min` (4), `max` (3), `iter`
+(2), `dict`, `float`, `next`, `print`, `reversed`, `sum`, and `tuple`; the str methods, which
+carry 470 of the measured calls; the imported `multipletests` (14), `mean` (8), and `stdev` (8);
+the module APIs `statistics.mean`, `statistics.stdev`, `stats.ttest_ind` (4), `pg.multicomp` (2),
+and `pd.DataFrame`; and the container-insertion methods, measured as
+`secondary_results.append(result)` on E13:P5. `getattr`, `setattr`, `delattr`, `exec`, `eval`,
+`vars`, `globals`, `locals`, `apply`, `functools.partial`, and the `operator` mutators are never
+on it, and `map`, `filter`, the `key=` builtins, and the `apply`-shaped library methods are on it
+only while the callable beside them resolves read-only.
+
+Four further dispositions follow. Callee resolution is now per scope chain: each function and
+lambda owns the names its own body binds, a class body owns its own attributes and is never on a
+function's scope chain, and the module owns the rest, so a callee resolves when the innermost
+scope on the chain that binds the name binds it exactly once and binds it as a definition.
+Anything else is unresolvable and fails closed, including two conditional definitions, an import
+followed by a definition, a class body binding one method name twice, a name bound to a partial or
+a bound method or a dictionary entry, and a subscript callee. The result of a call that is handed
+a tracked object carries that object's role unless the callee provably hands back nothing it was
+given, so `target = identity(record)` binds the record itself while a helper returning a new
+dictionary built from one collected p hands back nothing. A project-local callable that stores
+through a parameter is a storing callable, and so is any name, container entry, `functools.partial`,
+bound or static method, or decorated definition that carries one; invoking one with a tracked
+argument is a mutation, and so is passing one to a call that also carries a tracked argument or
+receiver. A `def` or `lambda` whose body stores through a free variable is a mutation at its
+definition site whether or not it is called, because a definition is an escape, and a default
+argument bound to a tracked name is the same escape one binding earlier.
+
+Five soundness fixes recover true accusations the round-5 closure lost, each on a family that
+really was left uncorrected. A parameter is seeded with the role of the argument it binds and not
+with both roles at once, so a helper that iterates its mapping parameter bare yields keys exactly
+as the module-level bare-iteration boundary says. A starred argument forwards elements and a
+double-starred argument forwards values, so `*record` and `**record` hand over strings and scalars
+and bind nothing, while a bucket with no role of its own is still forwarded conservatively. A
+subscript or lookup on a record is a scalar and a subscript of a mapping of records is a record,
+so a helper handed one collected p receives a float. A parameter rebound to a fresh value in
+straight-line code, before the parameter is read at all, is detached from the argument, and
+`dict(entry)` detaches only a record-role parameter because a shallow copy of a mapping of records
+still holds the same records. A wrapper name the module binds itself is resolved as the definition
+it is rather than recognized by spelling, so a project-local `sorted` returning unrelated
+dictionaries is not read as the builtin row wrapper.
+
+The whole delta lives in the v3.4 correction model. The v3.4 dataflow module is byte-unchanged, so
+the ordering rule, the section-6 and section-7 admissions, the closed reason set of 61, and every
+abstention path are untouched, and the byte-frozen 3.1, 3.2, and 3.3 lanes stay byte-identical.
+Every refused row lands on `pvalue-family-collection-unresolved`, which the through-name sibling
+already carries. Across the 245 fixtures, the E10-E17 envelope cases, the open-corpus rows, and
+the round-1 through round-5 oracle rows -- 525 rows in all -- exactly one row moves:
+`correct-record-in-helper-imported-from-a-sibling-module`, the open false accusation round 5 pinned
+by name, which now refuses rather than accusing a correct analysis. The move is declared in the
+test rather than by editing the round-5 oracle, whose pins stay as round 5 measured them. Five
+costs are pinned by name in the round-6 oracle, each a refusal of a genuinely uncorrected family:
+`boundary-helper-parameter-rebound-inside-a-branch`, because on the path where the branch is not
+taken the store is written through the record; `boundary-overwritten-class-method`, because a class
+body binding one method name twice does not say which definition runs; and
+`boundary-read-only-helper-calling-keys-on-its-parameter`,
+`boundary-read-only-helper-calling-items-on-its-parameter`, and
+`boundary-read-only-helper-calling-copy-on-its-parameter`, which are the rest of the frozen B1/B4
+receiver-method census whose `.get()` sibling the round-5 oracle already pins. No row in the 170
+evidence sources, the 245 fixtures, or the 50 corpus adapter rows has any of those shapes, so each
+cost is a pinned hypothetical rather than a measured loss. Both pinned 3.4 movements, the E10-E17
+retro recall, the question census `28 -> 27`, and the frozen anchor bytes are re-demonstrated
+unchanged. The residual set is empty: no correct-analysis row in the round-6 oracle is left
+accused, and none is pinned open.
+
+**Adversarial audit fix, round 7.** Round 6 fails closed on a callee it cannot resolve. It did not
+fail closed on a value it cannot follow or on a callable it cannot resolve, and it keyed its
+library allowlist on the spelling of a name rather than on what the imports say the name is. The
+round-6 adversarial audit demonstrated nine deployed routes through those three gaps, each a
+complete and correct Bonferroni pass over the declared family classified `candidate`/`none` over
+the uncorrected family, and the custodian rebuilt every one of them as a real project and confirmed
+the disposition through the real contract and audit pipeline. The routes are a class wearing the
+`json` spelling beside a storing `dumps` staticmethod; a record put into a list by `append` and
+then corrected through the list, and the same through `extend`; a helper returning a generator
+expression over its parameter; and four callables reaching `pd.Series(...).apply` -- a wrapper that
+stores only by calling a storing helper, a callable held in an attribute, one taken out of a
+dictionary with `.get`, and one returned by a chain of identity functions. In the other direction
+the audit demonstrated ten deployed losses of a true accusation: `import json as payload` and
+`from json import dumps as serialize`, `copy.deepcopy`, `pprint.pprint`, a `csv.DictWriter` writing
+each record out, `seen.index` and `seen.count` after an allowlisted `seen.append`, a genuine
+`functools.wraps` wrapper around a read-only helper, a helper returning `{"names": list(table)}`
+over a mapping parameter, a method whose bare call resolved to a same-named sibling method instead
+of the module function, and a bare call to an `async def`.
+
+Round 7 makes the three sides uniform and adds no reason. Value flow now fails closed the way
+callee flow does. `append`, `extend`, `insert`, `add`, and a subscript store put the collection's
+own record objects into another container without copying them, so that container holds the
+family's records and a store written through one of its elements is a store into the family; the
+insertion call itself stays read-only, because it does not write into the record. A container
+reached *only* by an insertion is judged on what is done to it afterwards, not on the insertion:
+the frozen receiver-method census reads any method call as an in-place mutation, so counting
+`held.append(record)` against `held` would refuse `seen.append(record); seen.index(record)`, which
+only reads a family that really was left uncorrected. Such a container therefore permits the
+insertion and query methods that filled and read it and refuses on everything else -- an augmented
+assignment, a `del`, a nested subscript store, or any other method call -- while a container the
+round-6 enumeration already reached by an ordinary binding form keeps its round-6 disposition
+exactly. A generator expression, a comprehension, and a `lambda` are objects that hand out whatever
+their body names, so a helper returning either hands the record straight back, while
+`[row["p"] for row in results.values()]` stays fresh because its element is a scalar. Iterating a
+mapping yields its keys, so the freshness test draws the module-level bare-iteration boundary one
+scope in and `{"names": list(table)}` over a mapping parameter is a fresh dictionary of strings;
+the same wrapper over a sequence parameter yields the records and keeps its root.
+
+A callable position fails closed the same way. Round 6 asked whether a callable beside a tracked
+argument was known to store and admitted everything it could not read; the question is now the
+other way round, and a callable position is admitted only for a `lambda` or a project-local
+definition that does not store, a read-only builtin, an allowlisted library target, or a bound
+method of a tracked container whose spelling is on a closed read-only method set from which `pop`
+and `setdefault` are absent. The classification runs after the interprocedural storing fixpoint,
+which is what closes the wrapper route, and the role enumeration and the call census feed each
+other to a fixpoint for the same reason: deciding whether a call hands an argument back needs
+callee resolution, and callee resolution needs the roles. A callback-bearing call also reaches its
+receiver's roots unconditionally, which is what closes the four `apply` routes: `apply` is on the
+never-allowlisted callee set and stays there, so the callable beside it is never consulted and the
+receiver is the only place the records appear.
+
+The allowlist is keyed on import-resolved targets rather than on spellings. A qualified or bare
+library callee is allowlisted only when its base name is bound in the scope chain exclusively by
+`import` statements and the identity those statements give it is an allowlisted target:
+`import pandas as pd` and `import pandas` are both `pandas`, `from scipy import stats` and
+`import scipy.stats as stats` are both `scipy.stats`, `from json import dumps as serialize` is
+`json.dumps`, and `from operator import setitem as put` is `operator.setitem`. A base name bound by
+anything else is not a library name, so `json = Mutator` resolves project-locally to the class and
+its storing staticmethod is seen rather than merely feared. Five measured targets are added, each
+justified by one named oracle row that loses a true accusation without it -- `copy.copy` and
+`copy.deepcopy`, `pprint.pprint` and `pprint.pformat`, `json.load` and `json.loads` as the read
+siblings of the already-measured `json.dump` and `json.dumps`, the `csv` writer constructors with
+the `writerow`, `writerows`, and `writeheader` methods on a name bound exactly once to one of them,
+and the container query methods `index`, `count`, and `get` on a receiver the role enumeration
+already tracks -- together with the `math` reducers, which are the scalar-returning siblings of the
+already-measured `statistics` reducers. The forbidden set is kept exactly as it was, and `update`
+stays off the insertion allowlist because `dict.update(record, p=...)` is the measured round-6
+unbound-mutation route.
+
+Three resolution-semantics defects are fixed. A class body is not an enclosing lexical scope in
+Python, so a bare `inspect` inside `Report.show` resolves to the module-level `inspect` and never
+to `Report.inspect`, which is reached only through `self.`, `cls.`, or `Report.`. A `global` or
+`nonlocal` declaration continues the lookup in the scope it names, and a declaring scope that also
+writes the name leaves the target ambiguous and fails closed. A decorator whose structure is a
+`functools.wraps`-style forwarder is transparent, proved rather than guessed: one plain parameter,
+every own return the same bare name, that name bound by exactly one nested `def`, a wrapper that
+neither stores through its parameters nor writes through a free variable, and no call in the
+wrapper but a call of the decorator's own parameter.
+
+The whole delta again lives in the v3.4 correction model. The v3.4 dataflow module is
+byte-unchanged, so the ordering rule, the section-6 and section-7 admissions, the closed reason set
+of 61, and every abstention path are untouched, and the byte-frozen 3.1, 3.2, and 3.3 lanes stay
+byte-identical. Every refusal this round produces lands on `pvalue-family-collection-unresolved`,
+which the through-name sibling already carries. Across the 245 fixtures, the E10-E17 envelope
+cases, the open-corpus rows, and the round-1 through round-6 oracle rows -- 573 rows in all -- not
+one row moves, and the round-6 and round-5 move maps are declared empty in the test rather than
+assumed. Five costs are pinned by name in the round-7 oracle, and every one of them is inherited
+from an earlier round's rule rather than introduced here: `boundary-unawaited-async-call`, because
+a bare call to an `async def` creates a coroutine and runs no body and this recognizer does not
+reason about awaits; `boundary-lru-cache-decorated-read-only-helper`, because a library decorator
+is a call this module cannot read; `boundary-record-inserted-by-subscript-into-a-second-mapping`,
+because a bare name bound into a subscript location escapes under the round-1 and round-2 rule;
+`boundary-read-only-helper-calling-values-on-its-parameter`, which is the frozen receiver-method
+census one method along from the three the round-6 oracle pins; and
+`boundary-read-only-pandas-apply`, because `apply` is on the never-allowlisted callee set. Three
+further correct-analysis rows are refused by an upstream gate rather than by this closure -- the
+API-resolution gate, the frozen helper yield census, and the p-value consumer proof -- and are
+recorded with the reason they actually carry. Both pinned 3.4 movements, the E10-E17 retro recall,
+the question census `28 -> 27`, and the frozen anchor bytes are re-demonstrated unchanged. The
+residual set is empty: no correct-analysis row in the round-7 oracle is left accused, and none is
+pinned open.
+
+**Custodian post-audit note, 2026-09-02 (rounds 6 and 7 merged with measured residuals).** The
+round-7 adversarial re-audit returned FIX-REQUIRED, the fourth consecutive verdict on this closure,
+and the claim above that the residual set is empty holds only inside the pinned universe. Outside
+it, the custodian rebuilt every audit shape as a real project and measured it through the real
+contract and audit pipeline (`e18-tools/codex-r7-pipeline-measurement.txt` and
+`codex-r7-plain-store-measurement.txt` beside this repository). Four plain-store routes still
+publish an accusation against a correct, complete Bonferroni pass: a list owned by a dictionary key
+or a `defaultdict` that records are appended to and then corrected through; a two-hop identity
+return (`pass_one` calling `pass_two`) whose result is stored through; and a lambda whose default
+argument hands the record back through a zero-argument call. A project-local `append` method on an
+object the resolver cannot bind is admitted by spelling and stores through its argument. Seven
+read-only shapes on an uncorrected family now refuse without a pin: `np.array(list(...values()))`,
+`OrderedDict(results)`, `deque(results.values())`, `tabulate(results.values())`,
+`key=operator.itemgetter("p")`, a tracing `functools.wraps` decorator that prints before
+forwarding, and a helper returning a scalar projection `{name: table[name]["p"]}`. None of these
+shapes occurs in the 120 blind cases of E10 through E17, the 245 fixtures, or the corpus rows, and
+the 573-row sweep is unmoved, which is why the lane is merged for envelope 18 rather than held for
+an eighth round. The residuals are queued as MT 3.5, whose recommended direction is an inversion of
+this closure: classify only while every use of the family collection and every value derived from
+it stays inside a closed grammar of proven read-only forms, so that convergence is by construction
+rather than by enumeration of store shapes.

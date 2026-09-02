@@ -8,7 +8,7 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-REPO = Path("/Users/alexanderking/Desktop/random_stuff/sc-referee-vnext")
+REPO = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO / "src"))
 
 E12 = REPO / "evaluation/development/blind-envelope-12-2026-08-26/cases"
