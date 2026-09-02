@@ -724,3 +724,25 @@ recorded with the reason they actually carry. Both pinned 3.4 movements, the E10
 the question census `28 -> 27`, and the frozen anchor bytes are re-demonstrated unchanged. The
 residual set is empty: no correct-analysis row in the round-7 oracle is left accused, and none is
 pinned open.
+
+**Custodian post-audit note, 2026-09-02 (rounds 6 and 7 merged with measured residuals).** The
+round-7 adversarial re-audit returned FIX-REQUIRED, the fourth consecutive verdict on this closure,
+and the claim above that the residual set is empty holds only inside the pinned universe. Outside
+it, the custodian rebuilt every audit shape as a real project and measured it through the real
+contract and audit pipeline (`e18-tools/codex-r7-pipeline-measurement.txt` and
+`codex-r7-plain-store-measurement.txt` beside this repository). Four plain-store routes still
+publish an accusation against a correct, complete Bonferroni pass: a list owned by a dictionary key
+or a `defaultdict` that records are appended to and then corrected through; a two-hop identity
+return (`pass_one` calling `pass_two`) whose result is stored through; and a lambda whose default
+argument hands the record back through a zero-argument call. A project-local `append` method on an
+object the resolver cannot bind is admitted by spelling and stores through its argument. Seven
+read-only shapes on an uncorrected family now refuse without a pin: `np.array(list(...values()))`,
+`OrderedDict(results)`, `deque(results.values())`, `tabulate(results.values())`,
+`key=operator.itemgetter("p")`, a tracing `functools.wraps` decorator that prints before
+forwarding, and a helper returning a scalar projection `{name: table[name]["p"]}`. None of these
+shapes occurs in the 120 blind cases of E10 through E17, the 245 fixtures, or the corpus rows, and
+the 573-row sweep is unmoved, which is why the lane is merged for envelope 18 rather than held for
+an eighth round. The residuals are queued as MT 3.5, whose recommended direction is an inversion of
+this closure: classify only while every use of the family collection and every value derived from
+it stays inside a closed grammar of proven read-only forms, so that convergence is by construction
+rather than by enumeration of store shapes.
