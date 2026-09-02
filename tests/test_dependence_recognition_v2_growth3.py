@@ -699,6 +699,11 @@ def test_batch_d_config_and_claude_schema_option_are_closed() -> None:
     assert config.hostile_answer_key_reviewer is not None
     assert config.hostile_answer_key_reviewer.participant_id.endswith("fable-23")
     assert config.escalation_reviewer.participant_id.endswith("opus-16")
+    if not config.cli_binary.exists():
+        pytest.skip(
+            f"pinned Claude CLI build {config.cli_binary_version} is not installed on this "
+            "machine; the schema-option check needs the exact pinned binary"
+        )
     help_text = subprocess.run(
         [str(config.cli_binary), "--help"], capture_output=True, text=True, check=True
     ).stdout
