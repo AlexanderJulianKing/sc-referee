@@ -19,7 +19,7 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2_3 import
     analyze_code_csv_multiple_testing_dataflow,
 )
 
-REPO = Path("/Users/alexanderking/Desktop/random_stuff/sc-referee-vnext")
+REPO = Path(__file__).resolve().parents[3]
 ENVELOPE_ROOTS = {
     name: REPO / f"evaluation/development/blind-envelope-{number}-{date}/cases"
     for name, number, date in (
