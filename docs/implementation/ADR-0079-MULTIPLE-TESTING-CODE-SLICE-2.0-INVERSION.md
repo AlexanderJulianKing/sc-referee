@@ -534,3 +534,193 @@ retro recall including E17 `6/6`, the question census `28 -> 27`, and the frozen
 bytes are re-demonstrated unchanged. The round-4 residual set is now empty. Blind scoring,
 promotion arithmetic, role maps, sealed audit bytes, wording, contract profile `1.2.0`, qualified
 lanes, and GrantPins remain unchanged; sealed E17 stays `4/6`.
+
+**Adversarial audit fix, round 6.** Round 5 read every callee it could not resolve as a
+non-capture. The round-4 and round-5 adversarial audit demonstrated fourteen deployed routes
+through that reading, each a complete and correct Bonferroni pass over the declared family
+classified `candidate`/`none` over the uncorrected family, and the custodian rebuilt every one of
+them as a real project and confirmed the disposition through the real contract and audit pipeline.
+The routes are `dict.update(record, p=...)` and `operator.setitem(record, ...)`;
+`functools.partial(rescale, family_size=6)`, a static method stored in a name,
+`ADJUSTERS["bonferroni"](record, 6)`, a storing lambda held in a list, a decorator-supplied
+wrapper, and `setattr` on a property-setter wrapper; a storing callback reaching every record
+through `pd.Series(...).apply(rescale)`, and a helper handed `[results[name]]`; a returned alias
+and a returned values view; a no-argument closure over the collection and a default argument bound
+to the record; and six shapes in which the correcting helper is defined exactly once in the scope
+the call site reads it from but round 5's module-wide shadow census refused to resolve it.
+
+Round 6 decides those calls, in both directions, and adds no reason. A call that is handed a
+tracked object -- the collection, a round-3 alias, or a round-4 mapping, sequence, or record
+binding -- is a mutation of that object unless the callee is a project-local definition whose body
+only reads what it binds, or is a read-only builtin or library API on a closed allowlist. Calls
+with no tracked argument are untouched, so the frozen `len(OUTCOMES)` and
+`", ".join(MUSCULOSKELETAL)` non-capture discipline every earlier round preserves is exactly as it
+was. The allowlist is measured rather than chosen: a census over the 245 prototype fixtures, the
+E10-E17 envelope cases, the open-corpus rows, and the round-1 through round-5 oracle sources
+reports every callee that receives a tracked argument anywhere in the evidence base, and exactly
+those are on it together with their obvious read-only siblings -- the builtins `len` (45 rows),
+`zip` (22), `list` (6), `sorted` (6), `enumerate` (5), `set` (5), `min` (4), `max` (3), `iter`
+(2), `dict`, `float`, `next`, `print`, `reversed`, `sum`, and `tuple`; the str methods, which
+carry 470 of the measured calls; the imported `multipletests` (14), `mean` (8), and `stdev` (8);
+the module APIs `statistics.mean`, `statistics.stdev`, `stats.ttest_ind` (4), `pg.multicomp` (2),
+and `pd.DataFrame`; and the container-insertion methods, measured as
+`secondary_results.append(result)` on E13:P5. `getattr`, `setattr`, `delattr`, `exec`, `eval`,
+`vars`, `globals`, `locals`, `apply`, `functools.partial`, and the `operator` mutators are never
+on it, and `map`, `filter`, the `key=` builtins, and the `apply`-shaped library methods are on it
+only while the callable beside them resolves read-only.
+
+Four further dispositions follow. Callee resolution is now per scope chain: each function and
+lambda owns the names its own body binds, a class body owns its own attributes and is never on a
+function's scope chain, and the module owns the rest, so a callee resolves when the innermost
+scope on the chain that binds the name binds it exactly once and binds it as a definition.
+Anything else is unresolvable and fails closed, including two conditional definitions, an import
+followed by a definition, a class body binding one method name twice, a name bound to a partial or
+a bound method or a dictionary entry, and a subscript callee. The result of a call that is handed
+a tracked object carries that object's role unless the callee provably hands back nothing it was
+given, so `target = identity(record)` binds the record itself while a helper returning a new
+dictionary built from one collected p hands back nothing. A project-local callable that stores
+through a parameter is a storing callable, and so is any name, container entry, `functools.partial`,
+bound or static method, or decorated definition that carries one; invoking one with a tracked
+argument is a mutation, and so is passing one to a call that also carries a tracked argument or
+receiver. A `def` or `lambda` whose body stores through a free variable is a mutation at its
+definition site whether or not it is called, because a definition is an escape, and a default
+argument bound to a tracked name is the same escape one binding earlier.
+
+Five soundness fixes recover true accusations the round-5 closure lost, each on a family that
+really was left uncorrected. A parameter is seeded with the role of the argument it binds and not
+with both roles at once, so a helper that iterates its mapping parameter bare yields keys exactly
+as the module-level bare-iteration boundary says. A starred argument forwards elements and a
+double-starred argument forwards values, so `*record` and `**record` hand over strings and scalars
+and bind nothing, while a bucket with no role of its own is still forwarded conservatively. A
+subscript or lookup on a record is a scalar and a subscript of a mapping of records is a record,
+so a helper handed one collected p receives a float. A parameter rebound to a fresh value in
+straight-line code, before the parameter is read at all, is detached from the argument, and
+`dict(entry)` detaches only a record-role parameter because a shallow copy of a mapping of records
+still holds the same records. A wrapper name the module binds itself is resolved as the definition
+it is rather than recognized by spelling, so a project-local `sorted` returning unrelated
+dictionaries is not read as the builtin row wrapper.
+
+The whole delta lives in the v3.4 correction model. The v3.4 dataflow module is byte-unchanged, so
+the ordering rule, the section-6 and section-7 admissions, the closed reason set of 61, and every
+abstention path are untouched, and the byte-frozen 3.1, 3.2, and 3.3 lanes stay byte-identical.
+Every refused row lands on `pvalue-family-collection-unresolved`, which the through-name sibling
+already carries. Across the 245 fixtures, the E10-E17 envelope cases, the open-corpus rows, and
+the round-1 through round-5 oracle rows -- 525 rows in all -- exactly one row moves:
+`correct-record-in-helper-imported-from-a-sibling-module`, the open false accusation round 5 pinned
+by name, which now refuses rather than accusing a correct analysis. The move is declared in the
+test rather than by editing the round-5 oracle, whose pins stay as round 5 measured them. Five
+costs are pinned by name in the round-6 oracle, each a refusal of a genuinely uncorrected family:
+`boundary-helper-parameter-rebound-inside-a-branch`, because on the path where the branch is not
+taken the store is written through the record; `boundary-overwritten-class-method`, because a class
+body binding one method name twice does not say which definition runs; and
+`boundary-read-only-helper-calling-keys-on-its-parameter`,
+`boundary-read-only-helper-calling-items-on-its-parameter`, and
+`boundary-read-only-helper-calling-copy-on-its-parameter`, which are the rest of the frozen B1/B4
+receiver-method census whose `.get()` sibling the round-5 oracle already pins. No row in the 170
+evidence sources, the 245 fixtures, or the 50 corpus adapter rows has any of those shapes, so each
+cost is a pinned hypothetical rather than a measured loss. Both pinned 3.4 movements, the E10-E17
+retro recall, the question census `28 -> 27`, and the frozen anchor bytes are re-demonstrated
+unchanged. The residual set is empty: no correct-analysis row in the round-6 oracle is left
+accused, and none is pinned open.
+
+**Adversarial audit fix, round 7.** Round 6 fails closed on a callee it cannot resolve. It did not
+fail closed on a value it cannot follow or on a callable it cannot resolve, and it keyed its
+library allowlist on the spelling of a name rather than on what the imports say the name is. The
+round-6 adversarial audit demonstrated nine deployed routes through those three gaps, each a
+complete and correct Bonferroni pass over the declared family classified `candidate`/`none` over
+the uncorrected family, and the custodian rebuilt every one of them as a real project and confirmed
+the disposition through the real contract and audit pipeline. The routes are a class wearing the
+`json` spelling beside a storing `dumps` staticmethod; a record put into a list by `append` and
+then corrected through the list, and the same through `extend`; a helper returning a generator
+expression over its parameter; and four callables reaching `pd.Series(...).apply` -- a wrapper that
+stores only by calling a storing helper, a callable held in an attribute, one taken out of a
+dictionary with `.get`, and one returned by a chain of identity functions. In the other direction
+the audit demonstrated ten deployed losses of a true accusation: `import json as payload` and
+`from json import dumps as serialize`, `copy.deepcopy`, `pprint.pprint`, a `csv.DictWriter` writing
+each record out, `seen.index` and `seen.count` after an allowlisted `seen.append`, a genuine
+`functools.wraps` wrapper around a read-only helper, a helper returning `{"names": list(table)}`
+over a mapping parameter, a method whose bare call resolved to a same-named sibling method instead
+of the module function, and a bare call to an `async def`.
+
+Round 7 makes the three sides uniform and adds no reason. Value flow now fails closed the way
+callee flow does. `append`, `extend`, `insert`, `add`, and a subscript store put the collection's
+own record objects into another container without copying them, so that container holds the
+family's records and a store written through one of its elements is a store into the family; the
+insertion call itself stays read-only, because it does not write into the record. A container
+reached *only* by an insertion is judged on what is done to it afterwards, not on the insertion:
+the frozen receiver-method census reads any method call as an in-place mutation, so counting
+`held.append(record)` against `held` would refuse `seen.append(record); seen.index(record)`, which
+only reads a family that really was left uncorrected. Such a container therefore permits the
+insertion and query methods that filled and read it and refuses on everything else -- an augmented
+assignment, a `del`, a nested subscript store, or any other method call -- while a container the
+round-6 enumeration already reached by an ordinary binding form keeps its round-6 disposition
+exactly. A generator expression, a comprehension, and a `lambda` are objects that hand out whatever
+their body names, so a helper returning either hands the record straight back, while
+`[row["p"] for row in results.values()]` stays fresh because its element is a scalar. Iterating a
+mapping yields its keys, so the freshness test draws the module-level bare-iteration boundary one
+scope in and `{"names": list(table)}` over a mapping parameter is a fresh dictionary of strings;
+the same wrapper over a sequence parameter yields the records and keeps its root.
+
+A callable position fails closed the same way. Round 6 asked whether a callable beside a tracked
+argument was known to store and admitted everything it could not read; the question is now the
+other way round, and a callable position is admitted only for a `lambda` or a project-local
+definition that does not store, a read-only builtin, an allowlisted library target, or a bound
+method of a tracked container whose spelling is on a closed read-only method set from which `pop`
+and `setdefault` are absent. The classification runs after the interprocedural storing fixpoint,
+which is what closes the wrapper route, and the role enumeration and the call census feed each
+other to a fixpoint for the same reason: deciding whether a call hands an argument back needs
+callee resolution, and callee resolution needs the roles. A callback-bearing call also reaches its
+receiver's roots unconditionally, which is what closes the four `apply` routes: `apply` is on the
+never-allowlisted callee set and stays there, so the callable beside it is never consulted and the
+receiver is the only place the records appear.
+
+The allowlist is keyed on import-resolved targets rather than on spellings. A qualified or bare
+library callee is allowlisted only when its base name is bound in the scope chain exclusively by
+`import` statements and the identity those statements give it is an allowlisted target:
+`import pandas as pd` and `import pandas` are both `pandas`, `from scipy import stats` and
+`import scipy.stats as stats` are both `scipy.stats`, `from json import dumps as serialize` is
+`json.dumps`, and `from operator import setitem as put` is `operator.setitem`. A base name bound by
+anything else is not a library name, so `json = Mutator` resolves project-locally to the class and
+its storing staticmethod is seen rather than merely feared. Five measured targets are added, each
+justified by one named oracle row that loses a true accusation without it -- `copy.copy` and
+`copy.deepcopy`, `pprint.pprint` and `pprint.pformat`, `json.load` and `json.loads` as the read
+siblings of the already-measured `json.dump` and `json.dumps`, the `csv` writer constructors with
+the `writerow`, `writerows`, and `writeheader` methods on a name bound exactly once to one of them,
+and the container query methods `index`, `count`, and `get` on a receiver the role enumeration
+already tracks -- together with the `math` reducers, which are the scalar-returning siblings of the
+already-measured `statistics` reducers. The forbidden set is kept exactly as it was, and `update`
+stays off the insertion allowlist because `dict.update(record, p=...)` is the measured round-6
+unbound-mutation route.
+
+Three resolution-semantics defects are fixed. A class body is not an enclosing lexical scope in
+Python, so a bare `inspect` inside `Report.show` resolves to the module-level `inspect` and never
+to `Report.inspect`, which is reached only through `self.`, `cls.`, or `Report.`. A `global` or
+`nonlocal` declaration continues the lookup in the scope it names, and a declaring scope that also
+writes the name leaves the target ambiguous and fails closed. A decorator whose structure is a
+`functools.wraps`-style forwarder is transparent, proved rather than guessed: one plain parameter,
+every own return the same bare name, that name bound by exactly one nested `def`, a wrapper that
+neither stores through its parameters nor writes through a free variable, and no call in the
+wrapper but a call of the decorator's own parameter.
+
+The whole delta again lives in the v3.4 correction model. The v3.4 dataflow module is
+byte-unchanged, so the ordering rule, the section-6 and section-7 admissions, the closed reason set
+of 61, and every abstention path are untouched, and the byte-frozen 3.1, 3.2, and 3.3 lanes stay
+byte-identical. Every refusal this round produces lands on `pvalue-family-collection-unresolved`,
+which the through-name sibling already carries. Across the 245 fixtures, the E10-E17 envelope
+cases, the open-corpus rows, and the round-1 through round-6 oracle rows -- 573 rows in all -- not
+one row moves, and the round-6 and round-5 move maps are declared empty in the test rather than
+assumed. Five costs are pinned by name in the round-7 oracle, and every one of them is inherited
+from an earlier round's rule rather than introduced here: `boundary-unawaited-async-call`, because
+a bare call to an `async def` creates a coroutine and runs no body and this recognizer does not
+reason about awaits; `boundary-lru-cache-decorated-read-only-helper`, because a library decorator
+is a call this module cannot read; `boundary-record-inserted-by-subscript-into-a-second-mapping`,
+because a bare name bound into a subscript location escapes under the round-1 and round-2 rule;
+`boundary-read-only-helper-calling-values-on-its-parameter`, which is the frozen receiver-method
+census one method along from the three the round-6 oracle pins; and
+`boundary-read-only-pandas-apply`, because `apply` is on the never-allowlisted callee set. Three
+further correct-analysis rows are refused by an upstream gate rather than by this closure -- the
+API-resolution gate, the frozen helper yield census, and the p-value consumer proof -- and are
+recorded with the reason they actually carry. Both pinned 3.4 movements, the E10-E17 retro recall,
+the question census `28 -> 27`, and the frozen anchor bytes are re-demonstrated unchanged. The
+residual set is empty: no correct-analysis row in the round-7 oracle is left accused, and none is
+pinned open.

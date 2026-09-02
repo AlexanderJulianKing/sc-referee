@@ -1,0 +1,1053 @@
+{
+  "profile": "multitest-v3.4-audit-fix-r6-call-disposition-closure-oracle-v1",
+  "rows": [
+    {
+      "fixture_name": "correct-record-in-unbound-dict-update",
+      "fixture_source_sha256": "sha256:87ba3c3c5b32f8d63f57fe6318fa6fc54ddbc38ade67490e389128dea90acbf5",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "dict.update(record, p=min(record[\"p\"] * len(OUTCOMES), 1.0))",
+        "design_clause": "audit round 6 rule A; blocker 1, unbound mutation methods",
+        "design_text": "The callee is the unbound `dict.update`, an attribute of a builtin type rather than a method call whose receiver is the tracked name, so the frozen receiver census never saw it. It is not a project-local definition and it is not on the read-only allowlist, so the call is a mutation of the record it is handed."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-operator-setitem",
+      "fixture_source_sha256": "sha256:35cfb7842d3264e49f3effbc943d3e56b1cb8a5a9d1eb56c04acbcb933b8fa70",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "operator.setitem(record, \"p\", min(record[\"p\"] * len(OUTCOMES), 1.0))",
+        "design_clause": "audit round 6 rule A; blocker 1, library mutators",
+        "design_text": "`operator.setitem` is a library mutator whose whole purpose is to write through the object it is handed.  The allowlist never carries an `operator` mutator, so the call fails closed."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-getattr-setitem",
+      "fixture_source_sha256": "sha256:1aa58aaaabf945974ce7855b7159529698e147a9758aea1ad439668ec24a8608",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "getattr(record, \"__setitem__\")(\"p\", ...)",
+        "design_clause": "audit round 6 rule A; blocker 1, getattr-supplied mutators",
+        "design_text": "`getattr` hands out a bound method this recognizer cannot name, so it is never allowlisted. The inner call is handed the record and fails closed on that argument, which is what the outer call needs no separate rule for."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-functools-partial",
+      "fixture_source_sha256": "sha256:94646a76823f46b875f3f2400fbddd672403881dab550e99cac7c3ab22c543c1",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "adjust = functools.partial(rescale, family_size=len(OUTCOMES)); adjust(record)",
+        "design_clause": "audit round 6 rules A and C; a name bound to a partial",
+        "design_text": "`adjust` is bound to a `functools.partial` value, not to a definition, so the callee resolves to nothing.  Rule C reaches the same answer independently: a partial of a storing callable is itself a storing callable."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-static-method-stored-in-a-name",
+      "fixture_source_sha256": "sha256:60a02be0faebde15fa334888fcc4e6c53c4609911afdd617c60cedbd87400bde",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "adjust = Bonferroni.rescale; adjust(record, len(OUTCOMES))",
+        "design_clause": "audit round 6 rules A and C; a name bound to a bound method",
+        "design_text": "`adjust` is bound to an attribute value rather than defined, so the name is not a resolvable callee.  Rule C agrees: the static method stores through its parameter, so every name carrying it is a storing callable."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-dict-dispatch-table",
+      "fixture_source_sha256": "sha256:6b9795fefb21740ff03039e8c9d726658d5eb5853e91f5649c850fee79833084",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "ADJUSTERS[\"bonferroni\"](record, len(OUTCOMES))",
+        "design_clause": "audit round 6 rules A and C; a subscript callee",
+        "design_text": "A subscript callee names no definition, so it fails closed.  Rule C agrees: the dispatch table holds a storing callable, so subscripting it yields one."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-lambda-stored-in-a-list",
+      "fixture_source_sha256": "sha256:e103d83a62bd104f255cda346f2121553defea502f69ce1dbf80c1b9f0702997",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "ADJUSTERS[0](record, len(OUTCOMES)) where the list holds a storing lambda",
+        "design_clause": "audit round 6 rules A and C; a storing lambda held in a container",
+        "design_text": "The fresh adversarial shape the round-6 brief asks for.  The callee is an index into a list, which names no definition, and the list holds a lambda that writes through its parameter, so the container is a storing-callable holder under rule C."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-decorator-supplied-wrapper",
+      "fixture_source_sha256": "sha256:c0fa16d5c80bff9aefe2bb106fa94dee23acabe8cfc660515ed1653e27045418",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "@bonferroni-decorated `rescale` whose wrapper performs the store",
+        "design_clause": "audit round 6 rule A; a decorated definition",
+        "design_text": "What runs at the call site is whatever the decorator returned, and `bonferroni` returns a nested wrapper rather than its own parameter, so the decorated name resolves to nothing this recognizer can read and fails closed.  Its read-only twin, a decorator that provably returns its own parameter, is transparent and keeps its accusation."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-setattr-property-setter",
+      "fixture_source_sha256": "sha256:680165244822aa92564d30c56de1f8666f500985ee4360014017f3c4e4e616df",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "setattr(PSetter(record), \"p\", ...) where the property setter writes the record",
+        "design_clause": "audit round 6 rule A; a constructor that stores its argument",
+        "design_text": "`setattr` is never allowlisted, and the constructor beside it is what actually hands the record on: `PSetter(record)` binds `__init__`, whose body stores the parameter behind an attribute path, which is a display escape of the record."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-pandas-apply-over-the-values-view",
+      "fixture_source_sha256": "sha256:65fe2fa59b0d485f4cf8580da9d6634e3ee23455ac0da9d11ea9cf171e749423",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "pd.Series(list(results.values())).apply(rescale)",
+        "design_clause": "audit round 6 rule C; a storing callable passed to a library callback API",
+        "design_text": "`Series.apply` is read-only exactly while the callable beside it is, and `rescale` writes through its parameter.  The receiver's root is `results`, reached through the `pd.Series` constructor and the `list(...)` wrapper, so the whole family is what the callback writes into."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-receiving-a-subscript-display",
+      "fixture_source_sha256": "sha256:4f351b436d229505f0e37ae6556d64792dd9e99c63024690a3ae7f4d0edd5de2",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "rescale_all([results[name]], len(OUTCOMES))",
+        "design_clause": "audit round 6 rule A; a display handed to a storing helper",
+        "design_text": "A bare name inside a display is already a display escape; this row is the same container one subscript away.  The display hands over the record it holds, the helper iterates it, and the store lands on the collection's own records."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-imported-from-a-sibling-module",
+      "fixture_source_sha256": "sha256:168b79723027fbaad20fa38c75ab9099d42a98f302a27a11ad1980d72eb78bb5",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the correcting helper is defined in another project module",
+        "design_clause": "audit round 6 rule A; the round-5 named open residual",
+        "design_text": "This recognizer reads one source file, so the callee resolves to no definition it can read. Round 5 pinned the row as an open false accusation for exactly that reason.  Rule A decides it without widening what the recognizer reads: a callee it cannot resolve and cannot allowlist is a mutation of the record it is handed.  This is the one round-5 oracle row round 6 deliberately moves."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-beside-an-unrelated-parameter",
+      "fixture_source_sha256": "sha256:9e1fb043dbc07b4206abf8e91b8623c9213747e764643bbc778cc0269299dfc9",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`def rescale(entry, family_size)` beside `def unrelated(rescale)`",
+        "design_clause": "audit round 6 rule A, scope-chain resolution; blocker 3",
+        "design_text": "The correcting definition governs at this call site, so the callee resolves and its body is read: it writes through the parameter the record binds, and the row refuses on the store. Round 5 gathered every parameter and every store in the module and refused to resolve any same-named function, so the correction stayed invisible and the row was accused.  A parameter of an unrelated function binds only inside that function."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-beside-a-class-attribute",
+      "fixture_source_sha256": "sha256:b858b77f7ffc483020e3000d8733fecdb36bdf5eb5ac15bbe538b4264742058d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`def rescale(...)` beside `class Report: rescale = \"bonferroni\"`",
+        "design_clause": "audit round 6 rule A, scope-chain resolution; blocker 3 ledger",
+        "design_text": "The correcting definition governs at this call site, so the callee resolves and its body is read: it writes through the parameter the record binds, and the row refuses on the store. Round 5 gathered every parameter and every store in the module and refused to resolve any same-named function, so the correction stayed invisible and the row was accused.  A class body is never on a function's scope chain."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-beside-a-second-nested-definition",
+      "fixture_source_sha256": "sha256:ea543eccefbbeec2636ccd6d9c43541555f9d945575d32187319c6fd87b0c3e1",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`def rescale(...)` beside a second `rescale` nested in another function",
+        "design_clause": "audit round 6 rule A, scope-chain resolution; blocker 3 ledger",
+        "design_text": "The correcting definition governs at this call site, so the callee resolves and its body is read: it writes through the parameter the record binds, and the row refuses on the store. Round 5 gathered every parameter and every store in the module and refused to resolve any same-named function, so the correction stayed invisible and the row was accused.  A definition nested in another function binds only inside it."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-beside-an-unused-nested-definition",
+      "fixture_source_sha256": "sha256:bd4075ed872b85abd117345ac17dd137bcefdbde03c12a849ef59b3de8332aae",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`def rescale(...)` beside an unused nested `rescale`",
+        "design_clause": "audit round 6 rule A, scope-chain resolution; blocker 3 ledger",
+        "design_text": "The correcting definition governs at this call site, so the callee resolves and its body is read: it writes through the parameter the record binds, and the row refuses on the store. Round 5 gathered every parameter and every store in the module and refused to resolve any same-named function, so the correction stayed invisible and the row was accused.  An unused nested definition binds nothing the call site can see."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-defined-twice-conditionally",
+      "fixture_source_sha256": "sha256:cb1447ae7e4b874999b6cf130c54ad7c0bf02f1913a39d70056980accedd9d63",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "two conditional `def rescale` definitions where the true branch corrects",
+        "design_clause": "audit round 6 rule A, ambiguous binding fails closed",
+        "design_text": "The module binds `rescale` twice, so which definition runs is not decided by the census. An ambiguous binding is unresolvable, and an unresolvable callee handed a tracked record is a mutation of it.  The row is a correct analysis and refusing it is the safe disposition; the alternative, guessing a branch, is the reading that admitted the whole class."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-helper-imported-then-defined",
+      "fixture_source_sha256": "sha256:46b42428dc624a21a9080eeaba7f763268d75181e5329bb21829c4f2c6080184",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`from operator import getitem as rescale` followed by the correcting `def rescale`",
+        "design_clause": "audit round 6 rule A, ambiguous binding fails closed",
+        "design_text": "The module binds `rescale` by an import and again by a definition, so the census cannot say which one the call site reads and the callee is unresolvable.  Rule A then fails closed on the record the call is handed."
+      },
+      "expected_gate": "callee-shadowing-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-through-an-identity-helper",
+      "fixture_source_sha256": "sha256:95a321da9bc9a805972e4f1584b68e0dd98959175da6b471c0ff8596ea797b1a",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "target = identity(record); target[\"p\"] = min(target[\"p\"] * len(OUTCOMES), 1.0)",
+        "design_clause": "audit round 6 rule B; blocker 2, same-module return flow",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name, and this store is not written there, so the correction is invisible to it and the row was published as an accusation that the family was never corrected.  The identical store written through `results` refuses because the member it names cannot be resolved, which is the reason this row now carries.  `identity` hands its own parameter back, so `target` is the record itself and the store through `target` is the store through `record`.  Round 5 followed stores through parameters and not returned aliases, so the correction was invisible."
+      },
+      "expected_gate": "call-return-flow",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-values-view-through-an-identity-helper",
+      "fixture_source_sha256": "sha256:3d5603b54cf708077acd3e36ca053329bf7728c891ce51f203007a6a928a2a67",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for record in identity(results.values()): record[\"p\"] = ...",
+        "design_clause": "audit round 6 rule B; blocker 2, return flow over a view",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name, and this store is not written there, so the correction is invisible to it and the row was published as an accusation that the family was never corrected.  The identical store written through `results` refuses because the member it names cannot be resolved, which is the reason this row now carries.  The call hands back the values view it was given, so iterating the result binds the collection's own records and every one of the six is corrected."
+      },
+      "expected_gate": "call-return-flow",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-a-nested-closure-over-the-collection",
+      "fixture_source_sha256": "sha256:8725445082f613dc520efb169e0827efa179323781c88c6d3a12bcb8453c6ea9",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "def rescale_all(): results[name][\"p\"] = ...  nested in main and called",
+        "design_clause": "audit round 6 rule D; blocker 2, no-argument closures",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name, and this store is not written there, so the correction is invisible to it and the row was published as an accusation that the family was never corrected.  The identical store written through `results` refuses because the member it names cannot be resolved, which is the reason this row now carries.  The store is written through the collection's own name, but in a nested scope where `results` is a free variable, and the frozen engine's family reconstruction does not follow it.  A definition whose body stores through a free tracked name is a mutation at its definition site."
+      },
+      "expected_gate": "closure-definition-escape",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-a-default-argument-capture",
+      "fixture_source_sha256": "sha256:3e8de2b37e0bd4b2ec70c90cfd0d31ef1756de4175809251e69b774681f46bcf",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "def rescale(entry=record, family_size=len(OUTCOMES)) nested in the loop, then rescale()",
+        "design_clause": "audit round 6 rule D; a default argument bound to a tracked name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name, and this store is not written there, so the correction is invisible to it and the row was published as an accusation that the family was never corrected.  The identical store written through `results` refuses because the member it names cannot be resolved, which is the reason this row now carries.  The record reaches the parameter through the default expression rather than through an argument at the call site, and the definition stores through that parameter, so the definition itself is the handover."
+      },
+      "expected_gate": "closure-definition-escape",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-record-in-a-returned-nested-helper",
+      "fixture_source_sha256": "sha256:c82245770b828147a673de143d27025940f7e381321fa7dadc6605f57de799f9",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "maker(record)(len(OUTCOMES)) where the nested helper stores through the outer parameter",
+        "design_clause": "audit round 6 rule D; a nested definition that escapes its helper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name, and this store is not written there, so the correction is invisible to it and the row was published as an accusation that the family was never corrected.  The identical store written through `results` refuses because the member it names cannot be resolved, which is the reason this row now carries.  The fresh adversarial shape the round-6 brief asks for.  The nested definition is returned, so it is read inside the helper and its store counts, which is the half of rule D that a never-called nested definition fails."
+      },
+      "expected_gate": "closure-definition-escape",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "positive-helper-bare-iteration-over-the-collection",
+      "fixture_source_sha256": "sha256:1a5afa1030b1f975726ac8a5072072699133f89660ef6598de7a415a1d25e030",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "inspect_table(results) where the helper runs `for key in table: print(key.upper())`",
+        "design_clause": "audit round 6 soundness fix 1; blocker 6",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  Iterating a mapping yields its keys, and `str.upper()` is read-only.  Round 5 seeded every helper parameter as a mapping AND a sequence of records at once, so the loop target was read as a record where the identical module-level loop leaves it opaque.  A parameter is now seeded with the role of the argument that binds it and with nothing else, which is the module-level bare-iteration boundary the round-4 oracle pins, applied one scope in."
+      },
+      "expected_gate": "parameter-role-seeding",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-helper-star-keys-forwarding",
+      "fixture_source_sha256": "sha256:346c1cdcb250cfd280962b67ce61aef06b34b27501108e712984800b1a9f0c24",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "inspect_keys(*record, target=scratch) where the helper stores through `target`",
+        "design_clause": "audit round 6 soundness fix 2; blocker 5",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  `*record` forwards the dictionary's KEYS, so the record object is never passed and never mutated; only the separate `scratch` dictionary is.  Round 5 bound a starred argument to every parameter at once, so the record was spuriously captured."
+      },
+      "expected_gate": "starred-argument-binding",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-helper-double-star-forwarding",
+      "fixture_source_sha256": "sha256:8e776654d07037ea1083a557ddcffb84c8d68dae65baf40961ceaa225d970ba4",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "inspect_fields(target=scratch, **record) where the helper stores through `target`",
+        "design_clause": "audit round 6 soundness fix 2; blocker 5",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  `**record` forwards the record's VALUES, which are the collected scalars, so the record object is never handed over.  A `**` bucket carrying a mapping of records still forwards records and still binds, which is what keeps the round-5 double-star forwarding row refused."
+      },
+      "expected_gate": "starred-argument-binding",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-helper-scalar-subscript-argument",
+      "fixture_source_sha256": "sha256:93808ee514d73b841a3267cf75853885a17ce6caf3a247d8d99679bb59bb640c",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "inspect_float(record[\"p\"]) where the helper calls `float.as_integer_ratio()`",
+        "design_clause": "audit round 6 soundness fix 3; blocker 8",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  A subscript of a record is a scalar, so the helper receives a float and can write into nothing.  Round 5 read every subscript back to its container root, so handing over one collected p looked like handing over the record.  A subscript of a MAPPING of records is still a record, so `rescale(results[name], n)` still binds."
+      },
+      "expected_gate": "scalar-subscript-argument",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-helper-parameter-rebound-to-a-fresh-dict",
+      "fixture_source_sha256": "sha256:f576d9e58248ac0e42fb1ff36173fafe3fe41aa3e9180625e852352381c54316",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): entry = {}; entry[\"scratch\"] = 1",
+        "design_clause": "audit round 6 soundness fix 4; blocker 4",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The parameter is rebound to a brand-new dictionary in straight-line code before the parameter is read at all, so the later store cannot reach the argument.  The rebinding has to be straight-line and the parameter untouched before it, so no alias of the record can outlive the rebinding."
+      },
+      "expected_gate": "parameter-rebinding",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-helper-parameter-rebound-to-a-shallow-copy",
+      "fixture_source_sha256": "sha256:b3b1710807b4d1b6abc6130e1b21c4f8c6f7c5042fe18fd9ade2f033ea9f2c53",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): entry = dict(entry); entry[\"scratch\"] = entry[\"p\"]",
+        "design_clause": "audit round 6 soundness fix 4; blocker 4",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  A shallow copy of one record is a new record, so storing into it changes nothing the family reads.  A shallow copy of a MAPPING of records is a different container holding the same records, so only a record-role parameter is detached this way."
+      },
+      "expected_gate": "parameter-rebinding",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-never-called-nested-store",
+      "fixture_source_sha256": "sha256:f6dd580324232ad91eb53ff33c905727a848c0820f10107d4c1ecc33f278d8c8",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): def never_called(): entry['p'] = 1.0; return entry['p']",
+        "design_clause": "audit round 6 rule D, the second half; blocker 9",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The nested definition is never called, returned, passed, or stored anywhere in the helper, so the call cannot reach its store and the helper only reads the record.  A nested definition whose name is read in the helper is kept, which is what refuses the returned nested helper."
+      },
+      "expected_gate": "dead-nested-definition",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-project-local-sorted-returning-fresh-records",
+      "fixture_source_sha256": "sha256:9d704ffdc9e22aebc93ef56163ad0d3de272168e713783e8e7b7ea2b29fd80c1",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def sorted(values): return [{\"scratch\": 0}] then `for record in sorted(results.values())`",
+        "design_clause": "audit round 6 soundness fix 5; blocker 7",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The project-local `sorted` returns a list of new unrelated dictionaries, so the loop target is not one of the collection's records and the store reaches nothing in the family.  Round 5 recognized the wrapper by spelling alone.  A wrapper name the module binds itself is now resolved as the definition it is, and its result carries a record only if it hands one back."
+      },
+      "expected_gate": "shadowed-wrapper-resolution",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-library-calls-over-the-collection",
+      "fixture_source_sha256": "sha256:3c061b4baf1403c0392452ac5c17a0ce801ae1c08f7cd58a9f124f0232863fc7",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "logging.info, json.dumps, and pd.DataFrame over the collection",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  Each callee is on the closed read-only allowlist, which is built from the callees the evidence base measures receiving a tracked argument.  Refusing library calls outright is what mutation kill (c) measures the cost of."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-read-only-helper-returning-a-new-dict-the-caller-stores-into",
+      "fixture_source_sha256": "sha256:bd789350b1de204e8152ad81ef2633f4b0c5a608fa87a68f04eb990d7c5c7355",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "summary = summarize(record) returning {\"p\": entry[\"p\"]}, then summary[\"scratch\"] = 1",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The helper builds a NEW dictionary out of one scalar and hands back nothing it was given, so the caller's store lands outside the family.  This is the boundary rule B has to respect: return flow follows an object that is handed back, not every result of every call."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-decorated-read-only-helper",
+      "fixture_source_sha256": "sha256:2bbb7bc93fa171aada3636e0c814b012bbd5ac8186dc504848926adc0b81dd3b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "@trace-decorated read-only helper where `trace` returns its own parameter",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The decorator provably returns the function it was given, so the definition it decorates is what runs and its body only reads.  A decorator that returns something else is unresolvable and fails closed, which is the wrapper row above."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-sorted-key-and-map-read-only-callbacks",
+      "fixture_source_sha256": "sha256:5f1671d096bbe97e317d143b8cc2995a6fed7c4ecf48cd562a7c3370cd559efd",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "sorted(results.values(), key=lambda row: row[\"p\"]) and map over the values view",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  A callback builtin is read-only exactly while its callable is, and both callables here only read one field.  The same builtins with a storing callable are a store into every record they visit."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-star-entries-read-only-helper",
+      "fixture_source_sha256": "sha256:aff1b242f18a2a7390eaead1f4502a5e2e24fff639e5b864119a46c498e5a681",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(*entries): return entries[0][\"p\"]",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The helper collects its arguments into a fresh tuple and reads one field out of the record it holds; nothing is written.  A `*args` bucket is seeded as a sequence of what the call site handed it, so a storing body would still be caught."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-read-only-helper-beside-an-unrelated-parameter",
+      "fixture_source_sha256": "sha256:d7c207bcf9ee67dbdd4ff34456576588c36f9505cc973e58b575da3f15afb66b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "a read-only `significance_label` helper beside `def unrelated(significance_label)`",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  This is the row the per-scope resolution census exists to protect.  The helper governs at the call site and only reads the record, so the accusation is a true one.  Under round 5's module-wide shadow census the callee would resolve to nothing, and rule A would then fail closed on the record it is handed and take the accusation with it, which is what mutation kill (h) measures."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-collected-p-into-a-separate-output-dict",
+      "fixture_source_sha256": "sha256:12814aaa69b51d4797dbdd678b30264ce5fcf492117d64c7d29f7f0245e218c1",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "output[name] = \"p={:.6f}\".format(record[\"p\"]) into a separate new dictionary",
+        "design_clause": "audit round 6 rule A, the allowlist non-vacuity controls",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  The str-method route is the most common shape in the evidence base -- 470 measured calls receive a tracked argument through it -- and every one of them is read-only."
+      },
+      "expected_gate": "read-only-allowlist",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "boundary-helper-parameter-rebound-inside-a-branch",
+      "fixture_source_sha256": "sha256:06dc37f49c58ed5d0c51c58c6dfb8758020123a48537dba795d5e088ae8c8e7c",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): if ...: entry = {}; entry['scratch'] = 1",
+        "design_clause": "audit round 6 soundness fix 4, the conservative half",
+        "design_text": "The family is uncorrected, so this is a true accusation traded for the closure and recorded rather than hidden.  The rebinding is inside a branch, so on the path where the branch is not taken the store is written through the record the call was handed.  Only a straight-line rebinding detaches the parameter; anything conditional keeps the alias."
+      },
+      "expected_gate": "parameter-rebinding",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "boundary-overwritten-class-method",
+      "fixture_source_sha256": "sha256:32e3cae52c1cb0087f21c5946761d76a34df1689bfaa0f130e2ad42eed3ffeea",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "class Presenter binds `show` as a def and again as an assignment; presenter.show(record)",
+        "design_clause": "audit round 6 rule F, an overwritten class method",
+        "design_text": "The family is uncorrected and the method that actually runs is read-only, so this is a true accusation traded for the closure and pinned as a measured cost.  A class body that binds one method name twice does not say which definition runs at the call site, and an ambiguous binding is unresolvable, so rule A fails closed on the record it is handed."
+      },
+      "expected_gate": "unresolvable-callee-fail-closed",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "boundary-read-only-helper-calling-keys-on-its-parameter",
+      "fixture_source_sha256": "sha256:89a09f9e0c3b653156dd54b6a541788e64ef604a78eb470c6bb0b79b7cd4f42b",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): return entry.keys()",
+        "design_clause": "audit round 6 rule F, the frozen receiver-method census",
+        "design_text": "The family is uncorrected and the helper only reads it, so this is a true accusation traded for the closure.  The frozen B1/B4 record-mutation census counts every method call whose receiver is a name as an in-place mutation, because a method may mutate its receiver and this recognizer never executes project code.  Round 6 reuses that census unchanged rather than enumerating which method names are safe, so the row is refused. Its `.get()` sibling is the round-5 oracle's pinned boundary row; these three are the rest of the same census, pinned here so the whole cost is on the record."
+      },
+      "expected_gate": "frozen-receiver-method-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "boundary-read-only-helper-calling-items-on-its-parameter",
+      "fixture_source_sha256": "sha256:39b4c063f024b3c68a53171245ad5e5d42ae0772763dde19ec385ce9030464d2",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): return entry.items()",
+        "design_clause": "audit round 6 rule F, the frozen receiver-method census",
+        "design_text": "The family is uncorrected and the helper only reads it, so this is a true accusation traded for the closure.  The frozen B1/B4 record-mutation census counts every method call whose receiver is a name as an in-place mutation, because a method may mutate its receiver and this recognizer never executes project code.  Round 6 reuses that census unchanged rather than enumerating which method names are safe, so the row is refused. Its `.get()` sibling is the round-5 oracle's pinned boundary row; these three are the rest of the same census, pinned here so the whole cost is on the record."
+      },
+      "expected_gate": "frozen-receiver-method-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "boundary-read-only-helper-calling-copy-on-its-parameter",
+      "fixture_source_sha256": "sha256:cdadd3db8aa53831e1c45fdf80e099b1a06660fcca2bd90a63b44327f5b74476",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def inspect_record(entry): return entry.copy()",
+        "design_clause": "audit round 6 rule F, the frozen receiver-method census",
+        "design_text": "The family is uncorrected and the helper only reads it, so this is a true accusation traded for the closure.  The frozen B1/B4 record-mutation census counts every method call whose receiver is a name as an in-place mutation, because a method may mutate its receiver and this recognizer never executes project code.  Round 6 reuses that census unchanged rather than enumerating which method names are safe, so the row is refused. Its `.get()` sibling is the round-5 oracle's pinned boundary row; these three are the rest of the same census, pinned here so the whole cost is on the record."
+      },
+      "expected_gate": "frozen-receiver-method-census",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "correct-explicit-loop-record-store-through-name",
+      "fixture_source_sha256": "sha256:6bd19b48d9b54445d21007d81c0bada35c6599ca81081ee6b1be275bfc9b241f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name in results: results[name][\"p\"] = min(results[name][\"p\"] * len(OUTCOMES), 1.0)",
+        "design_clause": "the frozen 3.3 reason authority for every refused row",
+        "design_text": "The identical program with the correction written through the collection's own name.  The frozen 3.3 pipeline refuses it at `pvalue-family-collection-unresolved` because the member each store names cannot be resolved, and that is the reason every refused row above carries. The test recomputes this row's frozen 3.3 result live and asserts the equality, so a wrong pin fails rather than passes."
+      },
+      "expected_gate": "reason-authority",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name"
+    },
+    {
+      "fixture_name": "positive-explicit-loop-uncorrected-family",
+      "fixture_source_sha256": "sha256:d1e9a8b1dfa179436566db2eb4e7fc1d8623ef5ad05cfb1d4ee734a04a04fe08",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the explicit-loop P3 with no block at all",
+        "design_clause": "the uncorrected baseline every read-only control is one inserted call away from",
+        "design_text": "The family is left uncorrected: no declared outcome's p is ever multiplied or replaced, and every verdict is read at the bare threshold.  The block only reads the collection, so the accusation is a true one and the row has to keep it.  Round 5 refused it, and this row is the measurement that says which rule was too wide.  Nothing is inserted at all, so this row is what the read-only controls are measured against: they differ from it by one call and must reach the same disposition."
+      },
+      "expected_gate": "movement-control",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-covered-family-with-a-library-call",
+      "fixture_source_sha256": "sha256:789be0493a9c8eaf95bfe3ce01d1872293b48108114a6e2cd690737a85645869",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "a complete correction carried out on the threshold, with a live library call beside it",
+        "design_clause": "the coverage guard",
+        "design_text": "The correction is complete and is carried out on the threshold rather than on the p-values, so the row is `covered`/`complete` over all six positions.  The closure sits on the classification path and guards coverage classifications too; this row is what shows guarding them costs nothing."
+      },
+      "expected_gate": "movement-control",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": true,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "fixture_name": "positive-comprehension-e17-p3-unaltered",
+      "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P3 source, carried unaltered",
+        "design_clause": "the pinned 3.4 comprehension movement",
+        "design_text": "The sealed source itself, with no edit of any kind.  Its 3.4 movement lands on the classification path this closure sits directly on, so a closure that refused one call too many would take it with it."
+      },
+      "expected_gate": "movement-control",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_authorized_count": 6,
+      "expected_corrected_positions": []
+    },
+    {
+      "fixture_name": "positive-ap-e17-p6-unaltered",
+      "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P6 source, carried unaltered",
+        "design_clause": "the pinned 3.4 AP movement",
+        "design_text": "The sealed source itself, with no edit of any kind.  Its `strict_subset` classification over corrected positions (0, 1, 2) of an authorized family of 7 is the pinned movement mutation kill (c) shows is lost when every library call with a tracked argument is refused."
+      },
+      "expected_gate": "movement-control",
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      },
+      "expected_frozen_v33_identical": false,
+      "expected_authorized_count": 7,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2
+      ]
+    }
+  ],
+  "provenance": {
+    "implementation_output_used": false,
+    "authored_from": [
+      "the round-6 design: rule A fail-closed callee disposition, rule B return flow, rule C storing callables as values, rule D closures and nested definitions, and the five soundness fixes to round 5",
+      "the frozen 3.3 reason carried by the through-name sibling row",
+      "the Codex round-4/round-5 adversarial audit ledger, whose Direction-1 and Direction-2 shapes these rows reproduce as anchored edits of the sealed E17 P3 source with the explicit-loop rewrite"
+    ],
+    "source_construction": "each row is one anchored edit of the sealed E17 P3 analysis source: the collection comprehension is rewritten as the equivalent explicit loop, one block is placed immediately after the collection statement, and any definitions are placed immediately before `def main():` with any imports after `from scipy import stats`",
+    "corrected_positions_note": "the corrected-position tuples of the two classified movement rows are read back from the source rather than authored, because they are properties of the sealed case and are pinned identically by the round-2 through round-5 oracles"
+  }
+}

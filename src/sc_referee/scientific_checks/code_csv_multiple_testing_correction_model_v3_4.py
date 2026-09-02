@@ -46,7 +46,7 @@ import ast
 import copy
 import hashlib
 from collections import Counter
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -505,12 +505,45 @@ class _RecordDerivation:
     only add bindings, so the error is toward refusal.
     """
 
-    def __init__(self, mappings: frozenset[str]) -> None:
+    def __init__(
+        self,
+        mappings: frozenset[str],
+        *,
+        shadowed: frozenset[str] = frozenset(),
+        passthrough: Callable[[ast.Call], bool] | None = None,
+    ) -> None:
         self.mappings: set[str] = set(mappings)
         self.sequences: dict[str, object] = {}
         self.records: set[str] = set()
+        #: Round 6, soundness fix 5: the wrapper names this module binds itself.  A project-local
+        #: `def sorted(values)` is not the builtin row wrapper, so recognizing it by spelling read
+        #: a new unrelated dictionary as one of the collection's records and lost a true
+        #: accusation.  A shadowed spelling falls through to the round-6 return-flow hook, which
+        #: resolves the definition and asks whether it actually hands the argument back.
+        self.shadowed = shadowed
+        #: Round 6, rule B: a call whose callee resolves to a project-local definition that hands
+        #: one of its arguments back.  `target = identity(record)` binds the record itself.
+        self._passthrough = passthrough
+        #: Round 7, rule A(1): the names that hold records ONLY because a record was inserted into
+        #: them.  `held = []` followed by `held.append(record)` is a container of the collection's
+        #: records, so a later store through one of its elements is a store into the family.  The
+        #: set is kept apart from the ordinary bindings because the frozen mutation census reads
+        #: every receiver method call as an in-place mutation, and the insertion call *is* one:
+        #: counting it against the container would refuse `seen.append(record); seen.index(record)`,
+        #: which only reads a family that really was left uncorrected.
+        self.inserted: set[str] = set()
+        #: The names some ordinary binding form also reached, so a name that is both is never
+        #: treated as insertion-only and round 6's disposition for it stands unchanged.
+        self.bound: set[str] = set()
+        self._from_insertion = False
 
     # -- expression classifiers ---------------------------------------------------------
+
+    def _hands_back(self, node: ast.Call) -> bool:
+        return self._passthrough is not None and self._passthrough(node)
+
+    def _arguments(self, node: ast.Call) -> tuple[ast.expr, ...]:
+        return (*node.args, *(keyword.value for keyword in node.keywords))
 
     def maps_records(self, node: ast.expr) -> bool:
         """True when the expression is a container still keyed or indexed by family member."""
@@ -519,6 +552,10 @@ class _RecordDerivation:
             return self.maps_records(node.value)
         if isinstance(node, ast.Name):
             return node.id in self.mappings
+        if isinstance(node, ast.Dict):
+            # Round 7, rule A(1): a dictionary display written around a record is a container
+            # keyed by whatever key stands beside it, so `.values()` and `[k]` reach the record.
+            return any(item is not None and self.is_record(item) for item in node.values)
         if isinstance(node, ast.Call):
             if (
                 isinstance(node.func, ast.Attribute)
@@ -526,8 +563,14 @@ class _RecordDerivation:
                 and not node.args
             ):
                 return self.maps_records(node.func.value)
-            if isinstance(node.func, ast.Name) and node.func.id in _MAPPING_WRAPPERS:
+            if (
+                isinstance(node.func, ast.Name)
+                and node.func.id in _MAPPING_WRAPPERS
+                and node.func.id not in self.shadowed
+            ):
                 return any(self.maps_records(argument) for argument in node.args)
+            if self._hands_back(node):
+                return any(self.maps_records(argument) for argument in self._arguments(node))
         return False
 
     def element_shape(self, node: ast.expr) -> object:
@@ -543,13 +586,20 @@ class _RecordDerivation:
             return self._call_element_shape(node)
         if isinstance(node, (ast.GeneratorExp, ast.ListComp, ast.SetComp)):
             return _RECORD if self.is_record(node.elt) else _OPAQUE
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            # Round 6: a display written around a record hands that record on.  The bare-Name
+            # spelling is already a display escape; `[results[name]]` is the same container one
+            # subscript away, and the round-6 probe hands exactly that to a storing helper.
+            return _RECORD if any(self.is_record(item) for item in node.elts) else _OPAQUE
         return _OPAQUE
 
     def _call_element_shape(self, node: ast.Call) -> object:
         function = node.func
         if isinstance(function, ast.Attribute):
             if not self.maps_records(function.value):
-                return _OPAQUE
+                return (
+                    _RECORD if self._hands_back(node) and self._argument_record(node) else _OPAQUE
+                )
             if function.attr in _KEY_VIEW_METHODS:
                 return _OPAQUE
             if function.attr in _RECORD_VIEW_METHODS:
@@ -557,15 +607,26 @@ class _RecordDerivation:
             return _OPAQUE
         if not isinstance(function, ast.Name):
             return _OPAQUE
-        if function.id == "enumerate" and node.args:
-            return (_OPAQUE, self.element_shape(node.args[0]))
-        if function.id == "zip":
-            return tuple(self.element_shape(argument) for argument in node.args)
-        if function.id in _ITERABLE_WRAPPERS and node.args:
-            return self.element_shape(node.args[0])
+        if function.id not in self.shadowed:
+            if function.id == "enumerate" and node.args:
+                return (_OPAQUE, self.element_shape(node.args[0]))
+            if function.id == "zip":
+                return tuple(self.element_shape(argument) for argument in node.args)
+            if function.id in _ITERABLE_WRAPPERS and node.args:
+                return self.element_shape(node.args[0])
+        if self._hands_back(node):
+            for argument in self._arguments(node):
+                shape = self.element_shape(argument)
+                if self._carries_record(shape):
+                    return shape
+            if self._argument_record(node):
+                return _RECORD
         # `dict(X)` is a mapping, so iterating it yields keys.  Its records are reached through
         # `.items()`, `.values()`, or a subscript, each of which reads `maps_records` instead.
         return _OPAQUE
+
+    def _argument_record(self, node: ast.Call) -> bool:
+        return any(self.is_record(argument) for argument in self._arguments(node))
 
     def is_record(self, node: ast.expr) -> bool:
         """True when the expression evaluates to one of the tracked record objects."""
@@ -587,9 +648,18 @@ class _RecordDerivation:
             if (
                 isinstance(function, ast.Name)
                 and function.id == "next"
+                and function.id not in self.shadowed
                 and node.args
                 and self.element_shape(node.args[0]) is _RECORD
             ):
+                return True
+            if self._hands_back(node) and self._argument_record(node):
+                return True
+            if isinstance(function, ast.Call) and self.is_record(function):
+                # Round 7, rule A(2): `getter(record)()` calls a closure the helper returned over
+                # the record, and what it hands back is the record.  Calling a callable that
+                # already carries the record yields the record, so the store the caller then
+                # writes is a store into the family.
                 return True
         return False
 
@@ -600,10 +670,23 @@ class _RecordDerivation:
             return True
         return isinstance(shape, tuple) and any(self._carries_record(item) for item in shape)
 
+    def _note(self, name: str) -> None:
+        """Record which half of the enumeration reached a name, for the round-7 insertion set."""
+
+        (self.inserted if self._from_insertion else self.bound).add(name)
+
     def _add(self, group: set[str], name: str) -> bool:
+        self._note(name)
         if name in group:
             return False
         group.add(name)
+        return True
+
+    def _set_sequence(self, name: str, shape: object) -> bool:
+        self._note(name)
+        if self.sequences.get(name) == shape:
+            return False
+        self.sequences[name] = shape
         return True
 
     def _bind_target(self, target: ast.expr, shape: object) -> bool:
@@ -613,10 +696,7 @@ class _RecordDerivation:
             if shape is _RECORD:
                 return self._add(self.records, target.id)
             if isinstance(shape, tuple) and self._carries_record(shape):
-                if self.sequences.get(target.id) == shape:
-                    return False
-                self.sequences[target.id] = shape
-                return True
+                return self._set_sequence(target.id, shape)
             return False
         if isinstance(target, (ast.Tuple, ast.List)) and isinstance(shape, tuple):
             if len(target.elts) != len(shape):
@@ -651,15 +731,52 @@ class _RecordDerivation:
             if self.maps_records(value):
                 changed = self._add(self.mappings, target.id) or changed
             shape = self.element_shape(value)
-            if self._carries_record(shape) and self.sequences.get(target.id) != shape:
-                self.sequences[target.id] = shape
-                changed = True
+            if self._carries_record(shape):
+                changed = self._set_sequence(target.id, shape) or changed
             # A bare `A = B` binds one object to two names, so the record role is undirected
             # exactly as the round-3 alias edge is.
             if isinstance(value, ast.Name) and target.id in self.records:
                 changed = self._add(self.records, value.id) or changed
         elif isinstance(value, ast.Name) and value.id in self.sequences:
             changed = self._bind_target(target, self.sequences[value.id]) or changed
+        return changed
+
+    def _bind_insertion(self, node: ast.AST) -> bool:
+        """Rule A(1): a record inserted into a container makes that container hold records.
+
+        `held = []` followed by `held.append(record)` is a list of the collection's own record
+        objects, because `append` and `extend` preserve identity; the audit reproduced a complete
+        Bonferroni pass written as `for target in held: operator.setitem(target, "p", ...)` that
+        round 6 published as an accusation because the insertion dropped the record's role.  A
+        dictionary filled by `registry[name] = record` is the same container written by subscript.
+        """
+
+        changed = False
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute):
+            function = node.func
+            if not isinstance(function.value, ast.Name):
+                return False
+            container = function.value.id
+            if function.attr not in _ROLE_PROPAGATING_INSERTIONS:
+                return False
+            for argument in node.args:
+                if function.attr in {"extend", "update"}:
+                    shape = self.element_shape(argument)
+                    if self._carries_record(shape):
+                        changed = self._set_sequence(container, shape) or changed
+                    if function.attr == "update" and self.maps_records(argument):
+                        changed = self._add(self.mappings, container) or changed
+                elif self.is_record(argument):
+                    changed = self._set_sequence(container, _RECORD) or changed
+            return changed
+        if isinstance(node, (ast.Assign, ast.AnnAssign)):
+            value = node.value
+            if value is None or not self.is_record(value):
+                return False
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if isinstance(target, ast.Subscript) and isinstance(target.value, ast.Name):
+                    changed = self._add(self.mappings, target.value.id) or changed
         return changed
 
     def resolve(self, tree: ast.Module) -> None:
@@ -669,6 +786,7 @@ class _RecordDerivation:
         while changed:
             changed = False
             for node in ast.walk(tree):
+                self._from_insertion = False
                 if isinstance(node, (ast.For, ast.AsyncFor, ast.comprehension)):
                     shape = self.element_shape(node.iter)
                     changed = self._bind_target(node.target, shape) or changed
@@ -681,23 +799,91 @@ class _RecordDerivation:
                     changed = self._bind_value(node.target, node.value) or changed
                 elif isinstance(node, ast.withitem) and node.optional_vars is not None:
                     changed = self._bind_value(node.optional_vars, node.context_expr) or changed
+                self._from_insertion = True
+                changed = self._bind_insertion(node) or changed
+                self._from_insertion = False
 
     def names(self) -> frozenset[str]:
         return frozenset(self.mappings | set(self.sequences) | self.records)
 
+    def insertion_only(self) -> frozenset[str]:
+        """The names rule A(1) reached and no other binding form did."""
 
-def record_derived_names(tree: ast.Module, collection_aliases: frozenset[str]) -> frozenset[str]:
+        return frozenset(self.inserted - self.bound)
+
+
+def record_derived_roles(
+    tree: ast.Module,
+    collection_aliases: frozenset[str],
+    census: _HelperStores | None = None,
+) -> tuple[frozenset[str], frozenset[str]]:
+    """The record-derived names, and the subset rule A(1) reached only by an insertion."""
+
+    census = _HelperStores(tree) if census is None else census
+    derivation = _RecordDerivation(
+        collection_aliases,
+        shadowed=census.shadowed_wrappers,
+        passthrough=census.hands_back_an_argument,
+    )
+    derivation.resolve(tree)
+    return derivation.names(), derivation.insertion_only()
+
+
+def record_derived_names(
+    tree: ast.Module,
+    collection_aliases: frozenset[str],
+    census: _HelperStores | None = None,
+) -> frozenset[str]:
     """Every name that reaches a record of the given collection, or a container of them.
 
     `collection_aliases` is the round-3 alias component of one record collection: the collection
     name and every other bare name for the same object.  The result is that component closed
     under the enumerated record-derived binding forms, including their chains -- an alias of an
     alias, a loop over a list built from a view of a copy, a record rebound to a third name.
+
+    Round 7, rule A(1), adds the insertion forms: `held.append(record)`, `held.extend(view)`, and
+    `registry[name] = record` all put the collection's own record objects into another container,
+    and a store written through an element of that container is a store into the family.
     """
 
-    derivation = _RecordDerivation(collection_aliases)
-    derivation.resolve(tree)
-    return derivation.names()
+    return record_derived_roles(tree, collection_aliases, census)[0]
+
+
+def _insertion_container_is_only_filled_and_read(tree: ast.Module, name: str) -> bool:
+    """True when every in-place form reaching an insertion container is a fill or a read.
+
+    The frozen mutation census reads any receiver method call as an in-place mutation, so the very
+    `held.append(record)` that puts the records there would refuse the container that holds them.
+    That is not a refusal round 6 made, and making it would lose the accusation
+    `seen.append(record); seen.index(record)` earns over an uncorrected family.  A fill is an
+    allowlisted insertion or query method call on the name, or a one-level subscript store into
+    it; anything else -- an augmented assignment, a `del`, a nested subscript store such as
+    `held[0]["p"] = ...`, or any other method call -- is a mutation and refuses as before.
+    """
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.AugAssign):
+            if rm._root_name(node.target) == name:
+                return False
+        elif isinstance(node, ast.Delete):
+            if any(rm._root_name(target) == name for target in node.targets):
+                return False
+        elif isinstance(node, (ast.Assign, ast.AnnAssign)):
+            targets = node.targets if isinstance(node, ast.Assign) else [node.target]
+            for target in targets:
+                if not isinstance(target, ast.Subscript) or rm._root_name(target) != name:
+                    continue
+                if not isinstance(target.value, ast.Name):
+                    return False
+        elif (
+            isinstance(node, ast.Call)
+            and isinstance(node.func, ast.Attribute)
+            and isinstance(node.func.value, ast.Name)
+            and node.func.value.id == name
+            and node.func.attr not in (_ROLE_PROPAGATING_INSERTIONS | _READ_ONLY_CONTAINER_QUERIES)
+        ):
+            return False
+    return True
 
 
 #: Round 5: the builtins that hand each element of the iterables beside them to a callable.
@@ -707,13 +893,345 @@ _ELEMENT_CALLBACK_BUILTINS = frozenset({"map", "filter"})
 #: The builtins that apply a `key=` callable to each element of their first argument.
 _KEY_CALLBACK_BUILTINS = frozenset({"sorted", "min", "max"})
 
+#: Round 7, rule B: how many times the role enumeration and the call census are allowed to feed
+#: each other before the answer is taken as final.  Roles only grow, so the loop converges on its
+#: own; the bound is here so a pathological module cannot make it run long.
+_RETURN_FLOW_PASSES = 4
+
 #: The edge parameter that means "any parameter of the callee".  A starred argument forwards an
 #: unknown position, so it is bound to every parameter at once and is captured when any of them
 #: stores.
 _ANY_PARAMETER = "*"
 
+#: Round 6: the three roles a tracked argument can carry into a callee parameter.  Round 5 seeded
+#: every parameter as a mapping *and* a sequence of records at once, which made a bare
+#: `for key in table` inside a helper yield records where the identical module-level loop yields
+#: keys, and lost the true accusation the module-level boundary preserves.  A parameter is seeded
+#: with the role of the argument that binds it and with nothing else.
+_ROLE_MAPPING = "mapping"
+_ROLE_SEQUENCE = "sequence"
+_ROLE_RECORD = "record"
 
-def _capture_roots(node: ast.expr) -> frozenset[str]:
+#: Round 6, rule A: the read-only builtins a tracked argument may reach.  Every entry is measured:
+#: the census over the 245 prototype fixtures, the E10-E17 envelope cases, the open-corpus rows,
+#: and the round-1..round-5 oracle sources reports exactly these builtin callees receiving a
+#: tracked root -- `len` (45 rows, E10:N3, E10:N4, E10:P1), `zip` (22, E10:N3, E10:P5, E12:N4,
+#: E12:P5), `list` (6, r4 list/reversed/subscript rows), `sorted` (6, E12:N7, E13:N7, E14:N7),
+#: `enumerate` (5, E12:N4, r4 enumerate rows), `set` (5, E13:N7, E14:N7, E17:N7), `min` (4,
+#: E14:N7, E15:N7, E17:N7), `max` (3, the same three), `iter` (2, r4 iter rows), `dict` (1, r4
+#: dict-copy row), `float` (1, E13:N7), `next` (1, r4 next/iter row), `print` (1, r5 builtin
+#: control), `reversed` (1, r4 reversed row), `sum` (1, E13:N7), `tuple` (1, r4 tuple row) --
+#: plus their obvious read-only siblings.  Refusing on any of them loses those rows' accusations,
+#: which is what mutation kill (c) records.
+_READ_ONLY_BUILTIN_CALLEES = frozenset(
+    {
+        "abs",
+        "all",
+        "any",
+        "bool",
+        "dict",
+        "enumerate",
+        "float",
+        "format",
+        "frozenset",
+        "hash",
+        "id",
+        "int",
+        "isinstance",
+        "iter",
+        "len",
+        "list",
+        "next",
+        "print",
+        "repr",
+        "reversed",
+        "round",
+        "set",
+        "str",
+        "sum",
+        "tuple",
+        "type",
+        "zip",
+    }
+)
+
+#: The builtins that are read-only on their iterable only while the callable beside them is.
+#: `sorted(results.values(), key=lambda row: row["p"])` is a measured read-only control; the same
+#: call with a storing callable is a store into every record it visits, which rule C decides.
+_CALLBACK_BEARING_BUILTINS = _ELEMENT_CALLBACK_BUILTINS | _KEY_CALLBACK_BUILTINS
+
+#: Never allowlisted, whatever else is: each one either hands out a bound mutator, evaluates
+#: project text this recognizer cannot read, or writes through an attribute path.
+_NEVER_READ_ONLY_CALLEES = frozenset(
+    {
+        "apply",
+        "delattr",
+        "eval",
+        "exec",
+        "getattr",
+        "globals",
+        "locals",
+        "setattr",
+        "vars",
+    }
+)
+
+#: The bare imported library names a tracked argument may reach.  `multipletests` is measured on
+#: 14 rows (E10:N4, E11:N4, E13:P5, E14:N1); `mean` and `stdev` are measured on 8 rows each
+#: (E10:P1).  The remaining entries are this module's own closed `_CORRECTION_TERMINALS` plus the
+#: statistics reducers, all of which return a new sequence or a scalar and none of which can
+#: write into the family it is handed.
+_READ_ONLY_IMPORTED_CALLEES = frozenset(
+    {
+        "fdrcorrection",
+        "fmean",
+        "mean",
+        "median",
+        "pstdev",
+        "pvariance",
+        "stdev",
+        "variance",
+        *_CORRECTION_TERMINALS,
+    }
+)
+
+#: Round 7, rule C: the import identities the allowlist is keyed on, as
+#: `dotted module path -> the canonical receiver token used below`.  Round 6 keyed the qualified
+#: allowlist on the *spelling* of the receiver, so a project that wrote `json = Mutator` beside a
+#: storing `Mutator.dumps` staticmethod had its complete Bonferroni pass published as an
+#: accusation, and a project that wrote `import json as payload` lost the accusation its
+#: uncorrected family had earned.  A base name is a library name only when the scope chain binds
+#: it exclusively by `import` statements, and the identity is what those statements say it is:
+#: `import pandas as pd` and `import pandas` are both `pandas`, `from scipy import stats` and
+#: `import scipy.stats as stats` are both `scipy.stats`.  A dotted path with no entry here is not
+#: allowlisted, so widening the recognizer to a new library is an explicit edit of this table.
+_READ_ONLY_MODULE_IDENTITIES: Mapping[str, str] = {
+    "copy": "copy",
+    "csv": "csv",
+    "functools": "functools",
+    "json": "json",
+    "logging": "logging",
+    "math": "math",
+    "pandas": "pandas",
+    "pingouin": "pg",
+    "pprint": "pprint",
+    "scipy.stats": "stats",
+    "statistics": "statistics",
+    "warnings": "warnings",
+}
+
+#: The module-qualified library APIs a tracked argument may reach, as
+#: `(canonical receiver, attribute)` after the import resolution above.
+#: `statistics.mean` and `statistics.stdev` are measured on E17:N7, `stats.ttest_ind` on E10:P1
+#: (4 rows), `pg.multicomp` on E10:N3 and E14:N3, and `pandas.DataFrame` on E14:N3.  The siblings
+#: are the read-only reporting and hypothesis-test APIs of the same four modules.
+#:
+#: Round 7 adds five measured Direction-2 targets, each justified by one named round-7 oracle row
+#: that loses a true accusation without it: `copy.copy`/`copy.deepcopy`
+#: (`positive-copy-deepcopy-of-the-collection`), `pprint.pprint`/`pprint.pformat`
+#: (`positive-pprint-of-the-collection`), `json.load`/`json.loads` as the read siblings of the
+#: already-measured `json.dump`/`json.dumps`, and the `csv` writer constructors
+#: (`positive-csv-dictwriter-writerow`).  The `math` reducers are the scalar-returning siblings of
+#: the already-measured `statistics` reducers and are admitted on the same ground: each returns a
+#: new number and none of them can write into the family it reads.
+_READ_ONLY_MODULE_APIS = frozenset(
+    {
+        ("copy", "copy"),
+        ("copy", "deepcopy"),
+        ("csv", "DictWriter"),
+        ("csv", "writer"),
+        ("json", "dump"),
+        ("json", "dumps"),
+        ("json", "load"),
+        ("json", "loads"),
+        ("logging", "critical"),
+        ("logging", "debug"),
+        ("logging", "error"),
+        ("logging", "exception"),
+        ("logging", "info"),
+        ("logging", "log"),
+        ("logging", "warning"),
+        ("math", "ceil"),
+        ("math", "exp"),
+        ("math", "fabs"),
+        ("math", "floor"),
+        ("math", "fsum"),
+        ("math", "isclose"),
+        ("math", "isinf"),
+        ("math", "isnan"),
+        ("math", "log"),
+        ("math", "log10"),
+        ("math", "log2"),
+        ("math", "prod"),
+        ("math", "sqrt"),
+        ("pandas", "DataFrame"),
+        ("pandas", "Series"),
+        ("pg", "multicomp"),
+        ("pprint", "pformat"),
+        ("pprint", "pprint"),
+        ("statistics", "fmean"),
+        ("statistics", "mean"),
+        ("statistics", "median"),
+        ("statistics", "pstdev"),
+        ("statistics", "pvariance"),
+        ("statistics", "stdev"),
+        ("statistics", "variance"),
+        ("stats", "chi2_contingency"),
+        ("stats", "f_oneway"),
+        ("stats", "false_discovery_control"),
+        ("stats", "kruskal"),
+        ("stats", "mannwhitneyu"),
+        ("stats", "pearsonr"),
+        ("stats", "spearmanr"),
+        ("stats", "ttest_ind"),
+        ("stats", "ttest_rel"),
+        ("stats", "wilcoxon"),
+        ("warnings", "warn"),
+    }
+)
+
+#: The `csv` writer constructors, and the writer methods that consume one record per call without
+#: writing into it.  Measured: `positive-csv-dictwriter-writerow`, where a family that really was
+#: left uncorrected is only serialized.  The receiver has to be a name bound exactly once to one
+#: of these constructors, so a writer name rebound to a project-local class is not one of these.
+_CSV_WRITER_CONSTRUCTORS = frozenset({("csv", "DictWriter"), ("csv", "writer")})
+_CSV_WRITER_METHODS = frozenset({"writeheader", "writerow", "writerows"})
+
+#: The library constructors that re-wrap what they are handed without copying the objects inside,
+#: so an argument's roots reach through them.  `pd.Series(list(results.values())).apply(rescale)`
+#: is the measured route: the receiver of `.apply` is the collection's records.  This set is read
+#: by spelling and deliberately stays that way: it only ever *widens* the roots an argument hands
+#: over, so reading an unrelated `pd` as pandas errs toward refusal, which is the safe direction.
+_READ_ONLY_CONTAINER_CONSTRUCTORS = frozenset(
+    {("pd", "DataFrame"), ("pd", "Series"), ("pandas", "DataFrame"), ("pandas", "Series")}
+)
+
+#: The container-insertion methods that store their argument somewhere else without writing into
+#: it.  Measured: `secondary_results.append(result)` on E13:P5, whose `candidate`/`strict_subset`
+#: accusation over positions (0, 1) of 7 is lost if the call is read as a write into `result`.
+#: Round 7 keeps them read-only *and* propagates the inserted object's role into the container,
+#: because `held.append(record)` followed by a store through an element of `held` is a store into
+#: the family: rule A(1).  `update` is deliberately absent: `dict.update(record, p=...)` is the
+#: measured round-6 unbound-mutation route, and admitting the spelling would readmit it.  Rule
+#: A(1) still propagates a role through `update`, because propagation only adds refusals.
+_READ_ONLY_CONTAINER_INSERTIONS = frozenset({"add", "append", "extend", "insert"})
+
+#: The insertion forms rule A(1) propagates a role through.  `update` is here and not above for
+#: the reason stated above: propagating a role is a narrowing, admitting the callee is not.
+_ROLE_PROPAGATING_INSERTIONS = _READ_ONLY_CONTAINER_INSERTIONS | {"update"}
+
+#: Round 7, rule C: the container query methods that read a container without writing into it or
+#: into what they are handed.  Measured: `positive-seen-index-and-count`, where the record is
+#: appended to a scratch list and then located in it, and the family is never corrected.  They are
+#: admitted only on a receiver the role enumeration already tracks, so an unrelated object with a
+#: storing method of the same spelling is not one of these.
+_READ_ONLY_CONTAINER_QUERIES = frozenset({"count", "get", "index"})
+
+#: The methods that apply a callable to each element of their receiver.  Read-only exactly while
+#: the callable is, which is rule C.
+_ELEMENT_CALLBACK_METHODS = frozenset({"apply", "applymap", "map", "transform"})
+
+#: Round 7, rule B: the bound methods that may stand in a callable position.  `sorted(results,
+#: key=results.get)` is a measured read-only control, so a bound method of a tracked container is
+#: admitted there; `pop` and `setdefault` are absent because they write into their receiver.
+_READ_ONLY_BOUND_CALLABLES = (
+    _RECORD_VIEW_METHODS | _KEY_VIEW_METHODS | _SHALLOW_COPY_METHODS | _READ_ONLY_CONTAINER_QUERIES
+)
+
+#: Decorators that describe how a method binds rather than wrapping what it does.
+_STRUCTURAL_DECORATORS = frozenset({"abstractmethod", "classmethod", "property", "staticmethod"})
+
+#: Round 7, rule D(3): the decorator that copies a wrapped function's metadata onto a wrapper and
+#: changes nothing about what the wrapper does with its arguments.  It is admitted on the nested
+#: wrapper of a forwarding decorator and nowhere else.
+_METADATA_DECORATORS = frozenset({("functools", "wraps")})
+
+
+def _module_api(function: ast.Attribute) -> tuple[str, str] | None:
+    """`(receiver name, attribute)` for `pd.DataFrame(...)`-shaped callees, else `None`."""
+
+    if isinstance(function.value, ast.Name):
+        return (function.value.id, function.attr)
+    return None
+
+
+def _import_identity(statement: ast.AST, name: str) -> str | None:
+    """What one import statement binds `name` to, as a dotted path.
+
+    `import json` and `import json as payload` both bind `json`.  `import os.path` binds the
+    package `os` under the bare name `os`.  `from scipy import stats` binds `scipy.stats`, and
+    `from json import dumps as serialize` binds `json.dumps`.  A relative import has no absolute
+    identity this module can read, so it resolves to nothing and rule A fails closed on it.
+    """
+
+    if isinstance(statement, ast.Import):
+        for alias in statement.names:
+            if (alias.asname or alias.name).split(".")[0] != name:
+                continue
+            return alias.name if alias.asname else alias.name.split(".")[0]
+        return None
+    if isinstance(statement, ast.ImportFrom):
+        if statement.level or statement.module is None:
+            return None
+        for alias in statement.names:
+            if (alias.asname or alias.name).split(".")[0] != name:
+                continue
+            return f"{statement.module}.{alias.name}"
+    return None
+
+
+def _string_receiver(node: ast.expr) -> bool:
+    """True for `"...".format(...)`-shaped receivers, the measured 470-row str-method route."""
+
+    if isinstance(node, ast.JoinedStr):
+        return True
+    return isinstance(node, ast.Constant) and isinstance(node.value, (str, bytes))
+
+
+def _module_bound_names(tree: ast.Module) -> frozenset[str]:
+    """Every name this module binds anywhere, in any scope and by any binding form."""
+
+    bound: set[str] = set()
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            bound.add(node.name)
+        elif isinstance(node, ast.arg):
+            bound.add(node.arg)
+        elif isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+            bound.add(node.id)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                bound.add((alias.asname or alias.name).split(".")[0])
+        elif isinstance(node, (ast.Global, ast.Nonlocal)):
+            bound.update(node.names)
+    return frozenset(bound)
+
+
+#: Round 7, rule A(3): of the wrappers `_capture_roots` already reads through, the ones that hand
+#: back what iterating their argument yields.  Over a MAPPING-role name they yield its keys, and a
+#: key is not a record -- the same boundary the module-level bare-iteration rule draws.  `dict` and
+#: `next` are absent: `dict(X)` is a shallow copy that still holds the records, and `next(X)` is
+#: not an iteration of a mapping.  The set the roots propagate through is unchanged from round 6,
+#: so this constant can only ever narrow a root away, never add one.
+_KEY_YIELDING_WRAPPERS = _ITERABLE_WRAPPERS | {"enumerate", "zip"}
+
+
+def _comprehension_targets(generators: Sequence[ast.comprehension]) -> frozenset[str]:
+    """The names a comprehension's own generators bind."""
+
+    bound: set[str] = set()
+    for generator in generators:
+        for node in ast.walk(generator.target):
+            if isinstance(node, ast.Name):
+                bound.add(node.id)
+    return frozenset(bound)
+
+
+def _capture_roots(
+    node: ast.expr,
+    records: frozenset[str] = frozenset(),
+    mappings: frozenset[str] = frozenset(),
+) -> frozenset[str]:
     """The names an argument expression hands the callee an object *of*.
 
     `rescale(record, len(OUTCOMES))` hands `rescale` the object `record` names, so a store
@@ -723,32 +1241,102 @@ def _capture_roots(node: ast.expr) -> frozenset[str]:
     enumeration is the round-4 record-derived forms read backwards, not every name that appears
     in the argument.  The keys view is excluded for the reason round 4 excludes it -- a key is
     not a record -- and every other call form is a value the callee cannot store into.
+
+    Round 6, soundness fix 3, supplies `records`: the names the round-4 enumeration says hold one
+    record object rather than a container of them.  A subscript of a *record* is a scalar and a
+    lookup method on one returns a scalar, so `inspect_float(record["p"])` hands over a float and
+    has no root, while `rescale(results[name], n)` still hands over a record of `results`.
+    Reading every subscript back to its container root regardless of role is what made a
+    read-only float helper look like a handover of the record and lost a true accusation.
+
+    Round 6 also reads a list, tuple, set, or dict display back to the objects it holds.  A bare
+    Name inside a display is already a display escape; `rescale_all([results[name]], n)` is the
+    same container one subscript away, and it is a measured false-accusation route.
+
+    Round 7, rule A(2), adds the two lazy displays round 6 missed.  A generator expression, a
+    comprehension, and a `lambda` are objects that hand out whatever their body names, so
+    `def stream(entry): return (entry for _ in range(1))` and `def getter(entry): return lambda:
+    entry` both hand the record straight back, and reading them as fresh published two complete
+    Bonferroni passes as accusations.  A comprehension target that appears in the element
+    expression carries the roots of the iterable it was drawn from, so `(e for e in entry)` is not
+    fresh either, while `[row["p"] for row in results.values()]` still is: its element is a scalar.
+
+    Round 7, rule A(3), supplies `mappings`: the names that hold a container still keyed by family
+    member.  Iterating one of those yields its KEYS, exactly as the module-level bare-iteration
+    boundary says, so `{"names": list(table)}` over a mapping parameter is a fresh dictionary of
+    strings and storing into it cannot touch the family.  The same wrapper over a SEQUENCE-role
+    name yields the records and keeps its root.
     """
 
     if isinstance(node, ast.Starred):
-        return _capture_roots(node.value)
+        return _capture_roots(node.value, records, mappings)
     if isinstance(node, ast.NamedExpr):
         target = node.target
         walrus = frozenset({target.id}) if isinstance(target, ast.Name) else frozenset[str]()
-        return _capture_roots(node.value) | walrus
+        return _capture_roots(node.value, records, mappings) | walrus
     if isinstance(node, ast.Name):
         return frozenset({node.id})
-    if isinstance(node, (ast.Attribute, ast.Subscript)):
-        return _capture_roots(node.value)
+    if isinstance(node, ast.Subscript):
+        if isinstance(node.value, ast.Name) and node.value.id in records:
+            return frozenset()
+        return _capture_roots(node.value, records, mappings)
+    if isinstance(node, ast.Attribute):
+        return _capture_roots(node.value, records, mappings)
+    if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+        held: set[str] = set()
+        for item in node.elts:
+            held |= _capture_roots(item, records, mappings)
+        return frozenset(held)
+    if isinstance(node, ast.Dict):
+        held = set()
+        for item in node.values:
+            if item is not None:
+                held |= _capture_roots(item, records, mappings)
+        return frozenset(held)
+    if isinstance(node, ast.Lambda):
+        return _capture_roots(node.body, records, mappings) - _all_parameters(node)
+    if isinstance(node, (ast.GeneratorExp, ast.ListComp, ast.SetComp, ast.DictComp)):
+        if isinstance(node, ast.DictComp):
+            produced = _capture_roots(node.key, records, mappings) | _capture_roots(
+                node.value, records, mappings
+            )
+        else:
+            produced = _capture_roots(node.elt, records, mappings)
+        bound = _comprehension_targets(node.generators)
+        drawn: set[str] = set()
+        for generator in node.generators:
+            if _comprehension_targets([generator]) & produced:
+                drawn |= _capture_roots(generator.iter, records, mappings)
+        return (produced - bound) | frozenset(drawn)
     if isinstance(node, ast.Call):
         function = node.func
         if isinstance(function, ast.Attribute):
             if function.attr in _RECORD_VIEW_METHODS | _SHALLOW_COPY_METHODS:
-                return _capture_roots(function.value)
+                return _capture_roots(function.value, records, mappings)
             if function.attr in _RECORD_LOOKUP_METHODS:
-                return _capture_roots(function.value)
+                if isinstance(function.value, ast.Name) and function.value.id in records:
+                    return frozenset()
+                return _capture_roots(function.value, records, mappings)
+            if _module_api(function) in _READ_ONLY_CONTAINER_CONSTRUCTORS:
+                roots: set[str] = set()
+                for argument in node.args:
+                    roots |= _capture_roots(argument, records, mappings)
+                return frozenset(roots)
             return frozenset()
         if isinstance(function, ast.Name) and function.id in (
             _ITERABLE_WRAPPERS | _MAPPING_WRAPPERS | {"enumerate", "zip", "next"}
         ):
-            roots: set[str] = set()
+            keys_only = function.id in _KEY_YIELDING_WRAPPERS
+            roots = set()
             for argument in node.args:
-                roots |= _capture_roots(argument)
+                if (
+                    keys_only
+                    and isinstance(argument, ast.Name)
+                    and argument.id in mappings
+                    and argument.id not in records
+                ):
+                    continue
+                roots |= _capture_roots(argument, records, mappings)
             return frozenset(roots)
     return frozenset()
 
@@ -778,270 +1366,1157 @@ def _all_parameters(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda) -
     return frozenset(names)
 
 
+def _nested_definitions(body: Sequence[ast.stmt]) -> list[ast.FunctionDef | ast.AsyncFunctionDef]:
+    """The `def`s written directly inside one body, at any statement depth below it."""
+
+    found: list[ast.FunctionDef | ast.AsyncFunctionDef] = []
+    for statement in body:
+        for node in ast.walk(statement):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                found.append(node)
+    return found
+
+
+def _own_scope_nodes(body: Sequence[ast.stmt]) -> Iterator[ast.AST]:
+    """Every node of one body that belongs to that body's own scope.
+
+    A nested `def`, `async def`, or `lambda` opens its own scope, so its `return` belongs to it and
+    not to the body around it.  Round 7's forwarding-decorator proof needs exactly that split: the
+    decorator's own returns say what the decorator hands back, and the wrapper's returns do not.
+    """
+
+    frontier: list[ast.AST] = list(body)
+    while frontier:
+        node = frontier.pop()
+        yield node
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            continue
+        frontier.extend(ast.iter_child_nodes(node))
+
+
+def _name_is_read(body: Sequence[ast.stmt], name: str) -> bool:
+    """True when the body reads `name` anywhere: calls it, returns it, passes it, stores it."""
+
+    for statement in body:
+        for node in ast.walk(statement):
+            if isinstance(node, ast.Name) and node.id == name and isinstance(node.ctx, ast.Load):
+                return True
+    return False
+
+
+class _DeadDefinitionPruner(ast.NodeTransformer):
+    """Replace the listed definition subtrees with `pass`, at any depth of one callee body."""
+
+    def __init__(self, dead: frozenset[int]) -> None:
+        self._dead = dead
+
+    def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.AST:
+        if id(node) in self._dead:
+            return ast.copy_location(ast.Pass(), node)
+        return self.generic_visit(node)
+
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AST:
+        if id(node) in self._dead:
+            return ast.copy_location(ast.Pass(), node)
+        return self.generic_visit(node)
+
+
 def _callee_body(node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda) -> ast.Module:
-    """The callee's body as a module, so the round-3 and round-4 closures read it unchanged."""
+    """The callee's body as a module, so the round-3 and round-4 closures read it unchanged.
+
+    Round 6, rule D: a `def` written inside the body and never read there is dead code and its
+    stores are not stores the call performs.  `def inspect_record(entry): def never_called():
+    entry["p"] = 1.0; return entry["p"]` only reads the record, and reading the nested body as
+    part of the helper lost that true accusation.  A nested definition whose name is read
+    anywhere in the body -- called, returned, passed, stored -- is kept, because any of those
+    hands the store to the caller.  A `lambda` is an expression and is always kept.
+    """
 
     if isinstance(node, ast.Lambda):
         return ast.Module(body=[ast.Expr(value=node.body)], type_ignores=[])
-    return ast.Module(body=list(node.body), type_ignores=[])
+    body = copy.deepcopy(list(node.body))
+    dead = frozenset(
+        id(nested) for nested in _nested_definitions(body) if not _name_is_read(body, nested.name)
+    )
+    if dead:
+        pruner = _DeadDefinitionPruner(dead)
+        body = [cast("ast.stmt", pruner.visit(statement)) for statement in body]
+    return ast.Module(body=body, type_ignores=[])
 
 
 @dataclass(frozen=True)
 class _CaptureEdge:
-    """One call argument, the parameter it binds, and the names it hands over."""
+    """One call argument, the parameter it binds, the names it hands over, and its role.
 
-    owner: int
-    callee: int
-    parameter: str
-    roots: frozenset[str]
-
-
-class _HelperStores:
-    """Round 5: a call to a project-local helper that stores through the parameter it binds.
-
-    Rounds 3 and 4 close the bindings a correction store can travel through *inside one scope*.
-    They leave one route open, and the round-4 oracle pinned it by name: the record is handed to
-    a project-local helper that writes through its own, differently named parameter.
-
-    ```python
-    def bonferroni_adjust(entry, n_tests):
-        entry["p"] = min(entry["p"] * n_tests, 1.0)
-
-    for name, record in results.items():
-        bonferroni_adjust(record, len(OUTCOMES))
-    ```
-
-    Every declared outcome is corrected, and the row was published as an accusation that the
-    family was never corrected, because argument passing is a non-capture under the frozen
-    discipline and nothing binds `entry` to the record.  Round 4's module-wide name match closes
-    the spelling where the parameter happens to reuse the caller's name and nothing else, so the
-    disposition turned on the parameter name alone.
-
-    The narrowing is one edge.  A call whose callee resolves to a project-local definition in the
-    same module makes the *call site* a mutation of each argument whose bound parameter is stored
-    through in the callee body.  Three things follow, and each is a deliberate boundary.
-
-    **Callee resolution is by definition, not by name shape.**  A callee resolves only to a
-    `def`, an `async def`, a name bound once to a `lambda`, or a method of a class defined in
-    this module, and only when the name has exactly one such definition and is bound nowhere
-    else -- not imported, not reassigned, not a parameter.  Builtins and library calls resolve to
-    nothing and stay non-captures, which is the frozen `len(OUTCOMES)`,
-    `", ".join(MUSCULOSKELETAL)`, `print(record)`, `sorted(results.items())` discipline that
-    rounds 1 to 4 all preserve.  A helper imported from a sibling module is outside the single
-    file this recognizer reads and stays a non-capture; the round-5 oracle pins that row.
-
-    **A parameter is stored through when the round-3 and round-4 closures say so.**  The callee
-    body is read as a module and the parameter is seeded as both a mapping of records and a
-    sequence of records, so `entry["p"] = ...`, `entry.update(...)`, `row = entry` followed by a
-    store through `row`, `for entry in entries: entry["p"] = ...`, and a display escape of the
-    parameter all count.  A parameter the callee only reads does not, which is what keeps a
-    read-only helper on an uncorrected family a true accusation.  The parameter is seeded as a
-    sequence here where a module-level bare iteration target is not, because the boundary that
-    forced the module-level exclusion -- a collection whose seed does not say whether iterating
-    it yields keys, floats, or records -- does not apply to a parameter, which is seeded by
-    whatever the call site hands it and whose store the frozen engine cannot see either way.
-
-    **Recursion resolves to a fixpoint.**  The storing set only grows, so a cyclic or mutually
-    recursive callee graph converges rather than needing a conservative refusal, and a helper
-    that only calls itself never becomes storing.  Star-args forwarding is bound to every
-    parameter at once: `forward(record, n)` into `def forward(*args): rescale(*args)` captures
-    `record` because some parameter of `rescale` stores, which is the conservative reading the
-    audit brief asks for and needs no separate rule.
-
-    Names are matched module-wide, as they are in rounds 1 to 4, so a capture recorded inside one
-    helper body is read against the module's names too.  A name reused in two scopes can only add
-    captures, so the error is toward refusal.
+    A `callee` of `None` is round 6's fail-closed edge: the call site hands a tracked object to a
+    callee this module cannot resolve and that is not on the read-only allowlist, so it is a
+    mutation with no body to read.
     """
 
+    owner: int
+    callee: int | None
+    parameter: str
+    roots: frozenset[str]
+    role: str | None = None
+
+
+class _ScopeCensus:
+    """Which definition a callee name resolves to, decided per scope chain.
+
+    Round 5 gathered every parameter name and every `Name` store in the module and refused to
+    resolve any function sharing a spelling with one of them.  That is not what Python does, and
+    it was a measured false-accusation route: `def unrelated(rescale): return rescale` beside a
+    module-level `def rescale` left the correcting definition unresolvable, so the complete
+    Bonferroni pass it performed stayed invisible and the row was published as an accusation.
+    An unrelated parameter in another function does not shadow a module-level definition, and
+    neither does a class attribute of the same name.
+
+    The census is therefore per scope: each function and lambda owns the names its own body
+    binds, a class body owns its own attributes and is never on a function's scope chain, and the
+    module owns the rest.  A callee resolves when the innermost scope on the chain that binds the
+    name binds it exactly once and binds it as a definition -- a `def`, an `async def`, a `class`,
+    or one `lambda` assignment.  Anything else is unresolvable and, under rule A, fails closed:
+    two conditional definitions, an import followed by a definition, a name bound to
+    `functools.partial(...)` or to a bound method or to a dictionary entry, and a subscript or
+    attribute callee.
+    """
+
+    _DEFINITION_KINDS = frozenset({"def", "class", "lambda"})
+
     def __init__(self, tree: ast.Module) -> None:
-        self._definitions: dict[int, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
-        self._edges: list[_CaptureEdge] = []
-        self._storing: set[tuple[int, str]] = set()
-        self._census: dict[int, tuple[frozenset[str], frozenset[str]]] = {}
-        self._reached: dict[tuple[int, str], frozenset[str]] = {}
-        self._collect(tree)
-        self._resolve()
+        self.parents = _parents(tree)
+        #: scope id (0 for the module) -> name -> the binding kinds that scope carries
+        self.bindings: dict[int, dict[str, list[tuple[str, ast.AST]]]] = {}
+        self.scope_of: dict[int, int] = {}
+        #: Round 7, semantics fix D(1): the class bodies.  A class namespace is not an enclosing
+        #: lexical scope in Python, so it is collected as its own scope and then kept off every
+        #: other scope's chain.
+        self.class_scopes: set[int] = set()
+        self._collect_scope(tree, 0)
+
+    # -- scope collection ---------------------------------------------------------------
+
+    def _collect_scope(self, scope: ast.AST, scope_id: int) -> None:
+        table: dict[str, list[tuple[str, ast.AST]]] = {}
+        self.bindings[scope_id] = table
+        children: list[tuple[ast.AST, int]] = []
+
+        def bind(name: str, kind: str, node: ast.AST) -> None:
+            table.setdefault(name, []).append((kind, node))
+
+        if isinstance(scope, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+            for argument in ast.walk(scope.args):
+                if isinstance(argument, ast.arg):
+                    bind(argument.arg, "param", argument)
+            body: list[ast.AST] = (
+                [scope.body] if isinstance(scope, ast.Lambda) else list(scope.body)
+            )
+        else:
+            body = list(cast("ast.Module", scope).body)
+
+        def walk(node: ast.AST) -> None:
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                bind(node.name, "def", node)
+                children.append((node, id(node)))
+                return
+            if isinstance(node, ast.ClassDef):
+                bind(node.name, "class", node)
+                children.append((node, id(node)))
+                self.class_scopes.add(id(node))
+                return
+            if isinstance(node, ast.Lambda):
+                children.append((node, id(node)))
+                return
+            if isinstance(node, (ast.Import, ast.ImportFrom)):
+                for alias in node.names:
+                    bind((alias.asname or alias.name).split(".")[0], "import", node)
+                return
+            if isinstance(node, ast.Global):
+                for name in node.names:
+                    bind(name, "global", node)
+                return
+            if isinstance(node, ast.Nonlocal):
+                for name in node.names:
+                    bind(name, "nonlocal", node)
+                return
+            if isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target, value = node.targets[0], node.value
+                if isinstance(target, ast.Name) and isinstance(value, ast.Lambda):
+                    bind(target.id, "lambda", value)
+                    children.append((value, id(value)))
+                    for child in ast.iter_child_nodes(node):
+                        if child is not target and child is not value:
+                            walk(child)
+                    return
+            if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
+                bind(node.id, "store", node)
+            for child in ast.iter_child_nodes(node):
+                walk(child)
+
+        for statement in body:
+            walk(statement)
+        for child_scope, child_id in children:
+            self.scope_of[child_id] = scope_id
+            self._collect_scope(child_scope, child_id)
 
     # -- resolution ---------------------------------------------------------------------
 
+    def scope_chain(self, scope_id: int) -> Iterator[int]:
+        """The lexical chain a bare name is looked up through, starting at `scope_id`.
+
+        Round 7, semantics fix D(1): a class body is not an enclosing scope.  A bare `inspect`
+        written inside `Report.show` is the module-level `inspect`, never `Report.inspect`, which
+        is reached only through `self.`, `cls.`, or `Report.`.  Round 6 walked method -> class ->
+        module and resolved the bare name to the storing class method, so a read-only helper
+        standing beside a same-named method lost the accusation its uncorrected family had earned.
+        The starting scope is always yielded: a name written directly in a class body really does
+        resolve in that class namespace.
+        """
+
+        current: int | None = scope_id
+        first = True
+        while current is not None:
+            if first or current not in self.class_scopes:
+                yield current
+            first = False
+            if current == 0:
+                return
+            current = self.scope_of.get(current)
+        return
+
+    def resolve(self, name: str, scope_id: int) -> tuple[str, ast.AST] | None:
+        """The definition `name` denotes at a call site in `scope_id`, or `None`.
+
+        Round 7, semantics fix D(2): a `global name` or `nonlocal name` declaration rebinds the
+        lookup to the declared scope, so the declaring function's own table is not the answer.  A
+        declaration that is accompanied anywhere by a store of the same name leaves the target
+        scope's binding ambiguous, and rule A fails closed on it.
+        """
+
+        for scope in self.scope_chain(scope_id):
+            entries = self.bindings.get(scope, {}).get(name)
+            if entries is None:
+                continue
+            kinds = {kind for kind, _node in entries}
+            if kinds & {"global", "nonlocal"}:
+                return self._resolve_declared(name, scope, entries)
+            if len(entries) != 1:
+                return None
+            kind, node = entries[0]
+            return (kind, node) if kind in self._DEFINITION_KINDS else None
+        return None
+
+    def _resolve_declared(
+        self, name: str, scope: int, entries: Sequence[tuple[str, ast.AST]]
+    ) -> tuple[str, ast.AST] | None:
+        """Continue a `global`/`nonlocal` lookup in the scope the declaration names."""
+
+        if any(kind not in {"global", "nonlocal"} for kind, _node in entries):
+            # The declaring scope also writes the name, so what the target scope holds at the
+            # call site is not decidable here.
+            return None
+        if any(kind == "global" for kind, _node in entries):
+            return self.resolve(name, 0) if scope != 0 else None
+        parent = self.scope_of.get(scope)
+        return None if parent is None else self.resolve(name, parent)
+
+    def bound_in(self, scope_id: int) -> frozenset[str]:
+        return frozenset(self.bindings.get(scope_id, {}))
+
+
+class _HelperStores:
+    """Rounds 5 and 6: what a call does to the tracked object it is handed.
+
+    Rounds 3 and 4 close the bindings a correction store can travel through *inside one scope*.
+    Round 5 followed the store into a project-local helper: a call whose callee resolves to a
+    definition in this module is a mutation of every argument whose bound parameter is stored
+    through in the callee body.  Round 6 decides the calls round 5 left as non-captures, in both
+    directions, because the audit demonstrated a false accusation and a lost accusation on each
+    side of that boundary.
+
+    **Rule A, fail closed on an unresolvable callee.**  Round 5 read every callee it could not
+    resolve as a non-capture, and fourteen correct, complete Bonferroni programs were published
+    as accusations because of it: `dict.update(record, p=...)`, `operator.setitem(record, ...)`,
+    `functools.partial(rescale, family_size=6)`, a static method stored in a name,
+    `ADJUSTERS["bonferroni"](record, 6)`, a decorator-supplied wrapper, and the rest.  A call
+    that is handed a tracked object is now a mutation of it unless the callee is a project-local
+    definition whose body only reads what it binds, or a read-only builtin or library API on the
+    closed allowlist above.  Calls with no tracked argument are untouched, so the frozen
+    `len(OUTCOMES)` and `", ".join(MUSCULOSKELETAL)` non-capture discipline every earlier round
+    preserves is exactly as it was.
+
+    **Rule B, return flow.**  The result of a call that is handed a tracked object carries that
+    object's role, unless the callee provably hands back nothing it was given.  `target =
+    identity(record)` then `target["p"] = ...` is a complete correction round 5 could not see.
+
+    **Rule C, storing callables as values.**  A project-local callable that stores through a
+    parameter is a storing callable, and so is any name, container entry, `functools.partial`,
+    bound or static method, or decorated definition that carries one.  Invoking one with a
+    tracked argument is a mutation, and so is *passing* one to a call that also carries a tracked
+    argument or receiver: `pd.Series(list(results.values())).apply(rescale)` writes into every
+    record of `results`.
+
+    **Rule D, closures and nested definitions.**  A `def` or `lambda` whose body stores through a
+    free variable is a mutation at its definition site, called or not, because a definition is an
+    escape: `def rescale_all(): results[name]["p"] = ...` corrects the whole family through the
+    collection's own name in a scope the frozen engine does not follow.  A default argument bound
+    to a tracked name is the same escape one binding earlier.  Inside a resolved helper the rule
+    runs the other way: a nested definition that is never read there is dead code, and reading it
+    as part of the helper lost a true accusation.
+
+    **Four soundness fixes to round 5.**  A parameter is seeded with the role of the argument it
+    binds and not with both roles at once; a starred argument binds only what it really forwards;
+    a subscript of a record is a scalar and not the record; and a parameter rebound to a fresh
+    value in straight-line code before any store through it is detached from the argument.  Each
+    one is a true accusation the round-5 closure lost, and each is recorded in the round-6 oracle
+    against the row that measured it.
+
+    **Recursion resolves to a fixpoint.**  The storing set and the storing-callable set only
+    grow, so a cyclic or mutually recursive callee graph converges rather than needing a
+    conservative refusal, and a helper that only calls itself never becomes storing.
+
+    **Round 7 makes the three sides of that decision uniform.**  Round 6 fails closed on a callee
+    it cannot resolve; it did not fail closed on a value it cannot follow or on a callable it
+    cannot resolve, and it keyed its library allowlist on the spelling of a name rather than on
+    what the imports say the name is.  A record inserted into a container by `append`, `extend`,
+    `insert`, `add`, or a subscript store now carries its role into that container, so a store
+    written through one of the container's elements is a store into the family; the insertion call
+    itself stays read-only, and a container reached only by an insertion is judged on what is done
+    to it afterwards rather than on the insertion, so appending a record to a scratch list and then
+    locating it there is still a read.  A generator expression, a comprehension, and a `lambda` are
+    objects that hand out whatever their body names, so a helper returning one hands the record
+    back.  Iterating a mapping yields its keys, so the freshness test draws the module-level
+    bare-iteration boundary one scope in.  A callable standing in a callable position is admitted
+    only when it provably reads, decided after the interprocedural storing fixpoint has run, and a
+    callback-bearing call reaches its receiver's roots whether or not the callable is readable.
+    The allowlist is keyed on the identity the imports give a base name, so `import json as
+    payload` is `json` and `json = Mutator` is not a library name at all.  Three resolution
+    defects are fixed with it: a class body is not an enclosing lexical scope, a `global` or
+    `nonlocal` declaration continues the lookup in the scope it names, and a `functools.wraps`-
+    style forwarding decorator is transparent when its structure proves it forwards and nothing
+    more.
+
+    Names are matched module-wide, as they are in rounds 1 to 5.  A name reused in two scopes can
+    only add captures, so the error is toward refusal.
+    """
+
+    def __init__(self, tree: ast.Module) -> None:
+        self._tree = tree
+        self._definitions: dict[int, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
+        self._edges: list[_CaptureEdge] = []
+        self._storing: set[tuple[int, str, str | None]] = set()
+        self._census: dict[int, tuple[frozenset[str], frozenset[str]]] = {}
+        self._reached: dict[tuple[int, str, str | None], frozenset[str]] = {}
+        self._hands_back_cache: dict[tuple[int, str, str | None], bool] = {}
+        self._bodies: dict[int, ast.Module] = {}
+        self._call_callee: dict[int, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
+        self._call_offset: dict[int, int] = {}
+        self._storing_callables: set[str] = set()
+        #: Round 7, rule B: the callback-bearing calls the first pass admitted, re-asked once the
+        #: interprocedural storing fixpoint has run.
+        self._deferred_callbacks: list[tuple[ast.Call, int, frozenset[str]]] = []
+        self._scopes = _ScopeCensus(tree)
+        self.shadowed_wrappers = _module_bound_names(tree) & (
+            _ITERABLE_WRAPPERS
+            | _MAPPING_WRAPPERS
+            | _CALLBACK_BEARING_BUILTINS
+            | {"enumerate", "zip", "next"}
+        )
+        self._roles = self._seed_roles(tree)
+        self._record_names = frozenset(self._roles.records)
+        self._parameters = frozenset(
+            node.arg for node in ast.walk(tree) if isinstance(node, ast.arg)
+        )
+        self._tracked = self._roles.names()
+        self._collect(tree)
+        self._resolve()
+        if self._finish_deferred_callbacks():
+            self._resolve()
+        self._close_return_flow_roles(tree)
+
+    def _body_of(
+        self, definition: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    ) -> ast.Module:
+        """The callee body, memoized per census: pruning it is pure and it is read many times."""
+
+        body = self._bodies.get(id(definition))
+        if body is None:
+            body = _callee_body(definition)
+            self._bodies[id(definition)] = body
+        return body
+
+    # -- roles --------------------------------------------------------------------------
+
+    def _seed_roles(self, tree: ast.Module) -> _RecordDerivation:
+        """The round-4 role enumeration over every record collection, without return flow.
+
+        This is stage one: rule B's return flow needs callee resolution, and callee resolution
+        needs the roles that decide which arguments are tracked, so the roles are computed once
+        without it and the return-flow pass is run afterwards by `record_derived_names`.
+        """
+
+        edges, _escaped = _alias_edges(tree)
+        component: set[str] = set()
+        for collection in record_collection_names(tree):
+            frontier = [collection]
+            component.add(collection)
+            while frontier:
+                current = frontier.pop()
+                for neighbour in edges.get(current, ()):
+                    if neighbour not in component:
+                        component.add(neighbour)
+                        frontier.append(neighbour)
+        self._collection_component = frozenset(component)
+        derivation = _RecordDerivation(frozenset(component), shadowed=self.shadowed_wrappers)
+        derivation.resolve(tree)
+        return derivation
+
+    def _close_return_flow_roles(self, tree: ast.Module) -> None:
+        """Re-seed the roles with rule B's return flow and rebuild the census if they grew.
+
+        Stage one computes the roles without return flow, because deciding whether a call hands an
+        argument back needs callee resolution and callee resolution needs the roles.  Once the
+        first census exists the roles can be recomputed with it, and if that reaches names the
+        first pass did not -- `for target in stream(record)` over a helper returning a generator
+        over its parameter -- the census is rebuilt over the larger tracked set.  Roles only ever
+        grow, so the loop converges; it is bounded anyway, and it does no work at all on a module
+        with no passthrough helper, which is every module in the frozen evidence base.
+        """
+
+        for _pass in range(_RETURN_FLOW_PASSES):
+            derivation = _RecordDerivation(
+                self._collection_component,
+                shadowed=self.shadowed_wrappers,
+                passthrough=self.hands_back_an_argument,
+            )
+            derivation.resolve(tree)
+            if derivation.names() <= self._tracked:
+                return
+            self._roles = derivation
+            self._record_names = frozenset(derivation.records)
+            self._tracked = derivation.names()
+            self._edges = []
+            self._deferred_callbacks = []
+            self._collect(tree)
+            self._resolve()
+            if self._finish_deferred_callbacks():
+                self._resolve()
+
+    def _argument_role(self, node: ast.expr) -> str | None:
+        inner = node.value if isinstance(node, ast.Starred) else node
+        if self._roles.is_record(inner):
+            return _ROLE_RECORD
+        if self._roles.maps_records(inner):
+            return _ROLE_MAPPING
+        if self._roles._carries_record(self._roles.element_shape(inner)):
+            return _ROLE_SEQUENCE
+        return None
+
+    def _roots(self, node: ast.expr) -> frozenset[str]:
+        return _capture_roots(node, self._record_names)
+
+    def _interesting(self, roots: frozenset[str]) -> bool:
+        """Round 6 fails closed only on a call that is handed a tracked object.
+
+        The tracked set is the round-3 alias component of every record collection closed under
+        the round-4 enumeration, plus every parameter name, because a name bound as a parameter
+        in one scope is the name a helper body's own tracked object carries.
+        """
+
+        return bool(roots & (self._tracked | self._parameters))
+
+    # -- callee classification ----------------------------------------------------------
+
+    def _enclosing_scope(self, node: ast.AST) -> int:
+        current: ast.AST | None = self._scopes.parents.get(node)
+        while current is not None:
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                return id(current)
+            if isinstance(current, ast.ClassDef):
+                return id(current)
+            current = self._scopes.parents.get(current)
+        return 0
+
+    def _enclosing_function(self, node: ast.AST) -> tuple[int, str | None]:
+        current: ast.AST | None = self._scopes.parents.get(node)
+        class_name: str | None = None
+        while current is not None:
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                owner = id(current)
+                parent = self._scopes.parents.get(current)
+                if isinstance(parent, ast.ClassDef):
+                    class_name = parent.name
+                return owner, class_name
+            current = self._scopes.parents.get(current)
+        return 0, None
+
+    def _read_only_callee(self, node: ast.Call) -> bool:
+        """True when the callee is on the closed read-only allowlist for tracked arguments."""
+
+        function = node.func
+        if isinstance(function, ast.Name):
+            name = function.id
+            if name in _NEVER_READ_ONLY_CALLEES:
+                return False
+            kind, target = self._bare_callee_target(name, node)
+            if kind == "builtin":
+                if name in _CALLBACK_BEARING_BUILTINS:
+                    return self._callable_arguments_are_read_only(node)
+                return name in _READ_ONLY_BUILTIN_CALLEES
+            if kind == "import":
+                return self._imported_target_is_read_only(target)
+            return False
+        if isinstance(function, ast.Attribute):
+            attribute = function.attr
+            if attribute in _NEVER_READ_ONLY_CALLEES:
+                return False
+            if _string_receiver(function.value):
+                return True
+            if attribute in _ELEMENT_CALLBACK_METHODS:
+                return self._callable_arguments_are_read_only(node)
+            if attribute in _READ_ONLY_CONTAINER_INSERTIONS:
+                return True
+            if attribute in _READ_ONLY_CONTAINER_QUERIES and self._tracked_receiver(function):
+                return True
+            if attribute in _CSV_WRITER_METHODS and self._csv_writer_receiver(function, node):
+                return True
+            return self._qualified_target(function, node) in _READ_ONLY_MODULE_APIS
+        return False
+
+    # -- rule C, the allowlist keyed on import-resolved targets --------------------------
+
+    def _bare_callee_target(self, name: str, at: ast.AST) -> tuple[str | None, str | None]:
+        """What a bare name denotes: a builtin, an import identity, or nothing this can read.
+
+        Round 6 asked only whether the spelling was bound by anything other than an import, which
+        left two demonstrated defects standing.  A project that wrote `json = Mutator` kept the
+        qualified `json.dumps` allowlist entry, because the entry was matched on the receiver's
+        spelling; and a project that wrote `import json as payload` lost it, because the alias is
+        not the spelling.  The identity is what the import statements say: `import pandas as pd`
+        and `import pandas` are both `pandas`, `from scipy import stats` is `scipy.stats`, and
+        `from json import dumps as serialize` is `json.dumps`.  A name bound by anything else, or
+        by imports that disagree, is not a library name and rule A fails closed on it.
+        """
+
+        for scope in self._scopes.scope_chain(self._enclosing_scope(at)):
+            entries = self._scopes.bindings.get(scope, {}).get(name)
+            if entries is None:
+                continue
+            if any(kind != "import" for kind, _node in entries):
+                return None, None
+            identities = {
+                identity
+                for _kind, statement in entries
+                if (identity := _import_identity(statement, name)) is not None
+            }
+            if len(identities) != 1:
+                return None, None
+            return "import", identities.pop()
+        return "builtin", name
+
+    def _qualified_target(self, function: ast.Attribute, at: ast.AST) -> tuple[str, str] | None:
+        """`(canonical receiver, attribute)` for a receiver that really is an imported module."""
+
+        if not isinstance(function.value, ast.Name):
+            return None
+        kind, identity = self._bare_callee_target(function.value.id, at)
+        if kind != "import" or identity is None:
+            return None
+        canonical = _READ_ONLY_MODULE_IDENTITIES.get(identity)
+        return None if canonical is None else (canonical, function.attr)
+
+    def _imported_target_is_read_only(self, identity: str | None) -> bool:
+        """True when a bare imported name resolves to an allowlisted library target.
+
+        The identity is `module path` plus `attribute`, so the *imported* spelling decides and the
+        local alias never does: `from operator import setitem as put` resolves to
+        `operator.setitem` and fails closed, while `from json import dumps as serialize` resolves
+        to `json.dumps` and is admitted.  The `_READ_ONLY_IMPORTED_CALLEES` fallback keeps the
+        measured reducers and correction terminals, whose owning modules vary across the evidence
+        base; it is keyed on the imported attribute and never on the local alias, so it is a
+        strict narrowing of the round-6 spelling test.
+        """
+
+        if identity is None or "." not in identity:
+            return False
+        module_path, _dot, attribute = identity.rpartition(".")
+        canonical = _READ_ONLY_MODULE_IDENTITIES.get(module_path)
+        if canonical is not None and (canonical, attribute) in _READ_ONLY_MODULE_APIS:
+            return True
+        return attribute in _READ_ONLY_IMPORTED_CALLEES
+
+    def _tracked_receiver(self, function: ast.Attribute) -> bool:
+        """True when the method's receiver is a name the role enumeration already tracks."""
+
+        return isinstance(function.value, ast.Name) and function.value.id in self._tracked
+
+    def _csv_writer_receiver(self, function: ast.Attribute, at: ast.AST) -> bool:
+        """True when the receiver is a name bound exactly once to a `csv` writer constructor."""
+
+        if not isinstance(function.value, ast.Name):
+            return False
+        for scope in self._scopes.scope_chain(self._enclosing_scope(at)):
+            entries = self._scopes.bindings.get(scope, {}).get(function.value.id)
+            if entries is None:
+                continue
+            if len(entries) != 1 or entries[0][0] != "store":
+                return False
+            parent = self._scopes.parents.get(entries[0][1])
+            if not isinstance(parent, ast.Assign) or not isinstance(parent.value, ast.Call):
+                return False
+            constructor = parent.value.func
+            if not isinstance(constructor, ast.Attribute):
+                return False
+            return self._qualified_target(constructor, parent.value) in _CSV_WRITER_CONSTRUCTORS
+        return False
+
+    # -- collection ---------------------------------------------------------------------
+
     def _collect(self, tree: ast.Module) -> None:
         methods: dict[str, dict[str, ast.FunctionDef | ast.AsyncFunctionDef]] = {}
-        method_ids: set[int] = set()
         owner_class: dict[int, str] = {}
         for node in ast.walk(tree):
             if not isinstance(node, ast.ClassDef):
                 continue
             table = methods.setdefault(node.name, {})
+            bindings: Counter[str] = Counter()
             for item in node.body:
                 if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                    bindings[item.name] += 1
                     table[item.name] = item
-                    method_ids.add(id(item))
                     owner_class[id(item)] = node.name
+                elif isinstance(item, ast.Assign):
+                    for target in item.targets:
+                        if isinstance(target, ast.Name):
+                            bindings[target.id] += 1
+            # A class body that binds one method name twice does not say which definition runs
+            # at the call site, so the name is unresolvable and rule A fails closed on it.
+            for bound, count in bindings.items():
+                if count > 1:
+                    table.pop(bound, None)
 
-        # A name is a resolvable callee only when this module holds exactly one definition of
-        # it and binds it nowhere else.  A `def` binds its name with no `ast.Name` store, so a
-        # single store means the name was reassigned; a `lambda` binding is that one store.
-        stores: Counter[str] = Counter()
-        parameters: set[str] = set()
-        imported: set[str] = set()
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Name) and isinstance(node.ctx, (ast.Store, ast.Del)):
-                stores[node.id] += 1
-            elif isinstance(node, ast.arg):
-                parameters.add(node.arg)
-            elif isinstance(node, (ast.Import, ast.ImportFrom)):
-                for alias in node.names:
-                    imported.add((alias.asname or alias.name).split(".")[0])
-        rebound = set(stores) | parameters
-
-        functions: dict[str, list[ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda]] = {}
-        classes: dict[str, list[ast.ClassDef]] = {}
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                if id(node) not in method_ids:
-                    functions.setdefault(node.name, []).append(node)
-            elif isinstance(node, ast.ClassDef):
-                classes.setdefault(node.name, []).append(node)
-            elif isinstance(node, ast.Assign) and len(node.targets) == 1:
-                target, value = node.targets[0], node.value
-                if isinstance(target, ast.Name) and isinstance(value, ast.Lambda):
-                    functions.setdefault(target.id, []).append(value)
-
-        resolved_functions: dict[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda] = {}
-        for name, candidates in functions.items():
-            if len(candidates) != 1 or name in imported or name in parameters:
-                continue
-            only = candidates[0]
-            if stores[name] != (1 if isinstance(only, ast.Lambda) else 0):
-                continue
-            resolved_functions[name] = only
-
-        resolved_classes: dict[str, str] = {}
-        for name, class_nodes in classes.items():
-            if len(class_nodes) == 1 and name not in imported and name not in rebound:
-                resolved_classes[name] = name
-
-        instances: dict[str, str] = {}
-        for node in ast.walk(tree):
-            if not isinstance(node, ast.Assign) or len(node.targets) != 1:
-                continue
-            target, value = node.targets[0], node.value
-            if not isinstance(target, ast.Name) or not isinstance(value, ast.Call):
-                continue
-            if not isinstance(value.func, ast.Name) or value.func.id not in resolved_classes:
-                continue
-            if _name_stable(tree, target.id):
-                instances[target.id] = value.func.id
-
-        for definition in resolved_functions.values():
-            self._definitions[id(definition)] = definition
         for table in methods.values():
             for definition in table.values():
                 self._definitions[id(definition)] = definition
-
-        self._scan_calls(
-            tree,
-            functions=resolved_functions,
-            classes=resolved_classes,
-            methods=methods,
-            instances=instances,
-            imported=imported,
-            rebound=rebound,
-            owner_class=owner_class,
-        )
-
-    def _scan_calls(
-        self,
-        tree: ast.Module,
-        *,
-        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
-        classes: Mapping[str, str],
-        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
-        instances: Mapping[str, str],
-        imported: frozenset[str] | set[str],
-        rebound: frozenset[str] | set[str],
-        owner_class: Mapping[int, str],
-    ) -> None:
-        parents = _parents(tree)
-
-        def enclosing(node: ast.AST) -> tuple[int, str | None]:
-            current: ast.AST | None = parents.get(node)
-            while current is not None:
-                if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
-                    owner = id(current)
-                    class_name = owner_class.get(owner)
-                    if class_name is not None:
-                        return owner, class_name
-                    return owner, None
-                current = parents.get(current)
-            return 0, None
-
-        def resolve_method(
-            class_name: str, attribute: str
-        ) -> ast.FunctionDef | ast.AsyncFunctionDef | None:
-            table = methods.get(class_name)
-            if table is None:
-                return None
-            return table.get(attribute)
-
-        def decorator_names(
-            node: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda,
-        ) -> frozenset[str]:
-            if isinstance(node, ast.Lambda):
-                return frozenset()
-            return frozenset(item.id for item in node.decorator_list if isinstance(item, ast.Name))
-
         for node in ast.walk(tree):
-            if not isinstance(node, ast.Call):
-                continue
-            owner, owner_class_name = enclosing(node)
-            self._record_callback_edges(node, owner, functions, imported, rebound)
-            function = node.func
-            callee: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | None = None
-            offset = 0
-            if isinstance(function, ast.Name):
-                callee = functions.get(function.id)
-            elif isinstance(function, ast.Attribute) and isinstance(function.value, ast.Name):
-                receiver = function.value.id
-                if receiver in classes:
-                    callee = resolve_method(receiver, function.attr)
-                    offset = 0
-                elif receiver in instances:
-                    callee = resolve_method(instances[receiver], function.attr)
-                    offset = 1
-                elif owner_class_name is not None and receiver == self._self_name(owner, parents):
-                    callee = resolve_method(owner_class_name, function.attr)
-                    offset = 1
-            if callee is None:
-                continue
-            decorators = decorator_names(callee)
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                self._definitions.setdefault(id(node), node)
+
+        self._collect_storing_callables(tree, methods)
+        self._scan_calls(tree, methods=methods, owner_class=owner_class)
+        self._scan_closures(tree)
+
+    def _resolve_call(
+        self,
+        node: ast.Call,
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+    ) -> tuple[ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | None, int]:
+        """The definition this call runs and the argument offset its receiver consumes."""
+
+        scope = self._enclosing_scope(node)
+        function = node.func
+        if isinstance(function, ast.Name):
+            resolved = self._scopes.resolve(function.id, scope)
+            if resolved is None:
+                return None, 0
+            kind, definition = resolved
+            if kind == "class":
+                table = methods.get(cast("ast.ClassDef", definition).name, {})
+                initializer = table.get("__init__")
+                return (initializer, 1) if initializer is not None else (None, 0)
+            callee = cast("ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda", definition)
+            return (callee, 0) if self._decorators_are_transparent(callee) else (None, 0)
+        if isinstance(function, ast.Attribute) and isinstance(function.value, ast.Name):
+            receiver = function.value.id
+            resolved = self._scopes.resolve(receiver, scope)
+            class_name: str | None = None
+            offset = 1
+            if resolved is not None and resolved[0] == "class":
+                class_name = cast("ast.ClassDef", resolved[1]).name
+                offset = 0
+            elif resolved is not None and resolved[0] == "store":
+                class_name = None
+            else:
+                alias = self._class_alias(receiver, node, methods)
+                if alias is not None:
+                    class_name, offset = alias, 0
+                else:
+                    class_name = self._instance_class(receiver, node, methods)
+            if class_name is None:
+                _owner, enclosing_class = self._enclosing_function(node)
+                if enclosing_class is not None and receiver == self._self_name(node):
+                    class_name = enclosing_class
+            if class_name is None:
+                return None, 0
+            method = methods.get(class_name, {}).get(function.attr)
+            if method is None:
+                return None, 0
+            if not self._decorators_are_transparent(method):
+                return None, 0
+            decorators = frozenset(
+                item.id for item in method.decorator_list if isinstance(item, ast.Name)
+            )
             if "staticmethod" in decorators:
                 offset = 0
             elif "classmethod" in decorators:
                 offset = 1
-            self._record_edges(node, owner=owner, callee=callee, offset=offset)
+            return method, offset
+        return None, 0
 
-    def _self_name(self, owner: int, parents: Mapping[ast.AST, ast.AST]) -> str | None:
+    def _class_alias(
+        self,
+        receiver: str,
+        node: ast.Call,
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+    ) -> str | None:
+        """The class a name bound exactly once to a bare class name denotes.
+
+        `json = Mutator` beside a storing `Mutator.dumps` staticmethod is a local namespace wearing
+        a library module's spelling.  Rule C already refuses to read it as the library, and this
+        reads it as what it is, so `json.dumps(record, 6)` resolves to the staticmethod and its
+        store is seen rather than merely feared.
+        """
+
+        scope = self._enclosing_scope(node)
+        for scope_id in self._scopes.scope_chain(scope):
+            entries = self._scopes.bindings.get(scope_id, {}).get(receiver)
+            if entries is None:
+                continue
+            if len(entries) != 1 or entries[0][0] != "store":
+                return None
+            parent = self._scopes.parents.get(entries[0][1])
+            if not isinstance(parent, ast.Assign) or not isinstance(parent.value, ast.Name):
+                return None
+            resolved = self._scopes.resolve(parent.value.id, scope_id)
+            if resolved is None or resolved[0] != "class":
+                return None
+            name = cast("ast.ClassDef", resolved[1]).name
+            return name if name in methods else None
+        return None
+
+    def _instance_class(
+        self,
+        receiver: str,
+        node: ast.Call,
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+    ) -> str | None:
+        """The class of a name bound exactly once to a constructor call on a resolved class."""
+
+        scope = self._enclosing_scope(node)
+        for scope_id in self._scopes.scope_chain(scope):
+            entries = self._scopes.bindings.get(scope_id, {}).get(receiver)
+            if entries is None:
+                continue
+            if len(entries) != 1 or entries[0][0] != "store":
+                return None
+            target = entries[0][1]
+            parent = self._scopes.parents.get(target)
+            if not isinstance(parent, ast.Assign) or not isinstance(parent.value, ast.Call):
+                return None
+            constructor = parent.value.func
+            if not isinstance(constructor, ast.Name):
+                return None
+            resolved = self._scopes.resolve(constructor.id, scope_id)
+            if resolved is None or resolved[0] != "class":
+                return None
+            name = cast("ast.ClassDef", resolved[1]).name
+            return name if name in methods else None
+        return None
+
+    def _self_name(self, node: ast.AST) -> str | None:
+        owner, _class_name = self._enclosing_function(node)
         definition = self._definitions.get(owner)
         if definition is None:
             return None
         positional, _vararg, _keyword, _kwarg = _parameter_slots(definition)
         return positional[0] if positional else None
 
-    def _record_callback_edges(
+    def _decorators_are_transparent(
+        self, callee: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    ) -> bool:
+        """True when no decorator can replace what the definition does.
+
+        A decorator that returns a different callable is what the definition really runs, so a
+        decorated name whose decorator this module cannot read is unresolvable and rule A fails
+        closed on it -- that is the measured `@bonferroni`-supplied wrapper.  A decorator that
+        provably returns its own parameter changes nothing and is transparent, which keeps a
+        read-only helper behind a tracing decorator a true accusation.
+        """
+
+        if isinstance(callee, ast.Lambda):
+            return True
+        for decorator in callee.decorator_list:
+            node = decorator.func if isinstance(decorator, ast.Call) else decorator
+            if isinstance(node, ast.Name) and node.id in _STRUCTURAL_DECORATORS:
+                continue
+            if isinstance(node, ast.Name) and self._is_identity_definition(node.id, callee):
+                continue
+            if isinstance(node, ast.Name) and self._is_forwarding_decorator(node.id, callee):
+                continue
+            return False
+        return True
+
+    def _is_forwarding_decorator(self, name: str, at: ast.AST) -> bool:
+        """Round 7, semantics fix D(3): a `functools.wraps`-style decorator changes nothing.
+
+        The proof is structural and complete, not a guess from the decorator's spelling.  The
+        decorator must be a project-local `def` of exactly one plain parameter; every one of its
+        returns must be the same bare name; that name must be bound in its body by exactly one
+        nested `def`; the nested wrapper must neither store through its own parameters nor write
+        through a free variable; and every call the wrapper makes must be a call of the
+        decorator's own parameter, so the arguments it is handed go to the wrapped function and
+        nowhere else.  A wrapper carrying `@functools.wraps(func)` is admitted, because that
+        decorator copies metadata and does not change what the wrapper does.  Under those
+        conditions the decorated name behaves, argument for argument, like the definition it
+        decorates, and reading it as unresolvable lost the accusation an uncorrected family under
+        a genuine `functools.wraps` logging decorator had earned.
+        """
+
+        resolved = self._scopes.resolve(name, self._enclosing_scope(at))
+        if resolved is None or resolved[0] != "def":
+            return False
+        decorator = cast("ast.FunctionDef", resolved[1])
+        if decorator.decorator_list:
+            return False
+        positional, vararg, _keyword, kwarg = _parameter_slots(decorator)
+        if len(positional) != 1 or vararg is not None or kwarg is not None:
+            return False
+        parameter = positional[0]
+        own = list(_own_scope_nodes(decorator.body))
+        returns = [statement for statement in own if isinstance(statement, ast.Return)]
+        if not returns or any(not isinstance(statement.value, ast.Name) for statement in returns):
+            return False
+        if any(isinstance(statement, (ast.Yield, ast.YieldFrom)) for statement in own):
+            return False
+        returned = {cast("ast.Name", statement.value).id for statement in returns}
+        if len(returned) != 1:
+            return False
+        wrapper_name = returned.pop()
+        wrappers = [
+            item
+            for item in own
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef))
+            and item.name == wrapper_name
+        ]
+        if len(wrappers) != 1:
+            return False
+        wrapper = wrappers[0]
+        for item in wrapper.decorator_list:
+            head = item.func if isinstance(item, ast.Call) else item
+            if isinstance(head, ast.Attribute):
+                if self._qualified_target(head, wrapper) in _METADATA_DECORATORS:
+                    continue
+            return False
+        if self._definition_stores(wrapper):
+            return False
+        body = self._body_of(wrapper)
+        _edges, escaped = _alias_edges(body)
+        written = escaped | _object_mutated_names(body)
+        if written - self._scopes.bound_in(id(wrapper)):
+            return False
+        for call in _own_scope_nodes(wrapper.body):
+            if isinstance(call, ast.Call) and not (
+                isinstance(call.func, ast.Name) and call.func.id == parameter
+            ):
+                return False
+        return True
+
+    # -- rule B, callables standing in a callable position ------------------------------
+
+    def _callable_positions(self, node: ast.Call) -> list[ast.expr] | None:
+        """The arguments of a callback-bearing call that are themselves callables."""
+
+        function = node.func
+        if isinstance(function, ast.Name):
+            if function.id not in _CALLBACK_BEARING_BUILTINS:
+                return None
+            if function.id in _ELEMENT_CALLBACK_BUILTINS:
+                return list(node.args[:1])
+            return [item.value for item in node.keywords if item.arg == "key"]
+        if isinstance(function, ast.Attribute) and function.attr in _ELEMENT_CALLBACK_METHODS:
+            if node.args:
+                return list(node.args[:1])
+            return [item.value for item in node.keywords if item.arg == "func"]
+        return None
+
+    def _is_callback_bearing(self, node: ast.Call) -> bool:
+        return self._callable_positions(node) is not None
+
+    def _callable_arguments_are_read_only(self, node: ast.Call) -> bool:
+        """Rule B: a callable beside a tracked argument is admitted only when it provably reads.
+
+        Round 6 asked the opposite question -- whether the callable was *known* to store -- and
+        four complete Bonferroni passes reached `Series.apply` through routes the question could
+        not see: a wrapper that stores only by calling a storing helper, a callable held in an
+        attribute, one taken out of a dictionary with `.get`, and one returned by a chain of
+        identity functions.  A callable position now has to resolve: a `lambda` or a project-local
+        definition that does not store, a read-only builtin, an allowlisted library target, or a
+        bound method of a tracked container.  Everything else is storing by default.
+        """
+
+        positions = self._callable_positions(node)
+        if not positions:
+            return positions is not None
+        return all(self._callable_is_read_only(item, node) for item in positions)
+
+    def _callable_is_read_only(self, node: ast.expr, at: ast.Call) -> bool:
+        if isinstance(node, ast.Lambda):
+            return not self._definition_is_storing(node)
+        if isinstance(node, ast.Name):
+            kind, identity = self._bare_callee_target(node.id, at)
+            if kind == "builtin":
+                return (
+                    node.id in _READ_ONLY_BUILTIN_CALLEES
+                    and node.id not in _NEVER_READ_ONLY_CALLEES
+                )
+            if kind == "import":
+                return self._imported_target_is_read_only(identity)
+            resolved = self._scopes.resolve(node.id, self._enclosing_scope(at))
+            if resolved is None or resolved[0] not in {"def", "lambda"}:
+                return False
+            definition = cast("ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda", resolved[1])
+            if not self._decorators_are_transparent(definition):
+                return False
+            return not self._definition_is_storing(definition)
+        if isinstance(node, ast.Attribute):
+            if node.attr in _NEVER_READ_ONLY_CALLEES:
+                return False
+            if self._qualified_target(node, at) in _READ_ONLY_MODULE_APIS:
+                return True
+            return node.attr in _READ_ONLY_BOUND_CALLABLES and self._tracked_receiver(node)
+        return False
+
+    def _definition_is_storing(
+        self, definition: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    ) -> bool:
+        """True when the definition writes through anything it is handed or closes over.
+
+        The interprocedural storing fixpoint is consulted first, so `def wrapper(entry):
+        direct(entry)` is storing even though its own body writes nothing.  During the first
+        collection pass the fixpoint is still empty and only the direct census answers; the
+        deferred pass below re-asks every callable position once the fixpoint has run, which is
+        what closes the wrapper route.
+        """
+
+        identifier = id(definition)
+        if any(
+            (identifier, parameter, None) in self._storing
+            for parameter in _all_parameters(definition)
+        ):
+            return True
+        if self._definition_stores(definition):
+            return True
+        body = self._body_of(definition)
+        _edges, escaped = _alias_edges(body)
+        written = (escaped | _object_mutated_names(body)) - self._scopes.bound_in(identifier)
+        return any(self._interesting(frozenset({name})) for name in written)
+
+    def _is_identity_definition(self, name: str, at: ast.AST) -> bool:
+        resolved = self._scopes.resolve(name, self._enclosing_scope(at))
+        if resolved is None or resolved[0] != "def":
+            return False
+        definition = cast("ast.FunctionDef", resolved[1])
+        positional, _vararg, _keyword, _kwarg = _parameter_slots(definition)
+        if not positional:
+            return False
+        parameter = positional[0]
+        returns = [node for node in ast.walk(definition) if isinstance(node, ast.Return)]
+        if not returns:
+            return False
+        for statement in returns:
+            value = statement.value
+            if not isinstance(value, ast.Name) or value.id != parameter:
+                return False
+        body = self._body_of(definition)
+        _edges, escaped = _alias_edges(body)
+        return not ({parameter} & (escaped | _object_mutated_names(body)))
+
+    # -- storing callables (rule C) -----------------------------------------------------
+
+    def _collect_storing_callables(
         self,
-        node: ast.Call,
-        owner: int,
-        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
-        imported: frozenset[str] | set[str],
-        rebound: frozenset[str] | set[str],
+        tree: ast.Module,
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
     ) -> None:
+        """Every name that carries a callable which stores through what it is handed."""
+
+        storing_definitions: set[str] = set()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if self._definition_stores(node):
+                    storing_definitions.add(node.name)
+            elif isinstance(node, ast.Assign) and len(node.targets) == 1:
+                target, value = node.targets[0], node.value
+                if (
+                    isinstance(target, ast.Name)
+                    and isinstance(value, ast.Lambda)
+                    and self._definition_stores(value)
+                ):
+                    storing_definitions.add(target.id)
+        for name, table in methods.items():
+            for method, definition in table.items():
+                if self._definition_stores(definition):
+                    storing_definitions.add(method)
+                    storing_definitions.add(name)
+        self._storing_callables = set(storing_definitions)
+        changed = True
+        while changed:
+            changed = False
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                    continue
+                target, value = node.targets[0], node.value
+                if not isinstance(target, ast.Name) or target.id in self._storing_callables:
+                    continue
+                if self._carries_storing_callable(value):
+                    self._storing_callables.add(target.id)
+                    changed = True
+
+    def _definition_stores(
+        self, definition: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    ) -> bool:
+        """True when the body stores through any name that reaches one of its parameters."""
+
+        body = self._body_of(definition)
+        _edges, escaped = _alias_edges(body)
+        mutated = _object_mutated_names(body)
+        parameters = _all_parameters(definition)
+        for parameter in parameters:
+            component = self._alias_component(body, parameter)
+            if component & (escaped | mutated):
+                return True
+        return False
+
+    def _carries_storing_callable(self, node: ast.expr) -> bool:
+        """True when the expression evaluates to, or holds, a storing callable."""
+
+        if isinstance(node, ast.Name):
+            return node.id in self._storing_callables
+        if isinstance(node, ast.Lambda):
+            return self._definition_stores(node)
+        if isinstance(node, ast.Attribute):
+            return node.attr in self._storing_callables or self._carries_storing_callable(
+                node.value
+            )
+        if isinstance(node, ast.Subscript):
+            return self._carries_storing_callable(node.value)
+        if isinstance(node, (ast.List, ast.Tuple, ast.Set)):
+            return any(self._carries_storing_callable(item) for item in node.elts)
+        if isinstance(node, ast.Dict):
+            return any(
+                item is not None and self._carries_storing_callable(item) for item in node.values
+            )
+        if isinstance(node, ast.Call):
+            function = node.func
+            partial = (isinstance(function, ast.Name) and function.id == "partial") or (
+                isinstance(function, ast.Attribute) and function.attr == "partial"
+            )
+            if partial:
+                return any(
+                    self._carries_storing_callable(argument)
+                    for argument in (*node.args, *(item.value for item in node.keywords))
+                )
+        return False
+
+    def _carries_a_storing_callable(self, node: ast.Call) -> bool:
+        return any(
+            self._carries_storing_callable(argument)
+            for argument in (*node.args, *(item.value for item in node.keywords))
+        )
+
+    def _alias_component(self, body: ast.Module, parameter: str) -> set[str]:
+        edges, _escaped = _alias_edges(body)
+        component = {parameter}
+        frontier = [parameter]
+        while frontier:
+            current = frontier.pop()
+            for neighbour in edges.get(current, ()):
+                if neighbour not in component:
+                    component.add(neighbour)
+                    frontier.append(neighbour)
+        return component
+
+    # -- call scanning ------------------------------------------------------------------
+
+    def _scan_calls(
+        self,
+        tree: ast.Module,
+        *,
+        methods: Mapping[str, Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef]],
+        owner_class: Mapping[int, str],
+    ) -> None:
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            owner, _class_name = self._enclosing_function(node)
+            self._record_callback_edges(node, owner)
+            callee, offset = self._resolve_call(node, methods)
+            if callee is not None:
+                self._call_callee[id(node)] = callee
+                self._call_offset[id(node)] = offset
+                self._record_edges(node, owner=owner, callee=callee, offset=offset)
+                continue
+            self._record_unresolvable(node, owner)
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                self._record_default_edges(node)
+
+    def _tracked_arguments(self, node: ast.Call) -> frozenset[str]:
+        roots: set[str] = set()
+        for argument in (*node.args, *(item.value for item in node.keywords)):
+            roots |= self._roots(argument)
+        return frozenset(roots)
+
+    def _receiver_roots(self, node: ast.Call) -> frozenset[str]:
+        function = node.func
+        if isinstance(function, ast.Attribute):
+            return self._roots(function.value)
+        return frozenset()
+
+    def _record_unresolvable(self, node: ast.Call, owner: int) -> None:
+        """Rule A: a call handed a tracked object with no readable body is a mutation of it."""
+
+        roots = self._tracked_arguments(node)
+        storing_callable = self._carries_a_storing_callable(node)
+        callback = self._is_callback_bearing(node)
+        if storing_callable or callback:
+            # A callback-bearing call writes through its receiver, not through its arguments:
+            # `pd.Series(list(results.values())).apply(rescale)` corrects every record of
+            # `results`, and the receiver is the only place those records appear.
+            roots = roots | self._receiver_roots(node)
+        if not self._interesting(roots):
+            return
+        if not storing_callable and self._read_only_callee(node):
+            if callback:
+                self._deferred_callbacks.append((node, owner, roots))
+            return
+        if self._carries_storing_callable(node.func):
+            roots = roots | self._receiver_roots(node)
+        self._edges.append(_CaptureEdge(owner, None, _ANY_PARAMETER, roots))
+
+    def _finish_deferred_callbacks(self) -> bool:
+        """Rule B, second pass: re-ask every admitted callable position after the fixpoint.
+
+        Callable classification has to run *after* the interprocedural storing fixpoint, because a
+        wrapper that stores only by calling a storing helper writes nothing in its own body.  The
+        first pass answers with the direct census alone, this pass re-asks with the fixpoint in
+        hand, and the storing sets only grow, so re-running the fixpoint afterwards converges.
+        """
+
+        deferred, self._deferred_callbacks = self._deferred_callbacks, []
+        added = False
+        for node, owner, roots in deferred:
+            if self._callable_arguments_are_read_only(node):
+                continue
+            self._edges.append(_CaptureEdge(owner, None, _ANY_PARAMETER, roots))
+            added = True
+        return added
+
+    def _record_callback_edges(self, node: ast.Call, owner: int) -> None:
         """`map`, `filter`, and the `key=` builtins apply a callable to the elements beside it."""
 
         function = node.func
-        if not isinstance(function, ast.Name):
-            return
-        if function.id in imported or function.id in rebound or function.id in functions:
+        if not isinstance(function, ast.Name) or function.id in self.shadowed_wrappers:
             return
         if function.id in _ELEMENT_CALLBACK_BUILTINS and node.args:
             callable_node, iterables = node.args[0], node.args[1:]
@@ -1052,7 +2527,7 @@ class _HelperStores:
             callable_node, iterables = keyword.value, node.args[:1]
         else:
             return
-        callee = self._callback_definition(callable_node, functions)
+        callee = self._callback_definition(callable_node, node)
         if callee is None:
             return
         positional, vararg, _keyword_bindable, _kwarg = _parameter_slots(callee)
@@ -1060,21 +2535,25 @@ class _HelperStores:
         if parameter is None:
             return
         roots: set[str] = set()
+        role: str | None = None
         for iterable in iterables:
-            roots |= _capture_roots(iterable)
+            roots |= self._roots(iterable)
+            shape = self._roles.element_shape(iterable)
+            if role is None and self._roles._carries_record(shape):
+                role = _ROLE_RECORD
         if roots:
-            self._edges.append(_CaptureEdge(owner, id(callee), parameter, frozenset(roots)))
+            self._edges.append(_CaptureEdge(owner, id(callee), parameter, frozenset(roots), role))
 
     def _callback_definition(
-        self,
-        node: ast.expr,
-        functions: Mapping[str, ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda],
+        self, node: ast.expr, at: ast.Call
     ) -> ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda | None:
         if isinstance(node, ast.Lambda):
             self._definitions.setdefault(id(node), node)
             return node
         if isinstance(node, ast.Name):
-            return functions.get(node.id)
+            resolved = self._scopes.resolve(node.id, self._enclosing_scope(at))
+            if resolved is not None and resolved[0] in {"def", "lambda"}:
+                return cast("ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda", resolved[1])
         return None
 
     def _record_edges(
@@ -1088,12 +2567,16 @@ class _HelperStores:
         positional, vararg, keyword_bindable, kwarg = _parameter_slots(callee)
         index = offset
         for argument in node.args:
-            roots = _capture_roots(argument)
+            roots = self._roots(argument)
             if isinstance(argument, ast.Starred):
-                if roots:
-                    self._edges.append(_CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots))
-                # A starred argument consumes an unknown number of slots, so no later
-                # positional argument can be bound by index.
+                # Round 6, soundness fix 2: `*X` forwards the ELEMENTS of `X`.  A mapping and a
+                # record both pass their KEYS, so `*record` hands over strings and binds nothing.
+                # A sequence forwards what it holds, and an argument with no role at all is
+                # forwarded conservatively, which is what keeps `forward(*args)` closed.
+                if roots and self._argument_role(argument) not in (_ROLE_RECORD, _ROLE_MAPPING):
+                    self._edges.append(
+                        _CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots, _ROLE_RECORD)
+                    )
                 index = len(positional) + 1
                 continue
             parameter = (
@@ -1101,62 +2584,197 @@ class _HelperStores:
                 if index < len(positional)
                 else (vararg if vararg is not None else None)
             )
+            bucket = index >= len(positional)
             index += 1
             if parameter is not None and roots:
-                self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots))
+                role = self._argument_role(argument)
+                if bucket and role is not None:
+                    role = _ROLE_SEQUENCE
+                self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots, role))
         for keyword in node.keywords:
-            roots = _capture_roots(keyword.value)
+            roots = self._roots(keyword.value)
             if not roots:
                 continue
+            role = self._argument_role(keyword.value)
             if keyword.arg is None:
-                self._edges.append(_CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots))
+                # `**X` forwards the VALUES of `X`.  A record's values are the collected scalars
+                # and bind nothing; a mapping of records forwards records, and a bucket with no
+                # role is forwarded conservatively so `rescale(**fields)` stays closed.
+                if role != _ROLE_RECORD:
+                    self._edges.append(
+                        _CaptureEdge(owner, id(callee), _ANY_PARAMETER, roots, _ROLE_RECORD)
+                    )
                 continue
             if keyword.arg in keyword_bindable:
                 parameter = keyword.arg
             elif kwarg is not None:
                 parameter = kwarg
+                if role is not None:
+                    role = _ROLE_MAPPING
             else:
                 continue
-            self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots))
+            self._edges.append(_CaptureEdge(owner, id(callee), parameter, roots, role))
+
+    def _record_default_edges(
+        self, definition: ast.FunctionDef | ast.AsyncFunctionDef | ast.Lambda
+    ) -> None:
+        """Rule D: a default argument bound to a tracked name is an escape at the def site."""
+
+        arguments = definition.args
+        slots = [*arguments.posonlyargs, *arguments.args]
+        pairs: list[tuple[str, ast.expr]] = []
+        if arguments.defaults:
+            for slot, default in zip(
+                slots[-len(arguments.defaults) :], arguments.defaults, strict=True
+            ):
+                pairs.append((slot.arg, default))
+        for slot, keyword_default in zip(arguments.kwonlyargs, arguments.kw_defaults, strict=True):
+            if keyword_default is not None:
+                pairs.append((slot.arg, keyword_default))
+        owner, _class_name = self._enclosing_function(definition)
+        for parameter, default in pairs:
+            roots = self._roots(default)
+            if not roots:
+                continue
+            self._edges.append(
+                _CaptureEdge(owner, id(definition), parameter, roots, self._argument_role(default))
+            )
+
+    def _scan_closures(self, tree: ast.Module) -> None:
+        """Rule D: a definition whose body stores through a free variable is an escape.
+
+        A definition is an escape whether or not it is called, because the caller decides.  The
+        one exception is the other half of the same rule: a definition written *inside* a helper
+        and never read there is dead code that the call cannot reach, and counting it lost the
+        true accusation the never-called nested store row pins.
+        """
+
+        for node in ast.walk(tree):
+            if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)):
+                continue
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and self._is_dead_nested(
+                node
+            ):
+                continue
+            body = self._body_of(node)
+            _edges, escaped = _alias_edges(body)
+            written = escaped | _object_mutated_names(body)
+            free = written - self._scopes.bound_in(id(node))
+            free = frozenset(name for name in free if self._interesting(frozenset({name})))
+            if free:
+                owner, _class_name = self._enclosing_function(node)
+                self._edges.append(_CaptureEdge(owner, None, _ANY_PARAMETER, frozenset(free)))
+
+    def _is_dead_nested(self, node: ast.FunctionDef | ast.AsyncFunctionDef) -> bool:
+        """True for a definition written inside a function body and never read there."""
+
+        parent = self._scopes.parents.get(node)
+        while parent is not None and not isinstance(
+            parent, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda, ast.Module, ast.ClassDef)
+        ):
+            parent = self._scopes.parents.get(parent)
+        if not isinstance(parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            return False
+        if node.decorator_list:
+            return False
+        return not _name_is_read(list(parent.body), node.name)
 
     # -- the storing fixpoint -----------------------------------------------------------
 
     def _body_census(self, callee: int) -> tuple[frozenset[str], frozenset[str]]:
         if callee not in self._census:
-            body = _callee_body(self._definitions[callee])
+            body = self._body_of(self._definitions[callee])
             _edges, escaped = _alias_edges(body)
             self._census[callee] = (escaped, _object_mutated_names(body))
         return self._census[callee]
 
-    def _reached_names(self, callee: int, parameter: str) -> frozenset[str]:
-        """The parameter's alias component, closed under the round-4 record-derived forms."""
+    def _reached_names(self, callee: int, parameter: str, role: str | None) -> frozenset[str]:
+        """The parameter's alias component, closed under the round-4 record-derived forms.
 
-        key = (callee, parameter)
+        Round 6, soundness fix 1: the component is seeded with the role the argument carries and
+        with nothing else.  Round 5 seeded a parameter as a mapping *and* a sequence of records at
+        once, so `for key in table` inside a helper bound `key` as a record where the identical
+        module-level loop leaves it opaque, and the read-only key loop lost its accusation.  An
+        argument with no role is untracked, and seeding it both ways keeps the round-5 capture set
+        for those names byte-for-byte.
+        """
+
+        key = (callee, parameter, role)
         if key not in self._reached:
-            body = _callee_body(self._definitions[callee])
-            edges, _escaped = _alias_edges(body)
-            component = {parameter}
-            frontier = [parameter]
-            while frontier:
-                current = frontier.pop()
-                for neighbour in edges.get(current, ()):
-                    if neighbour not in component:
-                        component.add(neighbour)
-                        frontier.append(neighbour)
-            derivation = _RecordDerivation(frozenset(component))
-            for name in component:
-                derivation.sequences[name] = _RECORD
+            body = self._body_of(self._definitions[callee])
+            component = self._alias_component(body, parameter)
+            mappings = frozenset(component) if role in (None, _ROLE_MAPPING) else frozenset()
+            derivation = _RecordDerivation(mappings, shadowed=self.shadowed_wrappers)
+            if role in (None, _ROLE_SEQUENCE):
+                for name in component:
+                    derivation.sequences[name] = _RECORD
+            if role in (None, _ROLE_RECORD):
+                derivation.records.update(component)
             derivation.resolve(body)
             self._reached[key] = frozenset(component) | derivation.names()
         return self._reached[key]
 
     def _edge_is_storing(self, edge: _CaptureEdge) -> bool:
+        if edge.callee is None:
+            return True
         if edge.parameter != _ANY_PARAMETER:
-            return (edge.callee, edge.parameter) in self._storing
-        return any(callee == edge.callee for callee, _parameter in self._storing)
+            return (edge.callee, edge.parameter, edge.role) in self._storing
+        return any(callee == edge.callee for callee, _parameter, _role in self._storing)
 
-    def _reaches_a_store(self, callee: int, parameter: str) -> bool:
-        names = self._reached_names(callee, parameter)
+    def _detached(self, callee: int, parameter: str, role: str | None) -> bool:
+        """Round 6, soundness fix 4: the parameter is rebound to a fresh value before any store.
+
+        `def inspect_record(entry): entry = {}; entry["scratch"] = 1` never touches the record it
+        was handed, and reading the later store as a store through the argument lost a true
+        accusation.  The rebinding has to be straight-line -- a rebinding inside a branch or a
+        loop leaves the alias standing -- and the parameter may not be read before it, so no
+        alias of the argument can outlive the rebinding.  `dict(entry)` is a fresh copy of one
+        record, so it detaches a record-role parameter; a shallow copy of a *mapping* of records
+        still holds the same records and detaches nothing.
+        """
+
+        definition = self._definitions[callee]
+        if isinstance(definition, ast.Lambda):
+            return False
+        for statement in definition.body:
+            if isinstance(statement, ast.Assign) and len(statement.targets) == 1:
+                target = statement.targets[0]
+                if isinstance(target, ast.Name) and target.id == parameter:
+                    if self._fresh_value(statement.value, parameter, role):
+                        return True
+                    return False
+            if _name_is_read([statement], parameter):
+                return False
+            if any(
+                isinstance(node, ast.Name)
+                and node.id == parameter
+                and isinstance(node.ctx, (ast.Store, ast.Del))
+                for node in ast.walk(statement)
+            ):
+                return False
+        return False
+
+    def _fresh_value(self, value: ast.expr, parameter: str, role: str | None) -> bool:
+        if isinstance(value, (ast.Dict, ast.List, ast.Set, ast.Tuple)):
+            return not self._roots(value)
+        if isinstance(value, ast.Constant):
+            return True
+        if isinstance(value, ast.Call) and isinstance(value.func, ast.Name):
+            if value.func.id in self.shadowed_wrappers:
+                return False
+            if value.func.id not in (_COLLECTION_SEED_CALLS | {"set", "tuple", "frozenset"}):
+                return False
+            if not value.args:
+                return True
+            # A shallow copy of one record is a new record; a shallow copy of a mapping of
+            # records is a different container holding the same records.
+            return role == _ROLE_RECORD and self._roots(value) == frozenset({parameter})
+        return False
+
+    def _reaches_a_store(self, callee: int, parameter: str, role: str | None = None) -> bool:
+        if self._detached(callee, parameter, role):
+            return False
+        names = self._reached_names(callee, parameter, role)
         escaped, mutated = self._body_census(callee)
         if names & (escaped | mutated):
             return True
@@ -1167,19 +2785,40 @@ class _HelperStores:
         )
 
     def _resolve(self) -> None:
+        wanted: set[tuple[int, str, str | None]] = set()
+        for edge in self._edges:
+            if edge.callee is None:
+                continue
+            definition = self._definitions.get(edge.callee)
+            if definition is None:
+                continue
+            if edge.parameter == _ANY_PARAMETER:
+                wanted.update(
+                    (edge.callee, name, edge.role) for name in _all_parameters(definition)
+                )
+            else:
+                wanted.add((edge.callee, edge.parameter, edge.role))
+        # Every parameter of every reachable definition is asked about with no role too, so a
+        # body-internal edge whose role differs from the call site's is still answered.
+        for callee, definition in self._definitions.items():
+            for parameter in _all_parameters(definition):
+                wanted.add((callee, parameter, None))
         changed = True
         while changed:
             changed = False
-            for callee, definition in self._definitions.items():
-                for parameter in sorted(_all_parameters(definition)):
-                    if (callee, parameter) in self._storing:
-                        continue
-                    if self._reaches_a_store(callee, parameter):
-                        self._storing.add((callee, parameter))
-                        changed = True
+            for callee, parameter, role in sorted(
+                wanted, key=lambda item: (item[0], item[1], str(item[2]))
+            ):
+                if (callee, parameter, role) in self._storing:
+                    continue
+                if self._reaches_a_store(callee, parameter, role):
+                    self._storing.add((callee, parameter, role))
+                    changed = True
+
+    # -- results ------------------------------------------------------------------------
 
     def captured_names(self) -> frozenset[str]:
-        """Every name handed to a project-local helper that stores through what it binds."""
+        """Every name handed to a call that writes into what it is handed."""
 
         captured: set[str] = set()
         for edge in self._edges:
@@ -1187,9 +2826,102 @@ class _HelperStores:
                 captured |= edge.roots
         return frozenset(captured)
 
+    def hands_back_an_argument(self, node: ast.Call) -> bool:
+        """Rule B: the call's result carries the object one of its arguments handed over.
+
+        A resolved project-local callee that returns a name reaching one of its parameters hands
+        that object back, so `target = identity(record)` binds the record itself and a later
+        `target["p"] = ...` is the same store as `record["p"] = ...`.  A callee whose every
+        return is a display, a literal, or a scalar expression hands back nothing it was given,
+        which is what keeps a read-only helper returning a NEW dictionary a true accusation when
+        the caller stores into it.
+        """
+
+        callee = self._call_callee.get(id(node))
+        if callee is None:
+            return False
+        offset = self._call_offset.get(id(node), 0)
+        positional, vararg, keyword_bindable, kwarg = _parameter_slots(callee)
+        bound: set[tuple[str, str | None]] = set()
+        index = offset
+        for argument in node.args:
+            role = self._argument_role(argument)
+            if isinstance(argument, ast.Starred):
+                bound |= {(name, role) for name in _all_parameters(callee)}
+                break
+            if index < len(positional):
+                bound.add((positional[index], role))
+            elif vararg is not None:
+                bound.add((vararg, _ROLE_SEQUENCE if role is not None else None))
+            index += 1
+        for keyword in node.keywords:
+            role = self._argument_role(keyword.value)
+            if keyword.arg is None:
+                bound |= {(name, role) for name in _all_parameters(callee)}
+            elif keyword.arg in keyword_bindable:
+                bound.add((keyword.arg, role))
+            elif kwarg is not None:
+                bound.add((kwarg, _ROLE_MAPPING if role is not None else None))
+        return any(self._returns_parameter(id(callee), name, role) for name, role in bound)
+
+    def _returns_parameter(self, callee: int, parameter: str, role: str | None) -> bool:
+        """True when some return of the callee hands back the object this parameter binds.
+
+        The freshness test is role-aware for the reason soundness fix 3 is: a helper that returns
+        `{"p": entry["p"]}` builds a NEW dictionary out of one scalar, so a caller that stores
+        into the result never touches the family, and reading the subscript back to the record
+        would have refused a genuinely uncorrected family.
+        """
+
+        key = (callee, parameter, role)
+        if key in self._hands_back_cache:
+            return self._hands_back_cache[key]
+        definition = self._definitions[callee]
+        body = self._body_of(definition)
+        if isinstance(definition, ast.Lambda):
+            values: list[ast.expr] = [definition.body]
+        else:
+            values = [
+                statement.value
+                for statement in ast.walk(body)
+                if isinstance(statement, ast.Return) and statement.value is not None
+            ]
+        names = self._reached_names(callee, parameter, role)
+        records, mappings = self._body_roles(callee, parameter, role)
+        result = any(bool(_capture_roots(value, records, mappings) & names) for value in values)
+        self._hands_back_cache[key] = result
+        return result
+
+    def _body_roles(
+        self, callee: int, parameter: str, role: str | None
+    ) -> tuple[frozenset[str], frozenset[str]]:
+        """The record-role and mapping-role names inside the callee body, given the argument role.
+
+        Round 7, rule A(3): the mapping half is what draws the key boundary in the freshness test.
+        `def summarize(table): return {"names": list(table)}` iterates a mapping of records, and
+        iterating a mapping yields its keys, so the dictionary it returns holds strings and the
+        caller's `summary["scratch"] = 1` cannot reach the family.  Round 6 read the wrapper as a
+        handover of the mapping's root and refused a family that really was left uncorrected.
+        """
+
+        body = self._body_of(self._definitions[callee])
+        component = self._alias_component(body, parameter)
+        seeded = frozenset(component) if role in (None, _ROLE_MAPPING) else frozenset()
+        derivation = _RecordDerivation(seeded, shadowed=self.shadowed_wrappers)
+        if role in (None, _ROLE_SEQUENCE):
+            for name in component:
+                derivation.sequences[name] = _RECORD
+        if role in (None, _ROLE_RECORD):
+            derivation.records.update(component)
+        derivation.resolve(body)
+        # A name that is also a sequence of records, or a record itself, is not key-yielding: a
+        # role the argument does not carry may never make the freshness test more permissive.
+        keyed = set(derivation.mappings) - set(derivation.sequences) - derivation.records
+        return frozenset(derivation.records), frozenset(keyed)
+
 
 def helper_captured_names(tree: ast.Module) -> frozenset[str]:
-    """Round 5: the names a project-local helper stores through the parameter they bind."""
+    """Rounds 5 and 6: the names a call writes into, or hands to something that writes."""
 
     return _HelperStores(tree).captured_names()
 
@@ -1235,7 +2967,8 @@ def record_collection_alias_unresolved(tree: ast.Module) -> bool:
 
     edges, escaped = _alias_edges(tree)
     mutated = _object_mutated_names(tree)
-    captured = helper_captured_names(tree)
+    census = _HelperStores(tree)
+    captured = census.captured_names()
     for collection in record_collection_names(tree):
         component = {collection}
         frontier = [collection]
@@ -1245,11 +2978,18 @@ def record_collection_alias_unresolved(tree: ast.Module) -> bool:
                 if neighbour not in component:
                     component.add(neighbour)
                     frontier.append(neighbour)
-        for name in component | set(record_derived_names(tree, frozenset(component))):
+        derived, inserted_only = record_derived_roles(tree, frozenset(component), census)
+        for name in component | set(derived):
             if name in escaped:
                 return True
             if name != collection and name in mutated:
-                return True
+                # Round 7, rule A(1): a container that holds records only because records were
+                # put into it is refused by the same census as any other derived name, except
+                # for the insertion and query calls that put them there and read them back.
+                if name not in inserted_only or not _insertion_container_is_only_filled_and_read(
+                    tree, name
+                ):
+                    return True
             if name in captured:
                 return True
     return False
