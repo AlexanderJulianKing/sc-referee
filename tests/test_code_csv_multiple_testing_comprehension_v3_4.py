@@ -76,12 +76,43 @@ try:
     _harness_module.__dict__.update(_harness)
     sys.modules["harness"] = _harness_module
     _catalog = runpy.run_path(str(_ROOT / "fixture_catalog.py"))
-    _FIXTURES = tuple(_catalog["all_fixtures"]())
-    _NEW_FIXTURE_NAMES = frozenset(item.name for item in _catalog["new_fixtures"]())
 finally:
     sys.modules.pop("harness", None)
     if _previous_harness is not None:
         sys.modules["harness"] = _previous_harness
+
+
+@functools.cache
+def _catalog_population() -> tuple[tuple[Any, ...], frozenset[str]]:
+    """Build the 245-row catalog once per process, on first use rather than at import.
+
+    Building it runs `harness.all_cases`, which baselines all 170 evidence sources through the
+    shipped 3.3 analyzer and anchors each against the frozen 3.3 prototype row.  That evidence
+    work is unchanged; only its timing moves, from module import to the first test that asks
+    for a fixture.  Collection needs fixture *names*, and the byte-pinned `results.json` below
+    already carries one row per fixture in catalog order, so pytest can collect this file
+    without executing anything.
+    """
+
+    previous = sys.modules.pop("harness", None)
+    sys.modules["harness"] = _harness_module
+    try:
+        fixtures = tuple(_catalog["all_fixtures"]())
+        new_names = frozenset(item.name for item in _catalog["new_fixtures"]())
+    finally:
+        sys.modules.pop("harness", None)
+        if previous is not None:
+            sys.modules["harness"] = previous
+    return fixtures, new_names
+
+
+def _fixtures() -> tuple[Any, ...]:
+    return _catalog_population()[0]
+
+
+def _new_fixture_names() -> frozenset[str]:
+    return _catalog_population()[1]
+
 
 # `reference_case` rescans every case directory on each call, and the round-3 and round-4
 # oracles ask for the same two keys a few hundred times between them.  The lookup is pure,
@@ -93,6 +124,15 @@ _INPUTS = cast(Callable[[Any, bytes | None], dict[str, Any]], _harness["inputs"]
 _CLASSIFY = cast(Callable[[MultipleTestingDataflowResult], Any], _harness["classify"])
 _RESULTS = json.loads((_ROOT / "results.json").read_text(encoding="utf-8"))
 _PROTOTYPE_FIXTURE_ROWS = {row["name"]: row for row in _RESULTS["fixtures"]}
+# The collection-time populations.  `results.json` is byte-pinned immediately above and carries
+# one row per fixture, in catalog order, with the same labels the catalog carries.  The census
+# test compares the two row by row, so the catalog stays the authority for what a fixture is
+# while collection itself stays free of analyzer work.
+_PINNED_FIXTURE_ROWS = tuple(_RESULTS["fixtures"])
+_PINNED_FIXTURE_NAMES = tuple(str(row["name"]) for row in _PINNED_FIXTURE_ROWS)
+_PINNED_CORRECT_NAMES = tuple(
+    str(row["name"]) for row in _PINNED_FIXTURE_ROWS if row["correct_analysis"]
+)
 _INSTRUMENT = json.loads((_ROOT / "instrument_results.json").read_text(encoding="utf-8"))
 
 # The round-1 audit-fix oracle lives outside the prototype sweep, whose manifest bytes are
@@ -591,12 +631,12 @@ def _run_v33(case_key: str, source: bytes) -> Any:
     return _CLASSIFY(analyze_v33(content, **values))
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def executed_rows() -> dict[str, dict[str, Any]]:
     """Execute every one of the 245 fixture sources through the real shipped 3.4 analyzer."""
 
     rows: dict[str, dict[str, Any]] = {}
-    for fixture in _FIXTURES:
+    for fixture in _fixtures():
         outcome, census = _run_source(fixture.case_key, fixture.source)
         rows[fixture.name] = {
             "fixture": fixture,
@@ -614,9 +654,34 @@ def test_pinned_prototype_evidence_is_immutable() -> None:
 
 
 def test_fixture_census_and_correct_analysis_populations_are_exact() -> None:
-    assert len(_FIXTURES) == 245
-    assert len(_NEW_FIXTURE_NAMES) == 42
-    counts = Counter(item.category for item in _FIXTURES)
+    fixtures = _fixtures()
+    new_fixture_names = _new_fixture_names()
+    # The collection-time populations are read from the pinned prototype rows.  Nothing about
+    # them is taken on trust: the catalog's own name, category and label for every row is
+    # compared against the pinned row here, in order, so a divergence fails rather than
+    # silently reshaping what the parametrized tests cover.
+    assert [
+        (
+            item.name,
+            item.category,
+            item.correct_analysis,
+            getattr(item, "refused_admission", None),
+            getattr(item, "admitted", None),
+        )
+        for item in fixtures
+    ] == [
+        (
+            str(row["name"]),
+            str(row["category"]),
+            bool(row["correct_analysis"]),
+            row["refused_admission"],
+            row["required_admission"],
+        )
+        for row in _PINNED_FIXTURE_ROWS
+    ]
+    assert len(fixtures) == 245
+    assert len(new_fixture_names) == 42
+    counts = Counter(item.category for item in fixtures)
     assert counts == {
         "frozen-v3-original": 48,
         "audit-fix-r1": 14,
@@ -642,11 +707,11 @@ def test_fixture_census_and_correct_analysis_populations_are_exact() -> None:
         "cap-fa-control": 1,
         "reason-routing-adversary": 2,
     }
-    assert sum(item.correct_analysis for item in _FIXTURES) == 194
-    assert sum(item.correct_analysis for item in _FIXTURES if item.name in _NEW_FIXTURE_NAMES) == 11
+    assert sum(item.correct_analysis for item in fixtures) == 194
+    assert sum(item.correct_analysis for item in fixtures if item.name in new_fixture_names) == 11
 
 
-@pytest.mark.parametrize("name", [item.name for item in _FIXTURES])
+@pytest.mark.parametrize("name", _PINNED_FIXTURE_NAMES)
 def test_all_245_fixture_rows_execute(name: str, executed_rows: dict[str, dict[str, Any]]) -> None:
     row = executed_rows[name]
     expected = _STRICTER_THAN_PROTOTYPE.get(name, _PROTOTYPE_FIXTURE_ROWS[name]["outcome"])
@@ -675,20 +740,24 @@ def test_named_strictness_residual_is_never_an_accusation(
     )
 
 
-@pytest.mark.parametrize("name", [item.name for item in _FIXTURES if item.correct_analysis])
+@pytest.mark.parametrize("name", _PINNED_CORRECT_NAMES)
 def test_no_correct_analysis_fixture_becomes_a_candidate(
     name: str, executed_rows: dict[str, dict[str, Any]]
 ) -> None:
     assert executed_rows[name]["outcome"].state != "candidate"
 
 
-_REFUSED = tuple(item for item in _FIXTURES if getattr(item, "refused_admission", None) is not None)
-_ADMITTED = tuple(item for item in _FIXTURES if getattr(item, "admitted", None) is not None)
+_REFUSED = tuple(
+    str(row["name"]) for row in _PINNED_FIXTURE_ROWS if row["refused_admission"] is not None
+)
+_ADMITTED = tuple(
+    str(row["name"]) for row in _PINNED_FIXTURE_ROWS if row["required_admission"] is not None
+)
 
 
-@pytest.mark.parametrize("fixture", _REFUSED, ids=lambda item: item.name)
+@pytest.mark.parametrize("name", _REFUSED)
 def test_named_disqualifiers_refuse_their_admission(
-    fixture: Any, executed_rows: dict[str, dict[str, Any]]
+    name: str, executed_rows: dict[str, dict[str, Any]]
 ) -> None:
     """A disqualifier is proved by an empty admission census, not by a downstream abstention.
 
@@ -697,16 +766,18 @@ def test_named_disqualifiers_refuse_their_admission(
     admission on a classified row.
     """
 
+    fixture = _fixture(name)
     baseline = _run_v33(fixture.case_key, fixture.source)
     assert baseline.state == "abstain", "the disqualifier assertion would be vacuous"
     census = executed_rows[fixture.name]["census"]
     assert census[fixture.refused_admission] == 0
 
 
-@pytest.mark.parametrize("fixture", _ADMITTED, ids=lambda item: item.name)
+@pytest.mark.parametrize("name", _ADMITTED)
 def test_named_admissions_actually_fire(
-    fixture: Any, executed_rows: dict[str, dict[str, Any]]
+    name: str, executed_rows: dict[str, dict[str, Any]]
 ) -> None:
+    fixture = _fixture(name)
     assert executed_rows[fixture.name]["census"][fixture.admitted] > 0
 
 
@@ -813,7 +884,7 @@ def test_a_normalized_family_never_hides_a_later_p_gated_test(
 
 
 def _fixture(name: str) -> Any:
-    return next(item for item in _FIXTURES if item.name == name)
+    return next(item for item in _fixtures() if item.name == name)
 
 
 def _outcome_columns(case_key: str, source: bytes) -> tuple[str, ...]:
@@ -1302,7 +1373,7 @@ def test_every_frozen_3_3_abstention_reason_survives_across_the_new_fixture_rows
 ) -> None:
     """No new fixture row that stays an abstention may carry a reason 3.3 did not emit."""
 
-    for name in sorted(_NEW_FIXTURE_NAMES):
+    for name in sorted(_new_fixture_names()):
         row = executed_rows[name]
         if row["outcome"].state != "abstain":
             continue
@@ -1406,10 +1477,10 @@ def test_closed_reason_set_remains_exactly_frozen_61() -> None:
 def test_frozen_3_1_3_2_3_3_anchor_bytes_are_exact() -> None:
     root = Path(__file__).resolve().parents[1]
     pinned = {
-        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3.py": "498bf5c22305270fe64ed1ef73b7ac8a7a2637ce4f64520e8d9ca4ac15166618",
+        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3.py": "0388b4a1d3a28b7549af85362d0d4e7f13ffc2b4807dc129d242c4927870c0d1",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3_2.py": "38f74309c4ba082dceb335d95691401b7f9b780958d1c0b82bdb63e496fc29c2",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_correction_model_v3_2.py": "b7c182a9bac2e6e3eb015c2902e607201a5bfdca5f0889413b1145911d30b239",
-        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3_3.py": "c82510238b422af746299e9e1c418a0474107d1b57d119fd7dc5685e037edd2e",
+        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3_3.py": "ddcb29549dda5dcf164848730679027161e34692282cfeaabf84e089db58b857",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_record_model_v3_3.py": "d9d919b5289c767a39dd62edea8fc17563a6ad76aa627c49e427b6201f81bf4a",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_correction_model_v3_3.py": "de46498474b0043231a66b6adeb779e799b3736afce162b6919dc0eebc516242",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_terminal_presentation_v3_3.py": "d1b9463235494ae54d4c5d2bbc3eb4f0d1b73568a4c5625993dd87dbee4b5c78",
@@ -1489,7 +1560,7 @@ def test_the_admission_census_is_write_only_and_never_reaches_a_proof() -> None:
 # --------------------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_rows() -> dict[str, dict[str, Any]]:
     """Execute every audit-fix source through the shipped 3.4 analyzer and the frozen 3.3 one."""
 
@@ -1636,7 +1707,7 @@ def test_both_narrowings_keep_the_pinned_e17_p6_movement(
 # --------------------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r2_rows() -> dict[str, dict[str, Any]]:
     """Execute every round-2 source through the shipped 3.4 analyzer and the frozen 3.3 one."""
 
@@ -1791,7 +1862,7 @@ def test_round_2_narrowings_keep_every_pinned_movement(
 # --------------------------------------------------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r3_rows() -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for name, (case_key, source) in _AUDIT_FIX_R3_SOURCES.items():
@@ -2055,7 +2126,7 @@ def test_mutation_kill_c_treating_a_display_escape_as_safe_readmits_the_escaped_
 # --- Round 4: the record-derived binding closure -----------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r4_rows() -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for name, (case_key, source) in _AUDIT_FIX_R4_SOURCES.items():
@@ -2514,7 +2585,7 @@ def test_mutation_kill_h_treating_a_bare_iteration_target_as_a_record_costs_four
 # --- Round 5: the project-local storing-helper closure ---------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r5_rows() -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for name, (case_key, source) in _AUDIT_FIX_R5_SOURCES.items():
@@ -2942,7 +3013,7 @@ def test_mutation_kill_k_treating_a_read_only_helper_as_storing_costs_a_true_acc
 # --- Round 6: the call-disposition closure ---------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r6_rows() -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for name, (case_key, source) in _AUDIT_FIX_R6_SOURCES.items():
@@ -3565,7 +3636,7 @@ def test_mutation_kill_h_the_round_5_module_wide_shadow_census_loses_a_true_accu
 # --- Round 7: the uniform fail-closed closure ------------------------------------------
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def audit_fix_r7_rows() -> dict[str, dict[str, Any]]:
     rows: dict[str, dict[str, Any]] = {}
     for name, (case_key, source) in _AUDIT_FIX_R7_SOURCES.items():

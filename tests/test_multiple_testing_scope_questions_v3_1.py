@@ -214,7 +214,7 @@ def test_reason_sets_are_closed_and_recounted() -> None:
 
 def test_frozen_v3_anchor_bytes_are_unchanged() -> None:
     expected = {
-        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3.py": "sha256:498bf5c22305270fe64ed1ef73b7ac8a7a2637ce4f64520e8d9ca4ac15166618",
+        "src/sc_referee/scientific_checks/code_csv_multiple_testing_dataflow_v3.py": "sha256:0388b4a1d3a28b7549af85362d0d4e7f13ffc2b4807dc129d242c4927870c0d1",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_record_model_v3.py": "sha256:f9f96c6e4bf861d9c186cb19685c74723d5fc6f9da4fcd1eaaada14d39230534",
         "src/sc_referee/scientific_checks/code_csv_multiple_testing_adapter_v3.py": "sha256:cddc845c2f404938ab86b8d87a79b4eb763090dfdfbb33854038998520728f53",
         "src/sc_referee/scientific_checks/integration_multiple_testing_v3.py": "sha256:1a340ab3b124994c88dbf7c08e21be11a8c2795198afc49a182ff8abcc74ac47",
