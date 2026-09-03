@@ -11416,6 +11416,7 @@ class _MtEngine:
         self.unsupported_correction_return_names: set[str] = set()
         self.sinks = _registered_sinks(scope, resolver)
         self.terminal_closure = _Mt23TerminalClosure((), ())
+        self._member_store_target_name_cache: frozenset[str] | None = None
 
     def run(self) -> MultipleTestingDataflowResult:
         reason = self._resolve_family_operands()
@@ -12070,30 +12071,44 @@ class _MtEngine:
             )
         )
 
+    def _member_store_target_names(self) -> frozenset[str]:
+        """Every name written through as a member in this scope, collected once.
+
+        `_precise_record_member` asks, one name at a time, whether this scope holds any
+        `name[...] = `, `name.attr = `, the annotated or augmented form of either, or a `del`
+        of one.  The answer is a property of the scope and not of the name, and this engine's
+        scope is the statement tuple it was constructed with, so the whole set is collected on
+        the first question and every later question is a membership test against it.  The set
+        is exactly the names the per-name walk it replaces would have matched.
+        """
+
+        cached = self._member_store_target_name_cache
+        if cached is not None:
+            return cached
+        names: set[str] = set()
+        for item in _walk_statements(self.scope):
+            if isinstance(item, (ast.Assign, ast.Delete)):
+                targets: list[ast.expr] = list(item.targets)
+            elif isinstance(item, (ast.AnnAssign, ast.AugAssign)):
+                targets = [item.target]
+            else:
+                continue
+            for target in targets:
+                if isinstance(target, (ast.Subscript, ast.Attribute)) and isinstance(
+                    target.value, ast.Name
+                ):
+                    names.add(target.value.id)
+        cached = frozenset(names)
+        self._member_store_target_name_cache = cached
+        return cached
+
     def _precise_record_member(
         self, name: str, member: str | int, active: set[str], depth: int
     ) -> tuple[bool, ast.expr | None]:
         if depth > _DEFINITION_NODE_MAX or name in active:
             return False, None
 
-        if any(
-            isinstance(item, (ast.Assign, ast.AnnAssign, ast.AugAssign, ast.Delete))
-            and any(
-                isinstance(target, (ast.Subscript, ast.Attribute))
-                and isinstance(target.value, ast.Name)
-                and target.value.id == name
-                for target in (
-                    item.targets
-                    if isinstance(item, ast.Assign)
-                    else [item.target]
-                    if isinstance(item, (ast.AnnAssign, ast.AugAssign))
-                    else item.targets
-                    if isinstance(item, ast.Delete)
-                    else []
-                )
-            )
-            for item in _walk_statements(self.scope)
-        ):
+        if name in self._member_store_target_names():
             return False, None
         expression = self.assignments.get(name)
         if isinstance(expression, ast.Name):

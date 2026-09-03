@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import json
 import runpy
 import shutil
@@ -53,14 +54,25 @@ _CURRENT_QUESTION_KEYS = cast(Callable[[], frozenset[str]], _harness["current_qu
 _ADAPTER_SHORT_CIRCUIT = cast(frozenset[str], _harness["ADAPTER_SHORT_CIRCUIT"])
 _RESULTS = json.loads((_ROOT / "results.json").read_text(encoding="utf-8"))
 _PROTOTYPE_CASE_ROWS = {row["key"]: row for row in _RESULTS["cases"]}
-_E17_CASES = tuple(case for case in _ALL_CASES() if case.envelope == "E17")
+
+
+@functools.cache
+def _e17_cases() -> tuple[Any, ...]:
+    """The fifteen E17 cases, resolved once per process on first use rather than at import.
+
+    `all_cases` baselines all 170 evidence sources through the shipped 3.3 analyzer and anchors
+    each against the frozen 3.3 prototype row.  That work is unchanged; it now runs when a test
+    first asks for a case instead of while pytest is collecting this file.
+    """
+
+    return tuple(case for case in _ALL_CASES() if case.envelope == "E17")
 
 
 def _baseline(case: Any) -> list[str]:
     return [case.baseline.state, case.baseline.reason_or_classification]
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def executed_case_rows() -> dict[str, dict[str, Any]]:
     """Execute all 170 evidence sources through the real shipped 3.4 analyzer."""
 
@@ -81,7 +93,7 @@ def executed_case_rows() -> dict[str, dict[str, Any]]:
     return rows
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="session")
 def e17_adapter_rows(tmp_path_factory: pytest.TempPathFactory) -> dict[str, dict[str, Any]]:
     """Run the real development-lane adapter and controller over all fifteen E17 cases."""
 
@@ -93,7 +105,7 @@ def e17_adapter_rows(tmp_path_factory: pytest.TempPathFactory) -> dict[str, dict
     )
     staging = tmp_path_factory.mktemp("mt34-e17-adapter")
     rows: dict[str, dict[str, Any]] = {}
-    for row in _E17_CASES:
+    for row in _e17_cases():
         case_id = str(row.key.rsplit(":", 1)[-1])
         source = _E17 / "cases" / case_id
         case = staging / case_id
@@ -112,7 +124,7 @@ def test_e17_adapter_oracle_and_exact_movement_set(
     """Both pinned movements are re-demonstrated through the real adapter/controller path."""
 
     movements: set[str] = set()
-    for row in _E17_CASES:
+    for row in _e17_cases():
         case_id = str(row.key.rsplit(":", 1)[-1])
         expected = _MOVERS.get(case_id, _baseline(row))
         actual = e17_adapter_rows[case_id]
@@ -130,7 +142,7 @@ def test_e17_adapter_oracle_and_exact_movement_set(
     assert p6["corrected_positions"] == [0, 1, 2]
     assert p6["candidate_records"] == 1
     # The nine E17 negatives stay noncandidates at the adapter level.
-    for row in _E17_CASES:
+    for row in _e17_cases():
         if row.role.startswith("N"):
             case_id = str(row.key.rsplit(":", 1)[-1])
             assert e17_adapter_rows[case_id]["outcome"][0] == "abstain", case_id
