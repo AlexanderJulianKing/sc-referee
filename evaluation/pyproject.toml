@@ -9,7 +9,7 @@ description = "Isolated answer-side validation tools for sc-referee qualificatio
 requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 dependencies = [
-  "sc-referee==0.3.0",
+  "sc-referee==0.4.0",
 ]
 
 [project.optional-dependencies]

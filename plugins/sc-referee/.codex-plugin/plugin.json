@@ -1,6 +1,6 @@
 {
   "name": "sc-referee",
-  "version": "0.3.0+codex.20260803181832",
+  "version": "0.4.0+codex.20260904164621",
   "description": "Conservative workflow auditing and bounded pre-analysis method contracts",
   "author": {
     "name": "Alexander King",
@@ -18,7 +18,7 @@
   "interface": {
     "displayName": "sc-referee",
     "shortDescription": "Conservative audits and bounded method contracts",
-    "longDescription": "Uses the installed sc-referee CLI to audit scientific workflows without executing project-authored code and, before coding, to freeze either the supported expected-count/background profile or one atomic registered requirement supplied by a scientist. It separates demonstrated Findings from unknowns and coverage limits.",
+    "longDescription": "Uses the installed sc-referee CLI to audit scientific workflows without executing project-authored code and, before coding, to propose, validate, and freeze either the supported expected-count/background profile or one atomic registered requirement confirmed by a scientist. It separates demonstrated Findings from unknowns and coverage limits.",
     "developerName": "Alexander King",
     "category": "Developer Tools",
     "websiteURL": "https://github.com/AlexanderJulianKing/sc-referee",
@@ -29,7 +29,7 @@
       "Model-free replay"
     ],
     "defaultPrompt": [
-      "Freeze one scientist-supplied closed analysis requirement before coding.",
+      "Propose and validate one closed analysis requirement, then freeze only what the scientist confirms.",
       "Audit this scientific workflow conservatively.",
       "Replay this sc-referee audit from its semantic lock."
     ]

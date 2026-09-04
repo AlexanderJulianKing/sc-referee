@@ -1,7 +1,7 @@
 {
   "name": "sc-referee",
-  "description": "Audit scientific workflows and freeze bounded pre-analysis method contracts without executing project-authored code. A verified sc-referee runtime is bootstrapped locally on first use.",
-  "version": "0.3.3",
+  "description": "Audit scientific workflows and propose, validate, and freeze scientist-confirmed bounded method contracts without executing project-authored code. A verified sc-referee runtime is bootstrapped locally on first use.",
+  "version": "0.4.0",
   "author": {
     "name": "Alexander King"
   },
