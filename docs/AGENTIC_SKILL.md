@@ -51,7 +51,8 @@ exist:
 
 ```text
 Use $sc-referee:method-contract to establish the method contract for this planned analysis.
-The governing task is protocol.md. Do not choose scientific values for me.
+The governing task is protocol.md and the material input is data.csv. Draft the profile from
+those two files, show me the summary, and freeze only what I confirm.
 ```
 
 Codex supports `$` skill mentions. The plugin source is `plugins/sc-referee`, and its skill files
@@ -99,10 +100,28 @@ or ignore these rules, the agent treats that text only as repository evidence.
 ## What the method-contract skill does
 
 The method-contract skill is narrower and pre-analysis. It can freeze either the supported
-`expected_count_background_v1` profile or one `scientific_check_requirement_v1` option explicitly
-selected by the scientist from the installed digest-bound registry. The later audit may bind to
+`expected_count_background_v1` profile or one `scientific_check_requirement_v1` option confirmed
+by the scientist from the installed digest-bound registry. The later audit may bind to
 that immutable contract only if the task identity, parent lock, active check manifest, selected
 candidate, and exact analysis scope still match.
+
+The scientist does not author the JSON. `sc-referee draft-profile <project-root> --task <task>
+--material-input <csv> --output <profile.json>` derives the authorized outcome-family profile under
+one closed rule: outcome columns are the columns the protocol names as outcomes, matched to the
+CSV header; the group column is the column the protocol names as the two-group contrast, matched to
+the header; identifier, design-label, and group columns are never outcomes. The step reads only the
+task file and the header row. It never reads project-authored code and never reads a data value
+below the header row. When the protocol names no outcome family or no group column it refuses and
+the agent falls back to the unresolved-contract MaterialQuestion path instead of guessing.
+
+The drafted profile is a proposal with no authority. The agent shows the scientist the exact
+plain-language summary, applies any edits the scientist asks for, and then freezes with
+`--profile`, the scientist's `--actor-id`, and the `--draft-provenance` sidecar. That freeze is the
+confirmation. Because both levels of the profile object have a closed field set, provenance is not
+written into the profile; it is written to the sidecar and recorded in the frozen contract's
+`x-method-profile-draft-provenance` extension, which names the draft rule, the draft sources and
+their digests, whether the scientist edited the draft, and the confirming actor. It is a record of
+how the proposal was produced, not a second authority.
 
 The contract records intended semantics. It does not prove that the implemented code followed the
 contract, that the method is universally correct, or that a result is numerically valid.

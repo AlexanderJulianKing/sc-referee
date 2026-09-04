@@ -52,6 +52,18 @@ from sc_referee.interaction import (
 from sc_referee.interaction import (
     work_queue as load_work_queue,
 )
+from sc_referee.method_contract_draft import (
+    MULTIPLE_TESTING_CANDIDATE_ID as DRAFT_CANDIDATE_ID,
+)
+from sc_referee.method_contract_draft import (
+    MULTIPLE_TESTING_CHECK_ID as DRAFT_CHECK_ID,
+)
+from sc_referee.method_contract_draft import (
+    MethodContractDraftError,
+    draft_scientific_requirement_profile,
+    draft_summary_text,
+    refusal_text,
+)
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.records.schema_registry import LocalSchemaRegistry
 from sc_referee.ro_crate import export_ro_crate, validate_ro_crate
@@ -651,7 +663,17 @@ def method_contract(
     actor_id: str | None = typer.Option(
         None,
         "--actor-id",
-        help="Identity of the scientist who supplied --profile.",
+        help="Identity of the scientist who confirmed --profile.",
+    ),
+    draft_provenance: Path | None = typer.Option(
+        None,
+        "--draft-provenance",
+        exists=True,
+        dir_okay=False,
+        help=(
+            "Provenance sidecar written by draft-profile. Supplying it records that this freeze "
+            "confirms a drafted profile, and whether the human edited the draft."
+        ),
     ),
     schema_root: Path | None = typer.Option(None, exists=True, file_okay=False),
 ) -> None:
@@ -661,6 +683,9 @@ def method_contract(
         profile_value: object | None = None
         if profile is not None:
             profile_value = json.loads(profile.read_text(encoding="utf-8"))
+        provenance_value: object | None = None
+        if draft_provenance is not None:
+            provenance_value = json.loads(draft_provenance.read_text(encoding="utf-8"))
         bundle = run_method_contract(
             repository,
             task,
@@ -668,6 +693,7 @@ def method_contract(
             schema_root or _default_schema_root(),
             profile=profile_value,
             actor_id=actor_id,
+            draft_provenance=provenance_value,
         )
     except (FileExistsError, OSError, ValueError, json.JSONDecodeError) as error:
         raise typer.BadParameter(str(error)) from error
@@ -676,6 +702,79 @@ def method_contract(
     typer.echo(
         f"Wrote claimless method contract {output} ({resolution}); "
         "0 Claims, 0 publication surfaces, project execution disabled."
+    )
+    confirmation = contract["extensions"].get("x-method-profile-draft-provenance")
+    if confirmation is not None:
+        edited = "with human edits" if confirmation["human_edited_after_draft"] else "unedited"
+        typer.echo(
+            f"Confirmed the {edited} draft from rule {confirmation['draft_rule']} as "
+            f"{confirmation['confirmed_by']['actor_id']}; the confirmed family is the only "
+            "authority."
+        )
+
+
+@app.command()
+def draft_profile(
+    repository: Path = typer.Argument(..., exists=True, file_okay=False),
+    task: str = typer.Option(
+        ...,
+        "--task",
+        help="Repository-relative governing task or protocol file.",
+    ),
+    material_input: str = typer.Option(
+        ...,
+        "--material-input",
+        help="Repository-relative CSV whose header row names the analyzed columns.",
+    ),
+    output: Path = typer.Option(
+        ...,
+        "--output",
+        "-o",
+        help="Absent path for the drafted profile JSON.",
+    ),
+    check_id: str = typer.Option(
+        DRAFT_CHECK_ID,
+        "--check-id",
+        help="Installed scientific check the drafted requirement belongs to.",
+    ),
+    candidate_id: str = typer.Option(
+        DRAFT_CANDIDATE_ID,
+        "--candidate-id",
+        help="Published requirement candidate the drafted requirement selects.",
+    ),
+) -> None:
+    """Draft one scientific requirement profile from the protocol and the CSV header only."""
+
+    provenance_path = output.with_name(output.name + ".provenance.json")
+    if output.exists() or output.is_symlink():
+        raise typer.BadParameter(f"draft output already exists: {output}")
+    if provenance_path.exists() or provenance_path.is_symlink():
+        raise typer.BadParameter(f"draft provenance output already exists: {provenance_path}")
+    try:
+        draft = draft_scientific_requirement_profile(
+            repository,
+            task=task,
+            material_input=material_input,
+            check_id=check_id,
+            candidate_id=candidate_id,
+        )
+    except MethodContractDraftError as error:
+        typer.echo(refusal_text(str(error), task=task), err=True)
+        raise typer.Exit(code=2) from error
+    except OSError as error:
+        raise typer.BadParameter(str(error)) from error
+    output.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_bytes(output, draft.profile_bytes())
+    atomic_write_bytes(
+        provenance_path,
+        (json.dumps(draft.provenance, indent=2, sort_keys=True) + "\n").encode("utf-8"),
+    )
+    typer.echo(
+        draft_summary_text(
+            draft,
+            profile_path=str(output),
+            provenance_path=str(provenance_path),
+        )
     )
 
 

@@ -27,6 +27,7 @@ SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.1.0"
 MULTIPLE_TESTING_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.2.0"
 LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION = "1.0.0"
 ANSWER_DIGEST_PROFILE = "canonical-json-excluding-answer-digest-v1"
+DRAFT_PROVENANCE_EXTENSION_KEY = "x-method-profile-draft-provenance"
 _DEPENDENCE_CHECK_ID = "check:authorized-independent-unit-entry-into-row-independent-procedure"
 _DEPENDENCE_CANDIDATE_ID = "one-analyzed-row-per-authorized-independent-unit"
 _UNIT_AUTHORITY_ROLE = "authorized_independent_unit_key"
@@ -328,8 +329,15 @@ def build_scientific_requirement_records(
     resolved: ResolvedScientificRequirement,
     actor_id: str,
     files_total: int,
+    draft_provenance: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Build a claimless parent contract for one closed scientific-check requirement."""
+    """Build a claimless parent contract for one closed scientific-check requirement.
+
+    ``draft_provenance``, when supplied, is one already-validated confirmation record for a
+    profile that a deterministic draft step proposed and this named human actor confirmed. It is
+    recorded in the contract's open ``x-`` extension surface. It carries no Finding, clearance, or
+    authority weight of its own: the confirmed family remains the only authority.
+    """
 
     task_ref = typed_ref("file_record", str(task_record["file_record_id"]))
     contract_id = stable_id(
@@ -471,6 +479,11 @@ def build_scientific_requirement_records(
             "x-scientific-check-manifest-digest": resolved.check_manifest_digest,
             "x-selected-candidate-id": resolved.candidate_id,
             "x-project-code-executed": False,
+            **(
+                {DRAFT_PROVENANCE_EXTENSION_KEY: copy.deepcopy(dict(draft_provenance))}
+                if draft_provenance is not None
+                else {}
+            ),
         },
     }
     question = {
