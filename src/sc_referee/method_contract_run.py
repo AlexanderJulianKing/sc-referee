@@ -10,6 +10,10 @@ from uuid import uuid4
 
 from sc_referee.controller import _empty_bundle, _finalize_bundle
 from sc_referee.core.ids import canonical_json, semantic_digest, stable_id
+from sc_referee.method_contract_draft import (
+    MethodContractDraftError,
+    confirmed_draft_provenance,
+)
 from sc_referee.method_contracts import (
     EXPECTED_COUNT_PROFILE_ID,
     EXPECTED_COUNT_PROFILE_MANIFEST,
@@ -142,9 +146,15 @@ def run_method_contract(
     *,
     profile: object | None = None,
     actor_id: str | None = None,
+    draft_provenance: object | None = None,
     created_at: str | None = None,
 ) -> dict[str, Any]:
-    """Freeze one claimless analysis-level method contract."""
+    """Freeze one claimless analysis-level method contract.
+
+    ``draft_provenance`` is the optional sidecar written by ``draft-profile``. Supplying it makes
+    this freeze the explicit confirmation of a drafted profile: the lock records the draft rule,
+    the draft sources, whether the human edited the draft, and the confirming actor.
+    """
 
     if output.exists() or output.is_symlink():
         raise FileExistsError(f"method-contract output already exists: {output}")
@@ -170,6 +180,24 @@ def run_method_contract(
         )
     if normalized_profile is None and scientific_requirement is None and normalized_actor:
         raise MethodContractRunError("actor_id is accepted only with a complete profile")
+    confirmation: dict[str, Any] | None = None
+    if draft_provenance is not None:
+        if scientific_requirement is None or not isinstance(profile, Mapping):
+            raise MethodContractRunError(
+                "draft provenance is accepted only with a complete scientific requirement profile"
+            )
+        if not isinstance(draft_provenance, Mapping):
+            raise MethodContractRunError("draft provenance must be an object")
+        try:
+            confirmation = confirmed_draft_provenance(
+                draft_provenance,
+                repository=repository,
+                task=task_path,
+                profile=profile,
+                actor_id=normalized_actor,
+            )
+        except MethodContractDraftError as error:
+            raise MethodContractRunError(str(error)) from error
 
     timestamp = created_at or _timestamp_now()
     run_id = f"audit:{uuid4().hex}"
@@ -218,6 +246,7 @@ def run_method_contract(
             resolved=scientific_requirement,
             actor_id=normalized_actor,
             files_total=len(file_records),
+            draft_provenance=confirmation,
         )
         lock_profile = scientific_requirement_lock_profile(scientific_requirement)
     else:
