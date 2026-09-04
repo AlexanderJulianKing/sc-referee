@@ -1069,3 +1069,152 @@ doing it: in the spelling the oracle carries, an earlier hierarchy wall stands i
 `adversarial-reject-consumed-at-three-of-five-positions` records the gap by name rather than
 leaving it for a later audit. Reaching it needs a spelling that survives the hierarchy guard, which
 is wider than this round.
+
+## Recall-delta 3.5 audit-fix round 2: flow sensitivity, position identity, decisive use
+
+The round-1 fix was audited on the same terms as the round it closed. The audit found that the
+consumption proof could still be satisfied by a program whose published verdicts are not the
+correction's, in three ways, and that the proof had begun accusing programs whose verdicts are.
+Both classes are zero-standard defects for this project: a false clearance is the one output a
+reader is entitled to act on without reading further, and a false accusation is what the whole
+check exists to avoid. Every reproducer is an anchored edit of the sealed E18 N1 source, base
+SHA-256 `e9b7355f0aba7a5c4f8c230a8f64f422e84993d1c64bca50229b53e9626948ff`, and every one of the
+audit's published digests is reproduced byte-for-byte by the oracle's recipes.
+
+**Rule A, flow-sensitive return names.** `adjusted_p_values = raw_p_values` written straight after
+the correction call still cleared `covered`/`complete` over the whole family, and so did
+`reject = [p < ALPHA for p in raw_p_values]` with the verdicts then read off the rebound name.
+`_assignment_expressions()` discards a multiply-assigned name while `correction_return_names`
+keeps the historical binding for ever, so every later load was attributed to the correction rather
+than to the assignment that actually reaches it. A name bound from a correction's return tuple now
+carries the correction only until the next statement that binds it. Every binder Python has is
+enumerated -- assignment in all three spellings, a loop target, a walrus, a `with ... as`, an
+import alias, a `del`, a nested definition and its parameters, an `except ... as` -- over the
+author's own parse, because the normalised tree's positions are the normaliser's and not the
+program's. A binding is *establishing* when it is the correction call, an alias of a name still
+carrying it, or the identity-preserving `list()`/`tuple()` copy the engine's own alias closure
+already accepts; anything else is foreign, and a name with a foreign binding after an establishing
+one has lost the correction. The rule is applied at the name rather than at the load, which is the
+conservative reading: a rebinding inside a loop body or a branch reaches loads that a
+straight-line reading would put before it. A load of a lost name is not evidence that the
+correction reached a decision, and a value read through one carries a `rebound` origin -- the
+position is still concluded, because the program does publish a verdict for it, but that verdict
+is neither proved to consume the correction nor proved to be the raw p-value, and a clearance may
+not stand on that.
+
+**Rule B, position identity.** `wrong_reject = [reject[1], reject[0], reject[2], reject[3],
+reject[4]]` zipped into the presentation loop still cleared, and so did the adjusted twin. Every
+verdict does read a corrected value; outcomes 0 and 1 read each other's. Round 1 reduced a
+decision's origin to a kind before comparing it with the position it was rendered at, so "the
+corrected value belonging to position 1 was used to judge position 0" became the bare word
+`corrected`, and the kind-union fallback at the terminal-closure route made that collapse
+explicit. A decision at rendered position `i` now consumes the correction only when it reads the
+correction output belonging to `i`. Two readings answer which outcome a sink payload is about, and
+both are the engine's own: the record it renders, identified by the family origin of that record's
+p-value field, and the unrolled iteration its names were generated for, read back off the loop
+unroller's own naming through a format now written in one place and read in one place. Where the
+answer is unambiguous and a consuming origin sits at another position, the rendered position is
+marked `misplaced` and the row abstains. The position set the sink route establishes is untouched;
+only the origins are marked, so the rule can cost a clearance and can never buy one.
+
+**Rule C, decisive use and per-position reads inside sink payloads.** Round 1 treated every load
+of a correction output under a registered sink payload as display-only, so five spellings of a
+correct, complete correction were published as catches:
+`print(f"{result['label']}: {'DIFFERENT' if reject[i] else 'NO DIFFERENCE'}")` and its
+plain-print, `.format()` and unrolled twins. The rule could not tell `print(reject[i])` from
+`print("SIG" if reject[i] else "ns")`, and the second is the verdict. Only the *displayed* part of
+a payload is a display now: the part whose value selects what is rendered -- the test of an
+`IfExp`, each operand of a `BoolOp`, the operand of `not`, a comparison -- is a use, and so is the
+read of a single position's own element. What stays a display is a whole-vector dump such as
+`print("adjusted: %s" % list(adjusted))`, which shows the array beside verdicts read from
+somewhere else and proves nothing about any position; both round-1 display rows have that shape
+and keep their round-1 outcomes.
+
+The bare read of a per-position element splits in two, because the two halves of a correction's
+return say different things. A `reject` element is the position's decision: `print(reject[0])`
+publishes outcome 0's corrected verdict and there is nothing else for a reader to read it off, so
+it carries the position on its own. An adjusted *value* is a number that a threshold still has to
+be applied to, so it stays a display and cannot carry a position by itself. The distinction is
+load-bearing in both directions and both are measured: the development code-slice fixture, whose
+entire published result is `print(reject[0])`, `print(reject[1])`, `print(reject[2])`, was
+accused by round 1 and clears again, while a by-name lookup that judges outcome 0 by outcome 1's
+decision through a key the engine cannot follow would clear if a printed adjusted number were
+allowed to carry its position.
+
+**The threshold exclusion, stated.** `adjusted_p < ALPHA * 2` still clears and this round does not
+close it. This check's clearance asserts **complete family correction over the authorized outcome
+family**: that a correction was applied to the whole authorized family, and that each published
+verdict consumed its own corrected value. Whether the threshold a verdict compares against is the
+alpha the source declares is a separate dimension, with its own frozen guard
+(`_decision_threshold_guard`) and its own reason. Folding it into the consumption proof would make
+one abstention reason carry two claims a reader could no longer tell apart. The row is pinned as
+`codex-r2-blocker-5-threshold-alpha-times-two`, measured rather than assumed, and its conservative
+twin `adjusted_p < ALPHA / 2` is carried beside it -- byte-identical to the digest the audit
+published for it -- so that the exclusion is visibly about the dimension and not about the
+direction of the error. A reader acting on a `covered`/`complete` row may read it as "the whole
+declared family was corrected together and every verdict was read off its own corrected value".
+It does not say the verdict used the declared alpha.
+
+The frozen `_decision_threshold_guard` was checked and is left byte-identical. It did not fail to
+apply its own rules: it selects the comparisons it inspects by `_p_origins`, so it looks only at a
+comparison one of whose operands is a p-value the engine can trace to a family position. A
+comparison against a correction-output element -- `adjusted_p_values[0] < ALPHA * 2` -- has no
+such origin, so the guard reads no comparison at all on the sealed E18 N1 source, on the blocker,
+or on the conservative twin. The consequence, recorded here as an observation and not acted on, is
+that on the library-correction path no guard currently inspects the decision threshold. Deciding
+whether the threshold guard should follow a correction output is a question about that guard's
+scope, which is wider than this round and outside this round's clearance claim.
+
+**No reason is added.** Every refusal this round introduces lands on
+`unresolved-manual-correction-present`, the same frozen reason round 1 uses. The closed set stays
+at 61.
+
+**Populations.** The 185 evidence and corpus rows and the 283 fixtures reproduce the round-1 sweep
+byte-for-byte: `results.json` and `instrument_results.json` are unchanged, the movement set is
+still exactly `E15:P3`, `E18:P2`, `E18:P3` to `candidate`/`none` and `E17:N1` to
+`covered`/`complete`, none-flips stay at `0/81` opened negatives, the frozen 3.4 fixture
+population moves `0/245`, the correct-fixture population moves `0/199`, the corpus stays at 50
+rows, and the D1/D4a/D4b/D5 admission census is unchanged. All eight sealed evidence clearances
+named by the audit are byte-matched by SHA-256 and all eight still clear. The custodian's
+false-clearance probes reproduce `post-v35-fix1-fc-probes.txt` byte-for-byte, and all 64 builder
+probes reproduce their `post-perf-probes-*` baselines apart from the check-version column, which
+reads 3.5.0 under the active lane.
+
+**Merge-gate re-points.** The round-1 gate ran the 3.5 tier only, and the full suite carried
+twenty failures that belong to the 3.5 lane becoming active rather than to any behaviour. Ten
+`test_bounded_code_csv_multiple_testing_conflict_v*` identity tests asserted an active development
+binding of 3.4.0 and are re-pointed to 3.5.0, following the pattern the 3.5 build used for
+`conflict_v3_4`. Seven `test_multiple_testing_open_corpus_v*` tests failed inside a replay
+harness that read its 3.4 row off whatever adapter the development lane had active and raised
+when that was not the 3.4 class. Six of them go through the shared
+`multitest-open-corpus-v1/adapter_replay.py`, and one of those six,
+`test_multiple_testing_open_corpus_v3.py`, is itself a frozen v3 anchor whose bytes are pinned:
+re-pointing it would have broken the anchor. The shared harness now builds the 3.4 adapter
+explicitly from its own frozen module, exactly the way it already builds every other historical
+version, so the frozen rows it emits no longer depend on which lane is active and all six tests
+pass unedited. The seventh, `test_multiple_testing_open_corpus_v3_3.py`, went through
+`adapter_replay_v3_4.py` and is re-pointed to `adapter_replay_v3_5.py`, which is what the `v3_4`
+corpus test already does. Two `test_multiple_testing_opened_oracle_v3_2`
+expectations are re-pointed for the pinned 3.5 movement of E15 P3 to `candidate`/`none`, which
+raises E15 retro recall from three of six to four of six with no negative moving. The
+twentieth failure is the code-slice fixture above, which is behavioural and is fixed rather than
+re-pointed. No corpus row, no frozen record and no production behaviour was edited to make a test
+pass.
+
+**Evidence.** `evaluation/development/multitest-code-slice-v3_5/audit-fix-r2-oracle/` carries
+twenty-eight rows, executed by `tests/test_code_csv_multiple_testing_consumption_r2_v3_5.py`: the
+audit's five blocker sources asserted against its published digests, the five inline-verdict
+variants the round-1 fix regressed on, six correct consumption forms from the audit's own probe
+table, twelve fresh adversarial variants, and the sealed source itself. Sixteen of the
+twenty-eight are correct analyses and none is published as a catch. Five named mutation kills
+execute, and the round-1 suite's seven kills still execute unchanged.
+
+**A measured cost.** The aligned by-name lookup -- a dict from outcome column to decision, looked
+up by the rendered record's own column -- is a correct analysis and it no longer clears. It and
+its rotated twin differ only in the key, and nothing in the engine's reading separates them, so
+refusing both is the only answer that does not clear the twin. The pair is carried together in the
+oracle so that the cost is recorded rather than discovered later.
+
+**Inherited defect.** Every route this round closes is present in the byte-frozen v3, v3.2, v3.3
+and v3.4 lanes and is closed only in v3.5, which supersedes them in the active development
+binding. The frozen lanes are unchanged and stay byte-identical.

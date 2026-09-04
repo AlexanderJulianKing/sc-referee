@@ -128,6 +128,26 @@ _MT35_RAW_ORIGIN = frozenset({"raw"})
 _MT35_CORRECTED_ORIGIN = frozenset({"corrected"})
 _MT35_DISPLAY_ORIGIN = frozenset({"display"})
 
+#: MT 3.5 fix round 2.  A bare read of the correction's *decision* vector -- the `reject`
+#: element for this position.  `print(reject[0])` publishes outcome 0's corrected decision:
+#: the printed boolean is the verdict, and there is nothing else for a reader to read it off.
+#: A bare read of the *adjusted value* is not that, because an adjusted p-value still needs a
+#: threshold before it says anything, which is why the two are separate kinds.
+_MT35_DECISION_DISPLAY_ORIGIN = frozenset({"decision"})
+
+#: MT 3.5 fix round 2, rule A.  The name that carried the correction output was rebound before
+#: this load, so the value read here is whatever the rebinding put there.  The position is still
+#: concluded -- the program does publish a verdict for it -- but the verdict is not proved to
+#: have consumed the correction, and it is not proved to be the raw p-value either.  It is a
+#: decisive origin that is neither, which `_mt35_position_state` reads as unresolved.
+_MT35_REBOUND_ORIGIN = frozenset({"rebound"})
+
+#: MT 3.5 fix round 2, rule B.  The value this position's own published verdict was read off
+#: belongs to a *different* position of the family.  "A corrected value was consumed here" and
+#: "this outcome's corrected value was consumed here" are different claims, and only the second
+#: one supports a clearance, so a misplaced consumption is decisive and non-consuming.
+_MT35_MISPLACED_ORIGIN = frozenset({"misplaced"})
+
 #: The two kinds that count as consuming a correction at their own position.
 _MT35_CONSUMING_ORIGINS = frozenset({"corrected", "manual"})
 
@@ -161,10 +181,156 @@ def _mt35_decisive_origins(
 
     result: dict[int, frozenset[str]] = {}
     for position, kinds in mapping.items():
-        if "display" in kinds:
-            kinds = (kinds - {"display"}) | _MT35_CORRECTED_ORIGIN
+        # MT 3.5 fix round 2: `decision` is the round-2 split of `display` for the `reject`
+        # element, and it turns into a consumption at a decisive position for the same reason.
+        if kinds & {"display", "decision"}:
+            kinds = (kinds - {"display", "decision"}) | _MT35_CORRECTED_ORIGIN
         result[position] = kinds
     return result
+
+
+def _mt35_consuming_payload_nodes(payload: ast.expr) -> set[int]:
+    """MT 3.5 fix round 2, rule C.  The node ids a sink payload *uses* rather than shows.
+
+    Round 1's rule A called every load under a registered sink payload a display.  Two things
+    the audit and the merge gate found are not displays:
+
+    * a **decisive** use.  `_mt35_decisive_origins` already says that a correction output read
+      as the test of a conditional is a consumption; rule A did not, so
+      `print("SIG" if reject[i] else "ns")` was called a display of `reject` when it is the
+      verdict.  The sub-expressions whose value *selects* what is rendered are marked here --
+      the test of an `IfExp`, each operand of a `BoolOp`, the operand of `not`, and a
+      comparison.
+    * a **per-position element** read.  `print(reject[0])` publishes outcome 0's corrected
+      decision: the printed boolean is the verdict, there is nothing else to read it off.  The
+      vector name under a subscript with an integer member is therefore marked too.
+
+    What stays a display is a whole-vector dump -- `print("adjusted: %s" % list(adjusted))` --
+    which shows the array beside verdicts read from somewhere else and proves nothing about
+    any single position.  That is the shape of both round-1 display rows, and they stay
+    accused.
+    """
+
+    consuming: set[int] = set()
+
+    def mark(node: ast.AST) -> None:
+        consuming.update(id(item) for item in ast.walk(node))
+
+    for node in ast.walk(payload):
+        if isinstance(node, ast.IfExp):
+            mark(node.test)
+        elif isinstance(node, ast.BoolOp):
+            for value in node.values:
+                mark(value)
+        elif isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            mark(node.operand)
+        elif isinstance(node, ast.Compare):
+            mark(node)
+        elif isinstance(node, ast.Subscript) and isinstance(_mt_literal_member(node.slice), int):
+            consuming.add(id(node.value))
+    return consuming
+
+
+#: MT 3.5 fix round 2, rule B.  The loop unroller's own naming, written in one place and read
+#: in one place so the writer and the reader cannot drift.  The trailing field is the iteration
+#: the statement was generated for, which for the family presentation loop is the position the
+#: iteration renders.
+_MT_UNROLL_LOCAL_NAME = "{name}__mt_{line}_{ordinal}"
+_MT_UNROLL_RECORD_NAME = "__sc_mt_record_{line}_{ordinal}"
+_MT_UNROLL_ORDINAL = re.compile(r"(?:__mt_|\A__sc_mt_record_)[0-9]+_([0-9]+)\Z")
+
+
+def _mt35_unrolled_ordinals(node: ast.AST) -> set[int]:
+    """The unrolled iterations the names in an expression were generated for."""
+
+    ordinals: set[int] = set()
+    for item in ast.walk(node):
+        if isinstance(item, ast.Name):
+            matched = _MT_UNROLL_ORDINAL.search(item.id)
+            if matched is not None:
+                ordinals.add(int(matched.group(1)))
+    return ordinals
+
+
+def _mt35_binding_sites(
+    tree: ast.Module,
+) -> dict[str, list[tuple[tuple[int, int], ast.expr | None]]]:
+    """MT 3.5 fix round 2, rule A.  Every place the author's own source binds a name.
+
+    A name bound from a correction's return tuple carries the correction only until the next
+    statement that binds the same name.  Round 1 read the binding through
+    `correction_return_names`, which is a *set* of names and keeps the historical binding for
+    ever, so `adjusted_p_values = raw_p_values` written after the call left every later load
+    still attributed to the correction.
+
+    The scan is over the author's own parse rather than the normalised tree, because the
+    normalisation rewrites, renames and unrolls statements and its positions are not the
+    program's.  Every binder Python has is enumerated -- assignment in all three spellings, a
+    loop target, a walrus, a `with ... as`, an import alias, a `del`, a nested definition and
+    its parameters, and an `except ... as` -- so a rebinding cannot hide in a spelling this
+    misses.  Comprehension targets are left out: they bind in their own scope and cannot
+    rebind an enclosing name.
+
+    The value is carried beside the position so that an *establishing* binding (the correction
+    call itself, or an alias of a name already carrying it) can be told from a foreign one.
+    """
+
+    sites: dict[str, list[tuple[tuple[int, int], ast.expr | None]]] = {}
+
+    def note(name: str, node: ast.AST, value: ast.expr | None) -> None:
+        position = (getattr(node, "lineno", 0), getattr(node, "col_offset", 0))
+        sites.setdefault(name, []).append((position, value))
+
+    def targets(node: ast.expr) -> list[ast.Name]:
+        return [item for item in ast.walk(node) if isinstance(item, ast.Name)]
+
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Assign):
+            # A single target carries its value, whether it is a plain name or the tuple a
+            # correction's return is unpacked into; a chained assignment carries none.
+            single = len(node.targets) == 1
+            for target in node.targets:
+                for name in targets(target):
+                    note(name.id, node, node.value if single else None)
+        elif isinstance(node, ast.AnnAssign):
+            for name in targets(node.target):
+                note(name.id, node, node.value)
+        elif isinstance(node, ast.AugAssign):
+            for name in targets(node.target):
+                note(name.id, node, None)
+        elif isinstance(node, ast.NamedExpr):
+            note(node.target.id, node, node.value)
+        elif isinstance(node, (ast.For, ast.AsyncFor)):
+            for name in targets(node.target):
+                note(name.id, node, None)
+        elif isinstance(node, (ast.With, ast.AsyncWith)):
+            for item in node.items:
+                if item.optional_vars is not None:
+                    for name in targets(item.optional_vars):
+                        note(name.id, node, None)
+        elif isinstance(node, (ast.Import, ast.ImportFrom)):
+            for alias in node.names:
+                note((alias.asname or alias.name).split(".")[0], node, None)
+        elif isinstance(node, ast.Delete):
+            for target in node.targets:
+                for name in targets(target):
+                    note(name.id, node, None)
+        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            note(node.name, node, None)
+            arguments = node.args
+            for argument in (
+                *arguments.posonlyargs,
+                *arguments.args,
+                *arguments.kwonlyargs,
+                *([arguments.vararg] if arguments.vararg is not None else []),
+                *([arguments.kwarg] if arguments.kwarg is not None else []),
+            ):
+                note(argument.arg, node, None)
+        elif isinstance(node, ast.ClassDef):
+            note(node.name, node, None)
+        elif isinstance(node, ast.ExceptHandler) and node.name is not None:
+            note(node.name, node, None)
+    return {name: sorted(entries, key=lambda entry: entry[0]) for name, entries in sites.items()}
 
 
 def _mt35_position_state(kinds: frozenset[str]) -> str:
@@ -172,12 +338,20 @@ def _mt35_position_state(kinds: frozenset[str]) -> str:
 
     ``consuming`` -- every decisive origin is the position's own corrected value.
     ``raw`` -- every decisive origin is the position's own raw p-value.
-    ``unresolved`` -- no decisive origin at all (a display-only read included), or both.
+    ``unresolved`` -- no origin at all, a rebound or misplaced one, or both raw and corrected.
+
+    MT 3.5 fix round 2: a position whose *only* origin is the bare read of its own `reject`
+    element is consuming.  `print(reject[0])` publishes outcome 0's corrected decision and
+    nothing else concludes about outcome 0, so the printed boolean is the verdict.  A bare read
+    of the adjusted *value* is not a verdict on its own and stays a display, so a program that
+    prints the adjusted number beside a conclusion the engine cannot follow is still refused.
+    Either way, the moment a decisive origin joins -- the raw p-value, a rebound name, another
+    position's corrected value -- the position is unresolved.
     """
 
-    decisive = kinds - {"display"}
+    decisive = kinds - {"display", "decision"}
     if not decisive:
-        return "unresolved"
+        return "consuming" if "decision" in kinds else "unresolved"
     if decisive <= _MT35_CONSUMING_ORIGINS:
         return "consuming"
     if decisive == _MT35_RAW_ORIGIN:
@@ -9647,7 +9821,10 @@ def _mt_v2_expand_record_loops(
             record_value = value if isinstance(value, ast.Dict) else None
             if isinstance(value, ast.Dict):
                 record_name = materialized_records.setdefault(
-                    id(value), f"__sc_mt_record_{getattr(statement, 'lineno', 0)}_{ordinal}"
+                    id(value),
+                    _MT_UNROLL_RECORD_NAME.format(
+                        line=getattr(statement, "lineno", 0), ordinal=ordinal
+                    ),
                 )
                 if record_name not in emitted_records:
                     assignment = ast.Assign(
@@ -9713,7 +9890,9 @@ def _mt_v2_expand_record_loops(
                 if isinstance(target, ast.Name)
             }
             renames = {
-                name: f"{name}__mt_{getattr(statement, 'lineno', 0)}_{ordinal}"
+                name: _MT_UNROLL_LOCAL_NAME.format(
+                    name=name, line=getattr(statement, "lineno", 0), ordinal=ordinal
+                )
                 for name in local_names
             }
 
@@ -11564,6 +11743,11 @@ class _MtEngine:
         self.sinks = _registered_sinks(scope, resolver)
         self.terminal_closure = _Mt23TerminalClosure((), ())
         self._member_store_target_name_cache: frozenset[str] | None = None
+        # MT 3.5 fix round 2, rule A: memo for the flow-sensitive return-name analysis.  It is
+        # keyed on the bound return names rather than held outright, because the census binds
+        # them while the engine runs and an answer computed before that would be stale, and a
+        # stale empty answer would make the whole rule inert.
+        self._mt35_lost_return_name_cache: tuple[frozenset[str], frozenset[str]] | None = None
 
     def run(self) -> MultipleTestingDataflowResult:
         reason = self._resolve_family_operands()
@@ -15366,19 +15550,38 @@ class _MtEngine:
                 positions.add(match.occurrence.family_position)
                 sink_kinds.add(match.sink.kind)
                 decided = self._decision_origin_kinds(match.decision, set(), 0)
+                # MT 3.5 fix round 2, rule B position identity.  The kinds are read at the
+                # rendered record's OWN position and nowhere else.  Round 1 substituted the
+                # union of every kind the decision reached when the map had no entry for this
+                # position, which turned "the corrected value belonging to position 1 was used
+                # to judge position 0" into the bare word "corrected" and cleared a permuted
+                # vector.  A decision whose origin position is not the rendered position proves
+                # nothing about the rendered position, so it contributes nothing.
                 note(
                     match.occurrence.family_position,
-                    decided.get(
-                        match.occurrence.family_position,
-                        frozenset().union(*decided.values()) if decided else frozenset(),
-                    ),
+                    decided.get(match.occurrence.family_position, frozenset()),
                 )
         for sink in self.sinks:
             if not sink.p_result_eligible:
                 continue
             local: dict[int, frozenset[str]] = {}
             for payload in sink.payloads:
-                local = _mt35_merge_origins(local, self._decision_origin_kinds(payload, set(), 0))
+                decided = self._decision_origin_kinds(payload, set(), 0)
+                # MT 3.5 fix round 2, rule B position identity.  A payload that decides about
+                # one outcome from another outcome's corrected value proves nothing about
+                # either, and the position it renders is told so.  The position set the sink
+                # route establishes is left exactly as it was: only the origins are marked.
+                rendered = self._mt35_rendered_position(payload) if decided else None
+                if rendered is not None and any(
+                    position != rendered
+                    for position, kinds in decided.items()
+                    if _mt35_position_state(kinds) == "consuming"
+                ):
+                    decided = {
+                        **decided,
+                        rendered: decided.get(rendered, frozenset()) | _MT35_MISPLACED_ORIGIN,
+                    }
+                local = _mt35_merge_origins(local, decided)
                 if isinstance(payload, ast.Name):
                     local = _mt35_merge_origins(local, self._container_mutation_origins(payload.id))
             if local:
@@ -15530,7 +15733,14 @@ class _MtEngine:
             if expression is None:
                 bound = self.correction_return_names.get(node.id)
                 if bound is not None and bound[1] == "reject":
-                    return {position: _MT35_CORRECTED_ORIGIN for position in bound[0].positions}
+                    # MT 3.5 fix round 2, rule A: the whole-vector read carries the correction
+                    # only while the name still holds it.
+                    kinds = (
+                        _MT35_REBOUND_ORIGIN
+                        if node.id in self._mt35_lost_return_names()
+                        else _MT35_CORRECTED_ORIGIN
+                    )
+                    return {position: kinds for position in bound[0].positions}
                 return {}
             return self._decision_origin_kinds(expression, {*active, node.id}, depth + 1)
         if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
@@ -15580,7 +15790,9 @@ class _MtEngine:
         if vector is not None:
             correction, index = vector
             if 0 <= index < len(correction.ordered_positions):
-                return {correction.ordered_positions[index]: _MT35_DISPLAY_ORIGIN}
+                # MT 3.5 fix round 2: a rebound name shows whatever the rebinding put there,
+                # and a bare `reject` element is the position's own published decision.
+                return {correction.ordered_positions[index]: self._mt35_bare_read_origin(node)}
         collected: dict[int, set[str]] = {}
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.expr):
@@ -15626,6 +15838,235 @@ class _MtEngine:
             return "hierarchical-gatekeeping-present"
         return None
 
+    def _mt35_lost_return_names(self) -> frozenset[str]:
+        """MT 3.5 fix round 2, rule A.  The return names whose correction binding is gone.
+
+        `correction_return_names` is flow-insensitive: once `multipletests` binds `reject` and
+        `adjusted_p_values`, every later load of either name is attributed to the correction
+        for the rest of the analysis.  The audit demonstrated both halves of that on the sealed
+        E18 N1 source -- `adjusted_p_values = raw_p_values` and
+        `reject = [p < ALPHA for p in raw_p_values]` written straight after the call, with the
+        verdicts then read off the rebound name and the row still cleared `covered`/`complete`.
+
+        A name carries the correction only until the next statement that binds it.  A binding
+        is *establishing* when it is the correction call itself or an alias of a name that is
+        still carrying it; anything else is foreign, and a name with a foreign binding after an
+        establishing one has lost the correction from that point on.  The conservative reading
+        the design asks for is applied at the name and not at the load: a rebinding inside a
+        loop body or a branch reaches loads that a straight-line reading would put before it,
+        and a name-level answer covers those without having to decide which normalised node
+        stands where in the author's program order.
+
+        The answer is only ever used to *withhold* a corrected origin or a consumption, never
+        to grant one, so an over-broad answer costs a clearance and can never buy one.
+        """
+
+        names = set(self.correction_return_names)
+        key = frozenset(names)
+        cached = self._mt35_lost_return_name_cache
+        if cached is not None and cached[0] == key:
+            return cached[1]
+        if not names:
+            return frozenset()
+        try:
+            tree = ast.parse(self.source)
+        except (SyntaxError, ValueError):
+            # The bytes parsed once already to get here; if they do not parse now, every
+            # return name is treated as rebound, which can only withhold a clearance.
+            self._mt35_lost_return_name_cache = (key, key)
+            return key
+        sites = _mt35_binding_sites(tree)
+
+        def establishing(name: str, value: ast.expr | None, lost: set[str]) -> bool:
+            if value is None:
+                return False
+            if (
+                isinstance(value, ast.Call)
+                and self.full_resolver.qualified(value.func) in _MT_CORRECTION_APIS
+            ):
+                return True
+            source: ast.expr | None = value
+            if (
+                isinstance(value, ast.Call)
+                and self.full_resolver.qualified(value.func) in {"list", "tuple"}
+                and len(value.args) == 1
+                and not value.keywords
+            ):
+                source = value.args[0]
+            # `reject = list(reject)` is the identity-preserving copy the engine's own alias
+            # closure already treats as carrying the correction, so the self-copy establishes
+            # too.  It cannot rescue a name a foreign binding already took: the search below
+            # asks for a foreign binding after the *first* establishing one.
+            return isinstance(source, ast.Name) and source.id in names and source.id not in lost
+
+        lost: set[str] = set()
+        for _ in range(len(names) + 1):
+            updated: set[str] = set()
+            for name in names:
+                entries = sites.get(name, [])
+                first_establishing: tuple[int, int] | None = None
+                for position, value in entries:
+                    if establishing(name, value, lost):
+                        first_establishing = position
+                        break
+                if first_establishing is None:
+                    # The name is bound to the correction somewhere the author's own parse does
+                    # not show it -- a normalisation artefact -- so nothing is claimed about it.
+                    continue
+                if any(
+                    position > first_establishing and not establishing(name, value, lost)
+                    for position, value in entries
+                ):
+                    updated.add(name)
+            if updated == lost:
+                break
+            lost = updated
+        self._mt35_lost_return_name_cache = (key, frozenset(lost))
+        return self._mt35_lost_return_name_cache[1]
+
+    def _mt35_correction_vector_name(
+        self, node: ast.expr, active: set[str], depth: int
+    ) -> str | None:
+        """The name whose binding supplies the correction vector `_correction_vector_member`
+        resolved, so that rule A can ask whether that binding is still the correction's.
+
+        The traversal mirrors `_correction_vector_member` branch for branch; only the answer
+        differs, so the two cannot disagree about which name was followed.
+        """
+
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        if isinstance(node, ast.Name):
+            if node.id in active:
+                return None
+            expression = self.assignments.get(node.id)
+            return (
+                self._mt35_correction_vector_name(expression, {*active, node.id}, depth + 1)
+                if expression is not None
+                else None
+            )
+        if not isinstance(node, ast.Subscript):
+            return None
+        if not isinstance(_mt_literal_member(node.slice), int):
+            return None
+        vector: ast.expr = node.value
+        if isinstance(vector, ast.Name):
+            return vector.id
+        if (
+            isinstance(vector, ast.Subscript)
+            and _mt_literal_member(vector.slice) == 0
+            and isinstance(vector.value, ast.Name)
+        ):
+            return vector.value.id
+        return None
+
+    def _mt35_rendered_position(self, payload: ast.expr) -> int | None:
+        """MT 3.5 fix round 2, rule B.  Which outcome of the family this payload is *about*.
+
+        Rule B says a decision at rendered position `i` consumes the correction only when it
+        reads the correction output belonging to `i`.  Round 1 carried the origin position and
+        stopped there, so a hand-built permutation --
+        `wrong_reject = [reject[1], reject[0], ...]` -- kept every position's map entry, just
+        under the wrong key, and the union over the five payloads looked exactly like the
+        correct program's.
+
+        Two readings answer the question, and both are the engine's own:
+
+        * the record the payload renders.  A record whose p-value field has one family origin
+          is that outcome's record, so a payload that reads it is about that outcome.
+        * the unrolled iteration the payload's names were generated for.  The family
+          presentation loop is unrolled in family order, so iteration `k` renders position `k`.
+
+        Only an unambiguous single answer is used.  The answer never *establishes* a position
+        and never grants an origin: its only use is to mark a consumption that belongs to a
+        different outcome, so a wrong answer costs a clearance and can never buy one.
+        """
+
+        records: set[int] = set()
+        for node in ast.walk(payload):
+            if not isinstance(node, ast.Name):
+                continue
+            expression = self.assignments.get(node.id)
+            if not isinstance(expression, ast.Dict):
+                continue
+            origins: set[int] = set()
+            for value in expression.values:
+                if value is not None and self._is_direct_p(value, set(), 0):
+                    origins.update(self._p_origins(value))
+            if len(origins) == 1:
+                records.add(next(iter(origins)))
+        if len(records) == 1:
+            return next(iter(records))
+        if records:
+            return None
+        ordinals = {
+            ordinal
+            for ordinal in _mt35_unrolled_ordinals(payload)
+            if 0 <= ordinal < len(self.outcome_columns)
+        }
+        return next(iter(ordinals)) if len(ordinals) == 1 else None
+
+    def _mt35_transport_vector_name(
+        self, node: ast.expr, active: set[str], depth: int
+    ) -> str | None:
+        """`_corrected_transport`'s traversal, answering with the vector name it followed."""
+
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        direct = self._mt35_correction_vector_name(node, set(), 0)
+        if direct is not None:
+            return direct
+        if isinstance(node, ast.Name):
+            if node.id in active:
+                return None
+            expression = self.assignments.get(node.id)
+            if expression is None:
+                return None
+            return self._mt35_transport_vector_name(expression, {*active, node.id}, depth + 1)
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+            member = _mt_literal_member(node.slice)
+            stored = self.record_stores.get((node.value.id, member)) if member is not None else None
+            if stored is not None:
+                return self._mt35_transport_vector_name(stored, active, depth + 1)
+            if member is not None:
+                precise, selected = self._precise_record_member(node.value.id, member, set(), 0)
+                if precise and selected is not None:
+                    return self._mt35_transport_vector_name(selected, active, depth + 1)
+        if (
+            isinstance(node, ast.Call)
+            and self.resolver.qualified(node.func) == "float"
+            and len(node.args) == 1
+            and not node.keywords
+        ):
+            return self._mt35_transport_vector_name(node.args[0], active, depth + 1)
+        return None
+
+    def _mt35_vector_origin(self, node: ast.expr) -> frozenset[str]:
+        """`corrected` unless the name that carried the vector has since been rebound."""
+
+        name = self._mt35_correction_vector_name(node, set(), 0)
+        if name is not None and name in self._mt35_lost_return_names():
+            return _MT35_REBOUND_ORIGIN
+        return _MT35_CORRECTED_ORIGIN
+
+    def _mt35_bare_read_origin(self, node: ast.expr) -> frozenset[str]:
+        """The origin of a per-position element read that is not itself a decision.
+
+        The `reject` element is the position's decision and needs nothing added to it; the
+        adjusted value is a number that a threshold still has to be applied to.  Only the first
+        can carry a position on its own, which is what `_mt35_position_state` reads.
+        """
+
+        name = self._mt35_correction_vector_name(node, set(), 0)
+        if name is None:
+            return _MT35_DISPLAY_ORIGIN
+        if name in self._mt35_lost_return_names():
+            return _MT35_REBOUND_ORIGIN
+        bound = self.correction_return_names.get(name)
+        if bound is not None and bound[1] in {"reject", "structured"}:
+            return _MT35_DECISION_DISPLAY_ORIGIN
+        return _MT35_DISPLAY_ORIGIN
+
     def _consumed_correction_calls(self) -> set[ast.Call]:
         """The accepted library corrections whose returned arrays can reach a decision.
 
@@ -15644,20 +16085,28 @@ class _MtEngine:
         """
 
         combined = (*self.original_scope, *self.scope)
-        payload_nodes = {
-            id(item)
-            for sink in (
-                *self.sinks,
-                *_registered_sinks(self.original_scope, self.full_resolver),
-            )
-            for payload in sink.payloads
-            for item in ast.walk(payload)
-        }
+        payload_nodes: set[int] = set()
+        for sink in (
+            *self.sinks,
+            *_registered_sinks(self.original_scope, self.full_resolver),
+        ):
+            for payload in sink.payloads:
+                # MT 3.5 fix round 2, rule C: only the *displayed* part of the payload is a
+                # display.  The part whose value selects what is rendered, and the read of a
+                # single position's own element, are uses.
+                consuming = _mt35_consuming_payload_nodes(payload)
+                payload_nodes.update(
+                    id(item) for item in ast.walk(payload) if id(item) not in consuming
+                )
         consumed: set[ast.Call] = set()
         for node in _walk_statements(combined):
             if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
                 continue
             if id(node) in payload_nodes:
+                continue
+            if node.id in self._mt35_lost_return_names():
+                # MT 3.5 fix round 2, rule A: this load reads the rebinding, not the
+                # correction, so it is not evidence that the correction reached a decision.
                 continue
             bound = self.correction_return_names.get(node.id)
             if bound is not None:
@@ -15747,7 +16196,17 @@ class _MtEngine:
         """
 
         if self._is_direct_p(node, set(), 0):
-            kind = "corrected" if self._corrected_transport(node, set(), 0) is not None else "raw"
+            if self._corrected_transport(node, set(), 0) is None:
+                kind = "raw"
+            else:
+                # MT 3.5 fix round 2, rule A: a corrected value transported through a name that
+                # was rebound afterwards is neither corrected nor the raw p-value.
+                transport = self._mt35_transport_vector_name(node, set(), 0)
+                kind = (
+                    "rebound"
+                    if transport is not None and transport in self._mt35_lost_return_names()
+                    else "corrected"
+                )
             return tuple((position, kind) for position in sorted(self._p_origins(node)))
         manual = self._manual_call_for_expr(node, set(), 0)
         if manual is not None:
@@ -15756,7 +16215,12 @@ class _MtEngine:
         if vector is not None:
             correction, index = vector
             if 0 <= index < len(correction.ordered_positions):
-                return ((correction.ordered_positions[index], "corrected"),)
+                return (
+                    (
+                        correction.ordered_positions[index],
+                        next(iter(self._mt35_vector_origin(node))),
+                    ),
+                )
         return ()
 
     def _container_mutation_positions(self, name: str) -> set[int]:

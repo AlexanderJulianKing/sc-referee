@@ -99,9 +99,29 @@ def replay_open_corpus(
         for item in registry.modules_for_lane("development")
         if item.manifest.check_id == CHECK_ID
     )
-    active_adapter = module.adapters[0]
-    if not isinstance(active_adapter, adapter_v3_4.CodeCsvMultipleTestingAdapter):
-        raise TypeError("the active development adapter is not MT 3.4")
+    # MT 3.5 fix round 2.  This harness is the shared corpus replay and its rows are the
+    # *frozen historical* adapter rows through 3.4.  It used to read the 3.4 row off whatever
+    # adapter the development lane had active, which was true only while 3.4 was the active
+    # lane; under 3.5 it raised and every test that reads a frozen row through it failed for a
+    # reason that had nothing to do with the rows.  The 3.4 adapter is now built explicitly
+    # from its own frozen module, exactly the way every other historical version here already
+    # is, so the frozen rows no longer depend on which lane is active.
+    historical_v3_4_manifest = replace(
+        module.adapter_manifests[0],
+        adapter_version=adapter_v3_4.MULTIPLE_TESTING_CODE_ADAPTER_VERSION,
+        implementation_digest=adapter_v3_4.CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
+        recognition_grammar_digest=adapter_v3_4.code_csv_multiple_testing_grammar_digest(),
+    )
+    historical_v3_4_adapter = adapter_v3_4.CodeCsvMultipleTestingAdapter(
+        check_manifest=module.manifest,
+        adapter_manifest=historical_v3_4_manifest,
+        complete_operand=CanonicalOperand.scalar(adapter_v3_4.COMPLETE_FAMILY_CORRECTION_OPERAND),
+        none_operand=CanonicalOperand.scalar(adapter_v3_4.NO_RECOGNIZED_FAMILY_CORRECTION_OPERAND),
+        strict_subset_operand=CanonicalOperand.scalar(
+            adapter_v3_4.STRICT_SUBSET_FAMILY_CORRECTION_OPERAND
+        ),
+        role_bindings=adapter_v3_4.MULTIPLE_TESTING_CODE_ROLE_BINDINGS,
+    )
     historical_v1_1_manifest = replace(
         module.adapter_manifests[0],
         adapter_version=adapter_v1_1.MULTIPLE_TESTING_CODE_ADAPTER_VERSION,
@@ -327,7 +347,7 @@ def replay_open_corpus(
             ("3.1.0", historical_v3_1_adapter),
             ("3.2.0", historical_v3_2_adapter),
             ("3.3.0", historical_v3_3_adapter),
-            ("3.4.0", active_adapter),
+            ("3.4.0", historical_v3_4_adapter),
         ):
             first = adapter.inspect(context)
             second = adapter.inspect(context)

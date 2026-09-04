@@ -24,9 +24,9 @@ def test_open_corpus_is_byte_identical_to_v3_2(tmp_path: Path) -> None:
     for path, digest in _FROZEN.items():
         assert hashlib.sha256(path.read_bytes()).hexdigest() == digest
     namespace = runpy.run_path(
-        # The versioned 3.4 replay still emits the frozen 3.2.0 and 3.3.0 adapter rows;
-        # only the active development adapter advanced past 3.3.
-        "evaluation/development/multitest-code-slice-v3_4/adapter_replay_v3_4.py"
+        # MT 3.5 fix round 2 re-point: the versioned 3.5 replay still emits the frozen 3.2.0
+        # and 3.3.0 adapter rows; only the active development adapter advanced past 3.4.
+        "evaluation/development/multitest-code-slice-v3_5/adapter_replay_v3_5.py"
     )
     replay = cast(Callable[..., dict[str, dict[str, Any]]], namespace["replay_open_corpus"])
     observed = replay(
