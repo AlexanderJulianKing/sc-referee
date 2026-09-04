@@ -157,26 +157,24 @@ def test_development_candidate_replays_without_finding(schema_root: Path, tmp_pa
     assert replayed["coverage_records"] == bundle["coverage_records"]
 
 
-def test_default_multipletests_is_covered_negative_without_candidate(
+def test_default_multipletests_without_rendered_record_identity_abstains(
     schema_root: Path, tmp_path: Path
 ) -> None:
     bundle, lock, _ = _run_case(tmp_path, schema_root, corrected=True)
 
     results = [item for item in bundle["detector_results"] if item["detector_id"] == DETECTOR_ID]
-    assert len(results) == 1
-    assert results[0]["state"] not in {"evaluation_finding_candidate", "finding_candidate"}
+    assert results == []
     assert bundle["findings"] == []
     module = next(
         item
         for item in lock["scientific_check_registry"]["evaluation"]["modules"]
         if item["check_id"] == CHECK_ID
     )
-    assert module["observations"][0]["observed_operand"]["value"] == (
-        "complete_family_correction_over_authorized_outcome_family"
-    )
-    fact = module["observations"][0]["multiple_testing_evidence"]
-    assert fact["correction_classification"] == "complete"
-    assert fact["corrected_positions"] == [0, 1, 2]
+    assert module["state"] == "unsupported"
+    observation = module["observations"][0]
+    assert observation["applicability"] == "unsupported"
+    assert observation["abstention_reason"] == "unresolved-manual-correction-present"
+    assert observation["observed_operand"] is None
 
 
 def test_evaluation_candidate_uses_only_versioned_multiple_testing_wording(

@@ -252,10 +252,30 @@ def _mt35_unrolled_ordinals(node: ast.AST) -> set[int]:
     return ordinals
 
 
-def _mt35_binding_sites(
-    tree: ast.Module,
-) -> dict[str, list[tuple[tuple[int, int], ast.expr | None]]]:
-    """MT 3.5 fix round 2, rule A.  Every place the author's own source binds a name.
+@dataclass(frozen=True)
+class _Mt35Scope:
+    """One Python lexical scope in the author's parse."""
+
+    node: ast.AST
+    parent: _Mt35Scope | None
+
+
+@dataclass(frozen=True)
+class _Mt35BindingSite:
+    """One source binding together with the lexical scope that owns it."""
+
+    position: tuple[int, int]
+    value: ast.expr | None
+    scope: _Mt35Scope
+    kind: str
+    directive: Literal["global", "nonlocal"] | None = None
+
+
+_MT35_COMPREHENSION_NODES = (ast.ListComp, ast.SetComp, ast.DictComp, ast.GeneratorExp)
+
+
+def _mt35_binding_sites(tree: ast.Module) -> dict[str, list[_Mt35BindingSite]]:
+    """MT 3.5 fix rounds 2-3.  Every binder and the lexical scope that owns it.
 
     A name bound from a correction's return tuple carries the correction only until the next
     statement that binds the same name.  Round 1 read the binding through
@@ -266,58 +286,48 @@ def _mt35_binding_sites(
     The scan is over the author's own parse rather than the normalised tree, because the
     normalisation rewrites, renames and unrolls statements and its positions are not the
     program's.  Every binder Python has is enumerated -- assignment in all three spellings, a
-    loop target, a walrus, a `with ... as`, an import alias, a `del`, a nested definition and
-    its parameters, and an `except ... as` -- so a rebinding cannot hide in a spelling this
-    misses.  Comprehension targets are left out: they bind in their own scope and cannot
-    rebind an enclosing name.
+    loop or comprehension target, a walrus, a `with ... as`, an import alias, a `del`, a
+    definition and its parameters, an `except ... as`, and every structural-pattern capture.
+
+    Round 3 records the scope rather than flattening those binders into one module-wide list.
+    A nested function parameter, class attribute, method parameter, lambda parameter, or
+    comprehension target cannot replace a return name in its enclosing function.  A `global`
+    or `nonlocal` declaration is recorded separately so the lost-name proof can identify the
+    enclosing binding it explicitly targets.
 
     The value is carried beside the position so that an *establishing* binding (the correction
     call itself, or an alias of a name already carrying it) can be told from a foreign one.
     """
 
-    sites: dict[str, list[tuple[tuple[int, int], ast.expr | None]]] = {}
+    class BinderVisitor(ast.NodeVisitor):
+        def __init__(self) -> None:
+            self.scope = _Mt35Scope(tree, None)
+            self.sites: dict[str, list[_Mt35BindingSite]] = {}
 
-    def note(name: str, node: ast.AST, value: ast.expr | None) -> None:
-        position = (getattr(node, "lineno", 0), getattr(node, "col_offset", 0))
-        sites.setdefault(name, []).append((position, value))
+        def note(
+            self,
+            name: str,
+            node: ast.AST,
+            value: ast.expr | None,
+            kind: str,
+            *,
+            scope: _Mt35Scope | None = None,
+            directive: Literal["global", "nonlocal"] | None = None,
+        ) -> None:
+            position = (getattr(node, "lineno", 0), getattr(node, "col_offset", 0))
+            self.sites.setdefault(name, []).append(
+                _Mt35BindingSite(position, value, scope or self.scope, kind, directive)
+            )
 
-    def targets(node: ast.expr) -> list[ast.Name]:
-        return [item for item in ast.walk(node) if isinstance(item, ast.Name)]
+        @staticmethod
+        def targets(node: ast.expr) -> tuple[ast.Name, ...]:
+            return tuple(
+                item
+                for item in ast.walk(node)
+                if isinstance(item, ast.Name) and isinstance(item.ctx, (ast.Store, ast.Del))
+            )
 
-    for node in ast.walk(tree):
-        if isinstance(node, ast.Assign):
-            # A single target carries its value, whether it is a plain name or the tuple a
-            # correction's return is unpacked into; a chained assignment carries none.
-            single = len(node.targets) == 1
-            for target in node.targets:
-                for name in targets(target):
-                    note(name.id, node, node.value if single else None)
-        elif isinstance(node, ast.AnnAssign):
-            for name in targets(node.target):
-                note(name.id, node, node.value)
-        elif isinstance(node, ast.AugAssign):
-            for name in targets(node.target):
-                note(name.id, node, None)
-        elif isinstance(node, ast.NamedExpr):
-            note(node.target.id, node, node.value)
-        elif isinstance(node, (ast.For, ast.AsyncFor)):
-            for name in targets(node.target):
-                note(name.id, node, None)
-        elif isinstance(node, (ast.With, ast.AsyncWith)):
-            for item in node.items:
-                if item.optional_vars is not None:
-                    for name in targets(item.optional_vars):
-                        note(name.id, node, None)
-        elif isinstance(node, (ast.Import, ast.ImportFrom)):
-            for alias in node.names:
-                note((alias.asname or alias.name).split(".")[0], node, None)
-        elif isinstance(node, ast.Delete):
-            for target in node.targets:
-                for name in targets(target):
-                    note(name.id, node, None)
-        elif isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            note(node.name, node, None)
-            arguments = node.args
+        def arguments(self, arguments: ast.arguments) -> None:
             for argument in (
                 *arguments.posonlyargs,
                 *arguments.args,
@@ -325,12 +335,240 @@ def _mt35_binding_sites(
                 *([arguments.vararg] if arguments.vararg is not None else []),
                 *([arguments.kwarg] if arguments.kwarg is not None else []),
             ):
-                note(argument.arg, node, None)
-        elif isinstance(node, ast.ClassDef):
-            note(node.name, node, None)
-        elif isinstance(node, ast.ExceptHandler) and node.name is not None:
-            note(node.name, node, None)
-    return {name: sorted(entries, key=lambda entry: entry[0]) for name, entries in sites.items()}
+                self.note(argument.arg, argument, None, "parameter")
+
+        def visit_Assign(self, node: ast.Assign) -> None:
+            single = len(node.targets) == 1
+            for target in node.targets:
+                for name in self.targets(target):
+                    self.note(name.id, node, node.value if single else None, "assign")
+            self.generic_visit(node)
+
+        def visit_AnnAssign(self, node: ast.AnnAssign) -> None:
+            for name in self.targets(node.target):
+                self.note(name.id, node, node.value, "annassign")
+            self.generic_visit(node)
+
+        def visit_AugAssign(self, node: ast.AugAssign) -> None:
+            for name in self.targets(node.target):
+                self.note(name.id, node, None, "augassign")
+            self.generic_visit(node)
+
+        def visit_NamedExpr(self, node: ast.NamedExpr) -> None:
+            scope = self.scope
+            while isinstance(scope.node, _MT35_COMPREHENSION_NODES) and scope.parent is not None:
+                scope = scope.parent
+            self.note(node.target.id, node, node.value, "namedexpr", scope=scope)
+            self.visit(node.value)
+
+        def visit_For(self, node: ast.For) -> None:
+            for name in self.targets(node.target):
+                self.note(name.id, node, None, "for_target")
+            self.generic_visit(node)
+
+        def visit_AsyncFor(self, node: ast.AsyncFor) -> None:
+            for name in self.targets(node.target):
+                self.note(name.id, node, None, "async_for_target")
+            self.generic_visit(node)
+
+        def visit_With(self, node: ast.With) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    for name in self.targets(item.optional_vars):
+                        self.note(name.id, node, None, "with_target")
+            self.generic_visit(node)
+
+        def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
+            for item in node.items:
+                if item.optional_vars is not None:
+                    for name in self.targets(item.optional_vars):
+                        self.note(name.id, node, None, "async_with_target")
+            self.generic_visit(node)
+
+        def visit_Import(self, node: ast.Import) -> None:
+            for alias in node.names:
+                self.note((alias.asname or alias.name).split(".")[0], node, None, "import")
+
+        def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
+            for alias in node.names:
+                self.note((alias.asname or alias.name).split(".")[0], node, None, "import")
+
+        def visit_Delete(self, node: ast.Delete) -> None:
+            for target in node.targets:
+                for name in self.targets(target):
+                    self.note(name.id, node, None, "delete")
+            self.generic_visit(node)
+
+        def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
+            self.note(node.name, node, None, "function")
+            for expression in (
+                *node.decorator_list,
+                *node.args.defaults,
+                *(item for item in node.args.kw_defaults if item is not None),
+                *(
+                    item.annotation
+                    for item in (*node.args.posonlyargs, *node.args.args, *node.args.kwonlyargs)
+                    if item.annotation is not None
+                ),
+                *(
+                    [node.args.vararg.annotation]
+                    if node.args.vararg is not None and node.args.vararg.annotation is not None
+                    else []
+                ),
+                *(
+                    [node.args.kwarg.annotation]
+                    if node.args.kwarg is not None and node.args.kwarg.annotation is not None
+                    else []
+                ),
+                *([node.returns] if node.returns is not None else []),
+            ):
+                self.visit(expression)
+            outer = self.scope
+            self.scope = _Mt35Scope(node, outer)
+            try:
+                self.arguments(node.args)
+                for statement in node.body:
+                    self.visit(statement)
+            finally:
+                self.scope = outer
+
+        def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> None:
+            self.visit_FunctionDef(cast(ast.FunctionDef, node))
+
+        def visit_Lambda(self, node: ast.Lambda) -> None:
+            for expression in (*node.args.defaults, *(x for x in node.args.kw_defaults if x)):
+                self.visit(expression)
+            outer = self.scope
+            self.scope = _Mt35Scope(node, outer)
+            try:
+                self.arguments(node.args)
+                self.visit(node.body)
+            finally:
+                self.scope = outer
+
+        def visit_ClassDef(self, node: ast.ClassDef) -> None:
+            self.note(node.name, node, None, "class")
+            for expression in (
+                *node.decorator_list,
+                *node.bases,
+                *(item.value for item in node.keywords),
+            ):
+                self.visit(expression)
+            outer = self.scope
+            self.scope = _Mt35Scope(node, outer)
+            try:
+                for statement in node.body:
+                    self.visit(statement)
+            finally:
+                self.scope = outer
+
+        def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+            if node.name is not None:
+                self.note(node.name, node, None, "except_target")
+            self.generic_visit(node)
+
+        def visit_Global(self, node: ast.Global) -> None:
+            for name in node.names:
+                self.note(name, node, None, "global", directive="global")
+
+        def visit_Nonlocal(self, node: ast.Nonlocal) -> None:
+            for name in node.names:
+                self.note(name, node, None, "nonlocal", directive="nonlocal")
+
+        def visit_Match(self, node: ast.Match) -> None:
+            self.visit(node.subject)
+            for case in node.cases:
+                for pattern in ast.walk(case.pattern):
+                    if (
+                        isinstance(pattern, (ast.MatchAs, ast.MatchStar))
+                        and pattern.name is not None
+                    ):
+                        self.note(pattern.name, pattern, None, "match_capture")
+                    elif isinstance(pattern, ast.MatchMapping) and pattern.rest is not None:
+                        self.note(pattern.rest, pattern, None, "match_capture")
+                self.visit(case.pattern)
+                if case.guard is not None:
+                    self.visit(case.guard)
+                for statement in case.body:
+                    self.visit(statement)
+
+        def comprehension(
+            self, node: ast.ListComp | ast.SetComp | ast.DictComp | ast.GeneratorExp
+        ) -> None:
+            first, *remaining = node.generators
+            self.visit(first.iter)
+            outer = self.scope
+            self.scope = _Mt35Scope(node, outer)
+            try:
+                for name in self.targets(first.target):
+                    self.note(name.id, first, None, "comprehension_target")
+                for condition in first.ifs:
+                    self.visit(condition)
+                for generator in remaining:
+                    self.visit(generator.iter)
+                    for name in self.targets(generator.target):
+                        self.note(name.id, generator, None, "comprehension_target")
+                    for condition in generator.ifs:
+                        self.visit(condition)
+                if isinstance(node, ast.DictComp):
+                    self.visit(node.key)
+                    self.visit(node.value)
+                else:
+                    self.visit(node.elt)
+            finally:
+                self.scope = outer
+
+        def visit_ListComp(self, node: ast.ListComp) -> None:
+            self.comprehension(node)
+
+        def visit_SetComp(self, node: ast.SetComp) -> None:
+            self.comprehension(node)
+
+        def visit_DictComp(self, node: ast.DictComp) -> None:
+            self.comprehension(node)
+
+        def visit_GeneratorExp(self, node: ast.GeneratorExp) -> None:
+            self.comprehension(node)
+
+    visitor = BinderVisitor()
+    visitor.visit(tree)
+    return {
+        name: sorted(entries, key=lambda entry: (entry.position, entry.kind))
+        for name, entries in visitor.sites.items()
+    }
+
+
+def _mt35_comprehension_local_load(node: ast.Name, parents: Mapping[ast.AST, ast.AST]) -> bool:
+    """Whether this load names a surrounding comprehension target rather than an outer name."""
+
+    cursor: ast.AST = node
+    while (parent := parents.get(cursor)) is not None:
+        if isinstance(parent, _MT35_COMPREHENSION_NODES):
+            active: set[str] = set()
+            located = False
+            for generator in parent.generators:
+                if any(item is node for item in ast.walk(generator.iter)):
+                    located = True
+                    break
+                active.update(
+                    item.id
+                    for item in ast.walk(generator.target)
+                    if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Store)
+                )
+                if any(any(item is node for item in ast.walk(test)) for test in generator.ifs):
+                    located = True
+                    break
+            if not located:
+                active.update(
+                    item.id
+                    for generator in parent.generators
+                    for item in ast.walk(generator.target)
+                    if isinstance(item, ast.Name) and isinstance(item.ctx, ast.Store)
+                )
+            if node.id in active:
+                return True
+        cursor = parent
+    return False
 
 
 def _mt35_position_state(kinds: frozenset[str]) -> str:
@@ -13345,6 +13583,10 @@ class _MtEngine:
         for node in _walk_statements(self.scope):
             if not isinstance(node, ast.Name) or not isinstance(node.ctx, ast.Load):
                 continue
+            # Round 3 scope repair: in ``[reject for reject in raw_flags]`` the load names
+            # the comprehension target, not an outer correction return with the same spelling.
+            if _mt35_comprehension_local_load(node, parent):
+                continue
             if node.id in self.unsupported_correction_return_names:
                 return False
             bound = self.correction_return_names.get(node.id)
@@ -15565,22 +15807,10 @@ class _MtEngine:
             if not sink.p_result_eligible:
                 continue
             local: dict[int, frozenset[str]] = {}
+            rendered_payload = ast.Tuple(elts=list(sink.payloads), ctx=ast.Load())
             for payload in sink.payloads:
                 decided = self._decision_origin_kinds(payload, set(), 0)
-                # MT 3.5 fix round 2, rule B position identity.  A payload that decides about
-                # one outcome from another outcome's corrected value proves nothing about
-                # either, and the position it renders is told so.  The position set the sink
-                # route establishes is left exactly as it was: only the origins are marked.
-                rendered = self._mt35_rendered_position(payload) if decided else None
-                if rendered is not None and any(
-                    position != rendered
-                    for position, kinds in decided.items()
-                    if _mt35_position_state(kinds) == "consuming"
-                ):
-                    decided = {
-                        **decided,
-                        rendered: decided.get(rendered, frozenset()) | _MT35_MISPLACED_ORIGIN,
-                    }
+                decided = self._mt35_positioned_origins(rendered_payload, decided)
                 local = _mt35_merge_origins(local, decided)
                 if isinstance(payload, ast.Name):
                     local = _mt35_merge_origins(local, self._container_mutation_origins(payload.id))
@@ -15877,7 +16107,8 @@ class _MtEngine:
             return key
         sites = _mt35_binding_sites(tree)
 
-        def establishing(name: str, value: ast.expr | None, lost: set[str]) -> bool:
+        def establishing(name: str, site: _Mt35BindingSite, lost: set[str]) -> bool:
+            value = site.value
             if value is None:
                 return False
             if (
@@ -15899,23 +16130,48 @@ class _MtEngine:
             # asks for a foreign binding after the *first* establishing one.
             return isinstance(source, ast.Name) and source.id in names and source.id not in lost
 
+        def declaration_target(name: str, site: _Mt35BindingSite) -> _Mt35Scope | None:
+            if site.directive == "global":
+                target: _Mt35Scope | None = site.scope
+                while target is not None and target.parent is not None:
+                    target = target.parent
+                return target
+            if site.directive != "nonlocal":
+                return None
+            target = site.scope.parent
+            while target is not None:
+                if isinstance(
+                    target.node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.Lambda)
+                ) and any(
+                    candidate.scope == target and candidate.directive is None
+                    for candidate in sites.get(name, [])
+                ):
+                    return target
+                target = target.parent
+            return None
+
+        def targets_scope(name: str, site: _Mt35BindingSite, scope: _Mt35Scope) -> bool:
+            return site.scope == scope or declaration_target(name, site) == scope
+
         lost: set[str] = set()
         for _ in range(len(names) + 1):
             updated: set[str] = set()
             for name in names:
                 entries = sites.get(name, [])
-                first_establishing: tuple[int, int] | None = None
-                for position, value in entries:
-                    if establishing(name, value, lost):
-                        first_establishing = position
+                first_establishing: _Mt35BindingSite | None = None
+                for site in entries:
+                    if establishing(name, site, lost):
+                        first_establishing = site
                         break
                 if first_establishing is None:
                     # The name is bound to the correction somewhere the author's own parse does
                     # not show it -- a normalisation artefact -- so nothing is claimed about it.
                     continue
                 if any(
-                    position > first_establishing and not establishing(name, value, lost)
-                    for position, value in entries
+                    site.position > first_establishing.position
+                    and targets_scope(name, site, first_establishing.scope)
+                    and not establishing(name, site, lost)
+                    for site in entries
                 ):
                     updated.add(name)
             if updated == lost:
@@ -15960,8 +16216,97 @@ class _MtEngine:
             return vector.value.id
         return None
 
+    def _mt35_positioned_origins(
+        self, payload: ast.expr, decided: Mapping[int, frozenset[str]]
+    ) -> dict[int, frozenset[str]]:
+        """Compare consuming origins with the one record a payload demonstrably renders.
+
+        Round 3 closes the remaining all-positions fallback.  When no rendered record can be
+        proved, a consuming origin is unresolved rather than silently attributed to every
+        position accumulated across the sink's payloads.  When one record is proved, the
+        round-2 misplaced-origin rule applies unchanged.
+        """
+
+        if not decided:
+            return {}
+        rendered = self._mt35_rendered_position(payload)
+        if rendered is None:
+            return {
+                position: (
+                    kinds | _MT35_MISPLACED_ORIGIN
+                    if _mt35_position_state(kinds) == "consuming"
+                    else kinds
+                )
+                for position, kinds in decided.items()
+            }
+        if any(
+            position != rendered
+            for position, kinds in decided.items()
+            if _mt35_position_state(kinds) == "consuming"
+        ):
+            return {
+                **decided,
+                rendered: decided.get(rendered, frozenset()) | _MT35_MISPLACED_ORIGIN,
+            }
+        return dict(decided)
+
+    def _mt35_constant_int(
+        self, node: ast.expr, active: set[str] | None = None, depth: int = 0
+    ) -> int | None:
+        """Resolve a literal integer or one uniquely bound chain of literal integer aliases."""
+
+        active = set() if active is None else active
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        literal = _mt_literal_member(node)
+        if isinstance(literal, int):
+            return literal
+        if not isinstance(node, ast.Name) or node.id in active:
+            return None
+        expression = self.assignments.get(node.id)
+        return (
+            self._mt35_constant_int(expression, {*active, node.id}, depth + 1)
+            if expression is not None
+            else None
+        )
+
+    def _mt35_record_position(self, node: ast.expr) -> int | None:
+        """Resolve one p-record or a uniquely bound name for one p-record to its position."""
+
+        def resolve(expression: ast.expr, active: set[str], depth: int) -> int | None:
+            if depth > _DEFINITION_NODE_MAX:
+                return None
+            if isinstance(expression, ast.Name):
+                if expression.id in active:
+                    return None
+                assigned = self.assignments.get(expression.id)
+                if isinstance(assigned, ast.Dict):
+                    origins: set[int] = set()
+                    for value in assigned.values:
+                        if value is not None and self._is_direct_p(value, set(), 0):
+                            origins.update(self._p_origins(value))
+                    return next(iter(origins)) if len(origins) == 1 else None
+                return (
+                    resolve(assigned, {*active, expression.id}, depth + 1)
+                    if assigned is not None
+                    else None
+                )
+            if not isinstance(expression, ast.Subscript):
+                return None
+            index = self._mt35_constant_int(expression.slice)
+            sequence = self._p_sequence(expression.value)
+            if index is None or sequence is None:
+                return None
+            normalized = index if index >= 0 else len(sequence) + index
+            if not 0 <= normalized < len(sequence):
+                return None
+            position = sequence[normalized]
+            return position if 0 <= position < len(self.outcome_columns) else None
+
+        return resolve(node, set(), 0)
+
     def _mt35_rendered_position(self, payload: ast.expr) -> int | None:
-        """MT 3.5 fix round 2, rule B.  Which outcome of the family this payload is *about*.
+        """MT 3.5 fix rounds 2-3.  Which family outcome this payload is *about*.
 
         Rule B says a decision at rendered position `i` consumes the correction only when it
         reads the correction output belonging to `i`.  Round 1 carried the origin position and
@@ -15970,10 +16315,13 @@ class _MtEngine:
         under the wrong key, and the union over the five payloads looked exactly like the
         correct program's.
 
-        Two readings answer the question, and both are the engine's own:
+        Three readings answer the question, and all are the engine's own:
 
         * the record the payload renders.  A record whose p-value field has one family origin
           is that outcome's record, so a payload that reads it is about that outcome.
+        * a literal or uniquely literal-bound integer subscript of the p-record sequence, or a
+          unique intermediate name bound to that subscript.  This is the hand-unrolled
+          ``results[i]`` form the round-2 audit demonstrated.
         * the unrolled iteration the payload's names were generated for.  The family
           presentation loop is unrolled in family order, so iteration `k` renders position `k`.
 
@@ -15982,19 +16330,29 @@ class _MtEngine:
         different outcome, so a wrong answer costs a clearance and can never buy one.
         """
 
-        records: set[int] = set()
-        for node in ast.walk(payload):
-            if not isinstance(node, ast.Name):
-                continue
-            expression = self.assignments.get(node.id)
-            if not isinstance(expression, ast.Dict):
-                continue
-            origins: set[int] = set()
-            for value in expression.values:
-                if value is not None and self._is_direct_p(value, set(), 0):
-                    origins.update(self._p_origins(value))
-            if len(origins) == 1:
-                records.add(next(iter(origins)))
+        parents = {
+            child: node for node in ast.walk(payload) for child in ast.iter_child_nodes(node)
+        }
+        record_nodes = (
+            node
+            for node in ast.walk(payload)
+            if isinstance(node, (ast.Name, ast.Subscript))
+            and (
+                (
+                    isinstance(parents.get(node), ast.Subscript)
+                    and cast(ast.Subscript, parents[node]).value is node
+                )
+                or (
+                    isinstance(parents.get(node), ast.Attribute)
+                    and cast(ast.Attribute, parents[node]).value is node
+                )
+            )
+        )
+        records = {
+            position
+            for node in record_nodes
+            if (position := self._mt35_record_position(node)) is not None
+        }
         if len(records) == 1:
             return next(iter(records))
         if records:
@@ -16085,6 +16443,11 @@ class _MtEngine:
         """
 
         combined = (*self.original_scope, *self.scope)
+        parents = {
+            child: node
+            for node in _walk_statements(combined)
+            for child in ast.iter_child_nodes(node)
+        }
         payload_nodes: set[int] = set()
         for sink in (
             *self.sinks,
@@ -16101,6 +16464,8 @@ class _MtEngine:
         consumed: set[ast.Call] = set()
         for node in _walk_statements(combined):
             if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
+                continue
+            if _mt35_comprehension_local_load(node, parents):
                 continue
             if id(node) in payload_nodes:
                 continue
