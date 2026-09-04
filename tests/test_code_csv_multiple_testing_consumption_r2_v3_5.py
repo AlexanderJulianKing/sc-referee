@@ -293,7 +293,11 @@ def test_kill_b_restoring_the_kind_union_readmits_the_permutation_rows(
     for name in _MISPLACEMENT_ROWS:
         assert _row(name) == _REFUSED, name
     with monkeypatch.context() as patch:
-        patch.setattr(core35._MtEngine, "_mt35_rendered_position", lambda self, payload: None)
+        patch.setattr(
+            core35._MtEngine,
+            "_mt35_positioned_origins",
+            lambda self, payload, decided: decided,
+        )
         for name in _MISPLACEMENT_ROWS:
             assert _row(name) == _CLEARED, name
         assert _row("sealed-e18-n1-unaltered") == _CLEARED, "the control never moves"
@@ -321,17 +325,16 @@ def test_kill_c_calling_decisive_payload_use_a_display_loses_five_clearances(
         assert _row(name) == _CLEARED, name
 
 
-def test_kill_d_reading_a_bare_adjusted_value_as_a_verdict_readmits_the_rotated_key(
+def test_round_3_unresolved_position_rule_survives_the_round_2_bare_value_mutant(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Mutant: any bare per-position element read counts as the position's own verdict, so the
     printed adjusted *value* carries the position the way the printed `reject` element does.
 
-    Recorded: the rotated by-name lookup clears again.  That program judges outcome 0 by
-    outcome 1's decision through a key the engine cannot follow, so the only origin left at
-    each position is the adjusted number the loop prints beside the verdict.  A printed number
-    is not a verdict -- a threshold still has to be applied to it -- and this row is what keeps
-    the two bare-read kinds apart.
+    The rotated by-name lookup has no resolvable rendered position.  Round 3 independently
+    refuses that unknown position, so this round-2 mutant can no longer clear the row by itself.
+    The direct state assertions below retain the round-2 distinction: a printed adjusted number
+    is not a verdict, while a printed reject element is.
     """
 
     name = "adversarial-by-name-dict-lookup-with-a-rotated-key"
@@ -342,8 +345,10 @@ def test_kill_d_reading_a_bare_adjusted_value_as_a_verdict_readmits_the_rotated_
             "_mt35_bare_read_origin",
             lambda self, node: core35._MT35_DECISION_DISPLAY_ORIGIN,
         )
-        assert _row(name) == _CLEARED
+        assert _row(name) == _REFUSED
     assert _row(name) == _REFUSED
+    assert core35._mt35_position_state(core35._MT35_DISPLAY_ORIGIN) == "unresolved"
+    assert core35._mt35_position_state(core35._MT35_DECISION_DISPLAY_ORIGIN) == "consuming"
 
 
 def test_kill_e_treating_a_printed_reject_element_as_a_display_costs_the_slice_row() -> None:
