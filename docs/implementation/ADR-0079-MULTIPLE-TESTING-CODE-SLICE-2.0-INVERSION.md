@@ -960,3 +960,112 @@ dataflow and terminal-presentation modules are copied, not edited: the shipped l
 `code_csv_multiple_testing_dataflow_core_v3_5.py` and
 `code_csv_multiple_testing_terminal_presentation_v3_5.py`, and the frozen originals stay at their
 ADR-0081 digests, asserted by a test that reads each file.
+
+## Recall-delta 3.5 audit-fix round 1: the library-correction consumption proof
+
+The adversarial audit of the 3.5 delta returned FIX-REQUIRED on four sources, all of the same
+shape: one test per declared outcome, the whole family of raw p-values passed to `multipletests`,
+and then every verdict printed from the raw p-value while the returned `reject` and adjusted
+arrays are never read. The 3.5 lane cleared all four `covered`/`complete` over the whole family.
+A clearance is the one output a reader is entitled to act on without reading further, so a false
+clearance is the highest-severity defect this check can carry.
+
+**The route is inherited, and the custodian measured that directly.** The plain-arm variant of the
+sealed E18 N1 source -- the same program with the verdict moved on to `result["raw_p"]` -- is
+cleared `covered`/`complete` by the **shipped 3.4 lane** as well, and therefore by 3.3 and every
+lane before it, because the library-correction clearance path predates the 3.4 deltas. The
+measurement is recorded in `e18-tools/false-clearance-measurement.txt` and reproduced by the
+round-1 oracle's `custodian-n1-raw-plain-arms` row. 3.5 widened the route's reach by removing
+abstention walls in front of three more sources; it did not create it. This amendment records the
+defect against the frozen v3, v3.2, v3.3 and v3.4 lanes, which keep it, exactly as this ADR
+records the inherited alias false accusation the 3.4 rounds closed only in 3.4.
+
+**The structural cause.** `_correction_census()` recognises a correction from the API and its
+input positions. `_correction_returns_supported()` checks the *shape* of every load of a bound
+return name, so it succeeds vacuously when there is no load at all. Conclusion positions are
+established separately. `complete` was then assigned from the correction's input positions alone.
+Nothing required a recognised correction's output to reach the conclusions it was meant to
+correct.
+
+**Rule A, the deadness proof.** A library correction corrects a position only when its own outputs
+can reach a decision at all. Every name the return tuple binds is enumerated, the engine's own
+alias closure included, and the correction counts as consumed only when one of those names is
+loaded somewhere that is not a registered sink payload. A load inside a payload shows the value,
+and showing an adjusted number beside a verdict read off the raw p-value is exactly the shape all
+four reproducers take. An unconsumed correction is removed from the corrected set, so a family
+whose only correction is dead is `candidate`/`none` -- the row its twin with that statement
+deleted already carries, which is the authority the oracle derives every such expected row from.
+The rule is per call: a source with one dead correction beside one consumed correction keeps the
+consumed one's coverage. The scan reads the original statements as well as the normalised ones,
+because a loop normalisation can drop a genuine load from the normalised tree.
+
+**Rule B, the per-position clearance proof.** Each conclusion position now carries the origin kind
+its decision reached it through: `raw` for the position's own test p-value, `corrected` for the
+per-position element of an accepted correction's `reject` or adjusted vector, `manual` for an
+accepted manual correction, and `display` for a bare read of a correction output that is not
+itself a decision. A correction output read as the test of a conditional is a consumption and not
+a display, which is what makes `"DIFFERENT" if rejected else "NO DIFFERENCE"` count. A `complete`
+row whose every position does not prove consumption abstains.
+
+**Rule B is applied to the clearance and to nothing else, and that boundary is measured.** A
+`strict_subset` row is an accusation whose corrected half is not the claim being made, so refusing
+one for an unproved consumption drops a true accusation without closing a false clearance. Two
+sealed rows demonstrate the cost a wider rule would charge: `E13:P5` and `E17:P5` both carry a
+correct partial Holm adjustment whose consumption the proof cannot follow through the loop
+normalisation, and both keep their `strict_subset` accusation because rule B does not look at
+them. A named mutation kill applies rule B to every classification and shows both rows falling.
+
+**Rule C, the D4a/D4b pairing, narrowed.** The audit's third blocker asked for the frozen 3.4
+reason on the ground that D4b may never move a public result without D4a. That invariant is not
+this design's. Section 1.4 states the converse -- that D4a alone reaches only a different
+abstention, which the ordering rule turns into no public change -- and the shipped 3.5 oracle pins
+`correct-d4a-string-group-constants`, which is blocker 3 without the dead correction statement, as
+a D4b-alone movement to `candidate`/`none` on a genuinely uncorrected family. Enforcing the
+audit's reading was implemented, measured, and reverted: it deleted that pinned true accusation.
+D4b alone is therefore refused only where it would carry a **clearance**, and blocker 3's false
+clearance is closed by rule A instead, landing on the same `candidate`/`none` its own twin already
+carries. The row is no longer a false clearance; it does not carry the reason the audit asked for,
+and that disagreement is recorded here rather than settled silently.
+
+**Where the rules are applied.** The ordering rule returns a frozen 3.4 classification untouched
+at step 2, and the route is inherited, so a proof living only in the 3.5 engine could not reach
+the rows that matter. The lane probes the core before returning a frozen clearance, in the same
+position and for the same reason the round-3 to round-7 alias closure sits there. The probe is
+one-directional and checked to be so: it may only remove corrected positions from the frozen row
+or replace it with the frozen consumption reason, never add a position, change the family size, or
+turn an abstention into a classification. It records no admission, because a probe that changes
+nothing may not leave a 3.5 admission on a row no 3.5 production carried; when it does change the
+row it is re-run with the census open, so every published row still records the admissions its own
+analysis made. `suspended_admissions()` is added to the census module for that and reads nothing
+back, so the census still never participates in a proof.
+
+**No reason is added.** The refusal lands on `unresolved-manual-correction-present`, the reason the
+3.2 AP path already emits at its own conclusion-consumption gate (fix commit `7d46e8f`). The closed
+set stays at 61.
+
+**Populations.** Over the 185 evidence and corpus rows and the 283 fixtures, the round moves
+**zero** public rows and **zero** admission-census bytes: every outcome, every corrected-position
+tuple and every per-row census is byte-identical to the pre-fix 3.5 lane. All 19 `covered`/
+`complete` rows in that population are the same 19 rows before and after. The pinned movement set
+is unchanged -- `E15:P3`, `E18:P2`, `E18:P3` to `candidate`/`none` and `E17:N1` to
+`covered`/`complete` -- none-flips stay at `0/81` opened negatives, the corpus stays at 50 rows,
+retro recall stays at `43/54`, and every frozen anchor digest still matches. What the round moves
+is the false-clearance population the sweep does not contain: the four audit reproducers, the two
+custodian raw-arm probes, and two further false clearances this round found in the shipped 3.4
+lane while building the oracle.
+
+**Evidence.** `evaluation/development/multitest-code-slice-v3_5/audit-fix-r1-oracle/` carries
+twenty-four rows, executed by `tests/test_code_csv_multiple_testing_consumption_v3_5.py`: the four
+audit reproducers rebuilt from the verdict's own recipes and asserted against the four SHA-256
+digests it published, the custodian's probes, the twin authorities the expected rows are derived
+from, two consumption forms that must keep their clearance, two further false clearances closed
+beyond the audit's four, eight coverage boundaries where an earlier frozen gate declines the
+source, one named residual, and the five sealed movement controls. Ten of the twenty-four are
+correct analyses and none of them is published as a catch. Seven named mutation kills execute.
+
+**The named residual.** The partial-consumption route -- some verdicts from `reject`, the rest from
+the raw p, classified `complete` -- is refused by rule B, but no executed row demonstrates rule B
+doing it: in the spelling the oracle carries, an earlier hierarchy wall stands in front of the row.
+`adversarial-reject-consumed-at-three-of-five-positions` records the gap by name rather than
+leaving it for a later audit. Reaching it needs a spelling that survives the hierarchy guard, which
+is wider than this round.

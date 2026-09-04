@@ -121,6 +121,70 @@ def _v35_record(kind: str, node: ast.AST) -> None:
     record_admission(kind, _v35_span_of(node))
 
 
+#: MT 3.5 fix round 1.  The origin kinds a conclusion position can be reached through.  A
+#: `display` origin is a bare read of a correction output that is not itself a decision: it
+#: proves the value was shown, never that a verdict consumed it.
+_MT35_RAW_ORIGIN = frozenset({"raw"})
+_MT35_CORRECTED_ORIGIN = frozenset({"corrected"})
+_MT35_DISPLAY_ORIGIN = frozenset({"display"})
+
+#: The two kinds that count as consuming a correction at their own position.
+_MT35_CONSUMING_ORIGINS = frozenset({"corrected", "manual"})
+
+#: The frozen closed-set reason an unconsumed correction lands on.  It is the reason the 3.2
+#: AP path already emits at its own conclusion-consumption gate (fix commit 7d46e8f), so this
+#: round adds no reason and the closed set stays at 61.
+_MT35_CONSUMPTION_REASON = "unresolved-manual-correction-present"
+
+
+def _mt35_merge_origins(
+    left: Mapping[int, frozenset[str]], right: Mapping[int, frozenset[str]]
+) -> dict[int, frozenset[str]]:
+    """Union two per-position origin-kind maps.  Kinds accumulate; nothing is dropped."""
+
+    result = {position: set(kinds) for position, kinds in left.items()}
+    for position, kinds in right.items():
+        result.setdefault(position, set()).update(kinds)
+    return {position: frozenset(kinds) for position, kinds in result.items()}
+
+
+def _mt35_decisive_origins(
+    mapping: Mapping[int, frozenset[str]],
+) -> dict[int, frozenset[str]]:
+    """Read a truth-valued expression's origins.
+
+    A `display` origin is a bare read of a correction output.  Where that read *is* the test
+    of a conditional, the verdict turns on it, so it is a consumption of the correction and
+    not a presentation of it.  Only the position of the read changes its meaning, which is why
+    this is applied at the four truth-valued positions and nowhere else.
+    """
+
+    result: dict[int, frozenset[str]] = {}
+    for position, kinds in mapping.items():
+        if "display" in kinds:
+            kinds = (kinds - {"display"}) | _MT35_CORRECTED_ORIGIN
+        result[position] = kinds
+    return result
+
+
+def _mt35_position_state(kinds: frozenset[str]) -> str:
+    """Classify one position's conclusion origins.
+
+    ``consuming`` -- every decisive origin is the position's own corrected value.
+    ``raw`` -- every decisive origin is the position's own raw p-value.
+    ``unresolved`` -- no decisive origin at all (a display-only read included), or both.
+    """
+
+    decisive = kinds - {"display"}
+    if not decisive:
+        return "unresolved"
+    if decisive <= _MT35_CONSUMING_ORIGINS:
+        return "consuming"
+    if decisive == _MT35_RAW_ORIGIN:
+        return "raw"
+    return "unresolved"
+
+
 _SOURCE_BYTE_MAX = 1 << 20
 _AST_NODE_MAX = 50_000
 _DEFINITION_NODE_MAX = 16
@@ -11493,6 +11557,10 @@ class _MtEngine:
         self.manual_multiplications: set[ast.BinOp] = set()
         self.correction_return_names: dict[str, tuple[_MtCorrection, str]] = {}
         self.unsupported_correction_return_names: set[str] = set()
+        # MT 3.5 fix round 1: whether deltas D4a and D4b fired on this engine.  D4b's
+        # hierarchy exemption may not carry a *clearance* on its own; see `run()`.
+        self.v35_d4a_admitted = False
+        self.v35_d4b_admitted = False
         self.sinks = _registered_sinks(scope, resolver)
         self.terminal_closure = _Mt23TerminalClosure((), ())
         self._member_store_target_name_cache: frozenset[str] | None = None
@@ -11548,7 +11616,7 @@ class _MtEngine:
         if guard_reason is not None:
             return MultipleTestingDataflowResult(None, guard_reason)
 
-        conclusions, sink_kinds = self._conclusion_positions()
+        conclusions, sink_kinds, conclusion_origins = self._conclusion_positions()
         if conclusions != set(range(len(self.outcome_columns))):
             return MultipleTestingDataflowResult(None, "pderived-conclusion-family-incomplete")
         if not sink_kinds:
@@ -11556,6 +11624,37 @@ class _MtEngine:
 
         corrected = set().union(*(item.positions for item in corrections)) if corrections else set()
         family = set(range(len(self.outcome_columns)))
+
+        # MT 3.5 fix round 1: a library correction corrects only the positions whose own
+        # conclusion consumes its own output.  Recognising the call and its input positions is
+        # not enough: `multipletests` over the whole family whose `reject`/adjusted arrays are
+        # never read leaves every published verdict on the raw p-value, and the identical
+        # program with that statement deleted is the row's true answer.
+        consumed_calls = self._consumed_correction_calls()
+        dead = tuple(
+            item
+            for item in corrections
+            if item.call in self.accepted_correction_calls and item.call not in consumed_calls
+        )
+        if dead:
+            # Rule A.  A library correction whose returned arrays are never loaded outside a
+            # display payload cannot reach any conclusion, so it corrects nothing.  This is a
+            # proof, not an estimate: `_correction_returns_supported` already refuses every
+            # load it cannot account for, so the loads enumerated here are all of them.
+            kept = frozenset(
+                position for item in corrections if item not in dead for position in item.positions
+            )
+            corrected &= kept
+            corrections = tuple(item for item in corrections if item not in dead)
+
+        library_positions = frozenset(
+            position
+            for item in corrections
+            if item.call in self.accepted_correction_calls
+            for position in item.positions
+        )
+        corrections = tuple(item for item in corrections if item.positions & corrected)
+
         classification: Literal["none", "strict_subset", "complete"]
         if corrected == family:
             classification = "complete"
@@ -11563,6 +11662,13 @@ class _MtEngine:
             classification = "strict_subset"
         else:
             classification = "none"
+
+        refusal = self._mt35_clearance_refusal(
+            classification, family, library_positions, conclusion_origins
+        )
+        if refusal is not None:
+            return MultipleTestingDataflowResult(None, refusal)
+
         spans = self._evidence_spans(corrections)
         return MultipleTestingDataflowResult(
             MultipleTestingDataflowFacts(
@@ -11866,6 +11972,9 @@ class _MtEngine:
         token = self.v35_deltas.group_positions.get(_v35_span_of(node))
         if token is None:
             return None
+        # MT 3.5 fix round 1: D4a and D4b ship as a pair, so D4b needs a witness that D4a
+        # actually fired on this row.  Recorded here, read only in the D4b proof.
+        self.v35_d4a_admitted = True
         _v35_record("d4a-numeric-group", node)
         return token
 
@@ -13975,17 +14084,9 @@ class _MtEngine:
         return _mt_decimal_literal(matches[0], self.source)
 
     def _decision_origins(self, node: ast.expr) -> frozenset[int]:
-        if self._is_direct_p(node, set(), 0):
-            return self._p_origins(node)
-        manual = self._manual_call_for_expr(node, set(), 0)
-        if manual is not None:
-            return manual.positions
-        vector = self._correction_vector_member(node, set(), 0)
-        if vector is not None:
-            correction, index = vector
-            if 0 <= index < len(correction.ordered_positions):
-                return frozenset({correction.ordered_positions[index]})
-        return frozenset()
+        # The kinded reading is the single implementation, so the position set and the origin
+        # kinds the consumption proof reads can never drift apart.
+        return frozenset(position for position, _kind in self._decision_origin_kind_pairs(node))
 
     def _is_direct_p(self, node: ast.expr, active: set[str], depth: int) -> bool:
         if depth > _DEFINITION_NODE_MAX:
@@ -14399,6 +14500,9 @@ class _MtEngine:
            stage reads.
         5. *renders* -- at least one body statement is an `ast.Expr` whose call is a
            registered sink, so the exemption cannot reach a loop that does no presentation.
+
+        MT 3.5 fix round 1 records whether the exemption was taken.  The pairing rule it feeds
+        is applied at the classification, not here: see `run()`.
         """
 
         # 1. shape
@@ -14465,6 +14569,7 @@ class _MtEngine:
             for statement in node.body
         ):
             return False
+        self.v35_d4b_admitted = True
         _v35_record("d4b-loop-terminal", node)
         return True
 
@@ -15241,23 +15346,44 @@ class _MtEngine:
                 return False
         return True
 
-    def _conclusion_positions(self) -> tuple[set[int], set[str]]:
+    def _conclusion_positions(self) -> tuple[set[int], set[str], dict[int, frozenset[str]]]:
         positions: set[int] = set()
         sink_kinds: set[str] = set()
+        # MT 3.5 fix round 1: every route that establishes a conclusion position also records
+        # what that conclusion read.  `origins` is written beside `positions`, never instead of
+        # it, so the position set and the two gates above it are untouched.
+        origins: dict[int, set[str]] = {}
+
+        def note(position: int, kinds: Iterable[str]) -> None:
+            origins.setdefault(position, set()).update(kinds)
+
+        def note_map(mapping: Mapping[int, frozenset[str]]) -> None:
+            for position, kinds in mapping.items():
+                note(position, kinds)
+
         for match in self.terminal_closure.matches:
             if match.decision is not None:
                 positions.add(match.occurrence.family_position)
                 sink_kinds.add(match.sink.kind)
+                decided = self._decision_origin_kinds(match.decision, set(), 0)
+                note(
+                    match.occurrence.family_position,
+                    decided.get(
+                        match.occurrence.family_position,
+                        frozenset().union(*decided.values()) if decided else frozenset(),
+                    ),
+                )
         for sink in self.sinks:
             if not sink.p_result_eligible:
                 continue
-            local: set[int] = set()
+            local: dict[int, frozenset[str]] = {}
             for payload in sink.payloads:
-                local.update(self._decision_positions_in_expr(payload, set(), 0))
+                local = _mt35_merge_origins(local, self._decision_origin_kinds(payload, set(), 0))
                 if isinstance(payload, ast.Name):
-                    local.update(self._container_mutation_positions(payload.id))
+                    local = _mt35_merge_origins(local, self._container_mutation_origins(payload.id))
             if local:
                 positions.update(local)
+                note_map(local)
                 sink_kinds.add(sink.kind)
         for node in _walk_statements(self.scope):
             if not isinstance(node, ast.If):
@@ -15267,8 +15393,13 @@ class _MtEngine:
                 position, kinds = terminal_rendering
                 positions.add(position)
                 sink_kinds.update(kinds)
+                test_origins = _mt35_decisive_origins(
+                    self._decision_origin_kinds(node.test, set(), 0)
+                )
+                note(position, test_origins.get(position, frozenset()))
                 continue
-            test_positions = self._decision_positions_in_expr(node.test, set(), 0)
+            test_origins = _mt35_decisive_origins(self._decision_origin_kinds(node.test, set(), 0))
+            test_positions = set(test_origins)
             if not test_positions:
                 continue
             for call in (
@@ -15292,6 +15423,7 @@ class _MtEngine:
                     continue
                 if self._name_reaches_output(call.func.value.id):
                     positions.add(position)
+                    note(position, test_origins.get(position, frozenset()))
                     sink_kinds.update(
                         sink.kind
                         for sink in self.sinks
@@ -15304,8 +15436,16 @@ class _MtEngine:
             kind = self._dynamic_full_family_conclusion_loop(node)
             if kind is not None:
                 positions.update(range(len(self.outcome_columns)))
+                # The loop's single comparison indexes a closed builder whose every appended
+                # element is proved by `_p_origins`, so every position it concludes is raw.
+                for position in range(len(self.outcome_columns)):
+                    note(position, _MT35_RAW_ORIGIN)
                 sink_kinds.add(kind)
-        return positions, sink_kinds
+        return (
+            positions,
+            sink_kinds,
+            {position: frozenset(kinds) for position, kinds in origins.items()},
+        )
 
     def _dynamic_full_family_conclusion_loop(self, node: ast.For) -> str | None:
         if not (
@@ -15359,52 +15499,271 @@ class _MtEngine:
         return eligible[0] if eligible else None
 
     def _decision_positions_in_expr(self, node: ast.expr, active: set[str], depth: int) -> set[int]:
+        return set(self._decision_origin_kinds(node, active, depth))
+
+    def _decision_origin_kinds(
+        self, node: ast.expr, active: set[str], depth: int
+    ) -> dict[int, frozenset[str]]:
+        """The reading of `_decision_positions_in_expr`, carrying *what was read* per position.
+
+        The key set is exactly the old position set, so every caller that asks only for
+        positions is unchanged.  The value says which value the expression reached that
+        position through:
+
+        * ``raw`` -- the position's own test p-value, in any of the frozen spellings
+          `_is_direct_p` proves;
+        * ``corrected`` -- the per-position element of an accepted library correction's
+          ``reject`` or adjusted vector, or a name bound to a whole ``reject`` vector;
+        * ``manual`` -- an accepted manual correction over the position;
+        * ``display`` -- a bare read of a correction output that is not itself a decision, so
+          it proves presentation and never consumption.
+
+        The MT 3.5 fix round-1 consumption proof is the only reader of the kinds.
+        """
+
         if depth > _DEFINITION_NODE_MAX:
-            return set()
+            return {}
         if isinstance(node, ast.Name):
             if node.id in active:
-                return set()
+                return {}
             expression = self.assignments.get(node.id)
             if expression is None:
                 bound = self.correction_return_names.get(node.id)
-                return (
-                    set(bound[0].positions) if bound is not None and bound[1] == "reject" else set()
-                )
-            return self._decision_positions_in_expr(expression, {*active, node.id}, depth + 1)
+                if bound is not None and bound[1] == "reject":
+                    return {position: _MT35_CORRECTED_ORIGIN for position in bound[0].positions}
+                return {}
+            return self._decision_origin_kinds(expression, {*active, node.id}, depth + 1)
         if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
             member = _mt_literal_member(node.slice)
             stored = self.record_stores.get((node.value.id, member)) if member is not None else None
             if stored is not None:
-                return self._decision_positions_in_expr(stored, active, depth + 1)
+                return self._decision_origin_kinds(stored, active, depth + 1)
             if member is not None:
                 precise, selected = self._precise_record_member(node.value.id, member, set(), 0)
                 if precise and selected is not None:
-                    return self._decision_positions_in_expr(selected, active, depth + 1)
-            sequence = self._decision_sequence(node.value)
+                    return self._decision_origin_kinds(selected, active, depth + 1)
+            sequence = self._decision_sequence_kinds(node.value)
             if isinstance(member, int) and sequence is not None:
                 index = member if member >= 0 else len(sequence) + member
                 if 0 <= index < len(sequence):
-                    return {sequence[index]}
+                    position, kinds = sequence[index]
+                    return {position: kinds}
         if isinstance(node, ast.Compare):
-            origins = self._decision_origins(node.left)
-            origins |= frozenset().union(
-                *(self._decision_origins(item) for item in node.comparators)
-            )
+            origins: dict[int, set[str]] = {}
+            for operand in (node.left, *node.comparators):
+                for position, kind in self._decision_origin_kind_pairs(operand):
+                    origins.setdefault(position, set()).add(kind)
             if origins:
-                return set(origins)
+                return {position: frozenset(kinds) for position, kinds in origins.items()}
+        if isinstance(node, ast.IfExp):
+            decided = _mt35_decisive_origins(
+                self._decision_origin_kinds(node.test, active, depth + 1)
+            )
+            for arm in (node.body, node.orelse):
+                decided = _mt35_merge_origins(
+                    decided, self._decision_origin_kinds(arm, active, depth + 1)
+                )
+            return decided
+        if isinstance(node, ast.BoolOp):
+            decided = {}
+            for value in node.values:
+                decided = _mt35_merge_origins(
+                    decided,
+                    _mt35_decisive_origins(self._decision_origin_kinds(value, active, depth + 1)),
+                )
+            return decided
+        if isinstance(node, ast.UnaryOp) and isinstance(node.op, ast.Not):
+            return _mt35_decisive_origins(
+                self._decision_origin_kinds(node.operand, active, depth + 1)
+            )
         vector = self._correction_vector_member(node, set(), 0)
         if vector is not None:
             correction, index = vector
             if 0 <= index < len(correction.ordered_positions):
-                return {correction.ordered_positions[index]}
-        result: set[int] = set()
+                return {correction.ordered_positions[index]: _MT35_DISPLAY_ORIGIN}
+        collected: dict[int, set[str]] = {}
         for child in ast.iter_child_nodes(node):
             if isinstance(child, ast.expr):
-                result.update(self._decision_positions_in_expr(child, active, depth + 1))
-        return result
+                for position, kinds in self._decision_origin_kinds(
+                    child, active, depth + 1
+                ).items():
+                    collected.setdefault(position, set()).update(kinds)
+        return {position: frozenset(kinds) for position, kinds in collected.items()}
+
+    def _mt35_clearance_refusal(
+        self,
+        classification: str,
+        family: set[int],
+        library_positions: frozenset[int],
+        conclusion_origins: Mapping[int, frozenset[str]],
+    ) -> str | None:
+        """MT 3.5 fix round 1, rules B and C.  Both apply to a clearance and to nothing else.
+
+        **Rule B, the per-position consumption proof.**  A clearance says every published
+        verdict in the family was read off a corrected value, so every position has to prove
+        it.  A `strict_subset` row is an accusation whose corrected half is not the claim being
+        made, and refusing one for an unproved consumption drops a true accusation instead of a
+        false clearance: `E13:P5` and `E17:P5` both carry a real partial correction the proof
+        cannot follow through the loop normalisation, and both keep their accusation because
+        this proof does not look at them.
+
+        **Rule C, the D4a/D4b pairing.**  D4b removes a hierarchy wall and D4a supplies the
+        group lineage the design ships it with.  D4b alone carrying a clearance would mean the
+        wall was the only thing standing between a source and covered/complete, which is the
+        position the audit found it in.  D4b alone carrying a *candidate* is the shipped
+        `correct-d4a-string-group-constants` row, a true accusation the 3.5 oracle pins, so the
+        pairing stops at the clearance too.
+        """
+
+        if classification != "complete":
+            return None
+        if library_positions and any(
+            _mt35_position_state(conclusion_origins.get(position, frozenset())) != "consuming"
+            for position in family
+        ):
+            return _MT35_CONSUMPTION_REASON
+        if self.v35_d4b_admitted and not self.v35_d4a_admitted:
+            return "hierarchical-gatekeeping-present"
+        return None
+
+    def _consumed_correction_calls(self) -> set[ast.Call]:
+        """The accepted library corrections whose returned arrays can reach a decision.
+
+        MT 3.5 fix round 1, rule A.  `_correction_returns_supported` proves that every load of
+        a bound return name is one of a small closed set of shapes, and it succeeds *vacuously*
+        when there is no load at all: that is the false-clearance route the audit demonstrated.
+        A load inside a registered sink payload shows the value, and showing an adjusted value
+        beside a verdict read off the raw p-value is exactly the shape the four reproducers
+        take.  So a correction counts as consumed only when one of its bound names is loaded
+        somewhere that is not a sink payload.
+
+        The scan runs over the original statements as well as the normalised ones.  A loop
+        normalisation can leave a genuine load out of the normalised tree, and a load that
+        exists in either reading is a load: the whole point of this proof is that no load at
+        all is the only thing it may conclude from.
+        """
+
+        combined = (*self.original_scope, *self.scope)
+        payload_nodes = {
+            id(item)
+            for sink in (
+                *self.sinks,
+                *_registered_sinks(self.original_scope, self.full_resolver),
+            )
+            for payload in sink.payloads
+            for item in ast.walk(payload)
+        }
+        consumed: set[ast.Call] = set()
+        for node in _walk_statements(combined):
+            if not (isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load)):
+                continue
+            if id(node) in payload_nodes:
+                continue
+            bound = self.correction_return_names.get(node.id)
+            if bound is not None:
+                consumed.add(bound[0].call)
+        return consumed
+
+    def _corrected_transport(
+        self, node: ast.expr, active: set[str], depth: int
+    ) -> tuple[_MtCorrection, int] | None:
+        """Resolve an expression to the correction output element it carries, if any.
+
+        `_correction_vector_member` follows plain name bindings.  This follows the two
+        transports the frozen engine already models beside them -- a record field the value
+        was stored into, and a `float()` wrapper -- so a corrected value that reaches a
+        conclusion through `record["p_used"]` is not mistaken for the raw p-value.
+        """
+
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        vector = self._correction_vector_member(node, set(), 0)
+        if vector is not None:
+            return vector
+        if isinstance(node, ast.Name):
+            if node.id in active:
+                return None
+            expression = self.assignments.get(node.id)
+            if expression is None:
+                return None
+            return self._corrected_transport(expression, {*active, node.id}, depth + 1)
+        if isinstance(node, ast.Subscript) and isinstance(node.value, ast.Name):
+            member = _mt_literal_member(node.slice)
+            stored = self.record_stores.get((node.value.id, member)) if member is not None else None
+            if stored is not None:
+                return self._corrected_transport(stored, active, depth + 1)
+            if member is not None:
+                precise, selected = self._precise_record_member(node.value.id, member, set(), 0)
+                if precise and selected is not None:
+                    return self._corrected_transport(selected, active, depth + 1)
+        if (
+            isinstance(node, ast.Call)
+            and self.resolver.qualified(node.func) == "float"
+            and len(node.args) == 1
+            and not node.keywords
+        ):
+            return self._corrected_transport(node.args[0], active, depth + 1)
+        return None
+
+    def _decision_sequence_kinds(
+        self, node: ast.expr, active: set[str] | None = None, depth: int = 0
+    ) -> tuple[tuple[int, frozenset[str]], ...] | None:
+        """`_decision_sequence`, carrying the origin kind of every element it proves.
+
+        The position tuple is identical to `_decision_sequence`'s, element for element: the
+        comprehension lane proves its elements from `_p_sequence`, which is a raw p sequence,
+        and the display lane reads each element's own kinds.
+        """
+
+        active = set() if active is None else active
+        if depth > _DEFINITION_NODE_MAX:
+            return None
+        if isinstance(node, ast.Name):
+            if node.id in active:
+                return None
+            expression = self.assignments.get(node.id)
+            if expression is None:
+                return None
+            return self._decision_sequence_kinds(expression, {*active, node.id}, depth + 1)
+        sequence = self._decision_sequence(node, set(active), depth)
+        if sequence is None:
+            return None
+        if not isinstance(node, (ast.List, ast.Tuple)):
+            return tuple((position, _MT35_RAW_ORIGIN) for position in sequence)
+        result: list[tuple[int, frozenset[str]]] = []
+        for item, position in zip(node.elts, sequence, strict=True):
+            kinds = self._decision_origin_kinds(item, set(), 0)
+            result.append((position, kinds.get(position, frozenset())))
+        return tuple(result)
+
+    def _decision_origin_kind_pairs(self, node: ast.expr) -> tuple[tuple[int, str], ...]:
+        """The origins `_decision_origins` proves for one operand, each with its kind.
+
+        The branch order is `_decision_origins`' own, so the positions are unchanged.  Only
+        the label is new, and the first branch needs care: `_is_direct_p` proves that a scalar
+        has exactly one p origin, not that it is the *raw* p.  A correction's adjusted value
+        transported into a record field keeps its p origin, so the transport is checked before
+        the operand is called raw.
+        """
+
+        if self._is_direct_p(node, set(), 0):
+            kind = "corrected" if self._corrected_transport(node, set(), 0) is not None else "raw"
+            return tuple((position, kind) for position in sorted(self._p_origins(node)))
+        manual = self._manual_call_for_expr(node, set(), 0)
+        if manual is not None:
+            return tuple((position, "manual") for position in sorted(manual.positions))
+        vector = self._correction_vector_member(node, set(), 0)
+        if vector is not None:
+            correction, index = vector
+            if 0 <= index < len(correction.ordered_positions):
+                return ((correction.ordered_positions[index], "corrected"),)
+        return ()
 
     def _container_mutation_positions(self, name: str) -> set[int]:
-        result: set[int] = set()
+        return set(self._container_mutation_origins(name))
+
+    def _container_mutation_origins(self, name: str) -> dict[int, frozenset[str]]:
+        result: dict[int, frozenset[str]] = {}
         for node in _walk_statements(self.scope):
             if not (
                 isinstance(node, ast.Call)
@@ -15415,7 +15774,9 @@ class _MtEngine:
             ):
                 continue
             for argument in node.args:
-                result.update(self._decision_positions_in_expr(argument, set(), 0))
+                result = _mt35_merge_origins(
+                    result, self._decision_origin_kinds(argument, set(), 0)
+                )
         return result
 
     def _name_reaches_output(self, name: str) -> bool:

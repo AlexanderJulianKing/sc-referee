@@ -74,6 +74,28 @@ def admission_spans() -> dict[str, tuple[tuple[int, int, int, int], ...]]:
 
 
 @contextmanager
+def suspended_admissions() -> Iterator[None]:
+    """Stop recording for the duration of a probe that decides nothing on its own.
+
+    MT 3.5 fix round 1 asks the 3.5 core a question about a source the ordering rule is about
+    to answer from the frozen 3.4 lane: does this clearance rest on a correction whose outputs
+    are never consumed?  Running the core to ask it would otherwise post that probe's
+    admissions to the census of a row no 3.5 production carried.  The answer decides nothing
+    here; when the probe does change the row, the caller re-runs it with the census open, so
+    every published row still records the admissions its own analysis made.  Nothing is read
+    back, so the census still never participates in a proof.
+    """
+
+    global _ACTIVE
+    previous = _ACTIVE
+    _ACTIVE = False
+    try:
+        yield
+    finally:
+        _ACTIVE = previous
+
+
+@contextmanager
 def recording_admissions() -> Iterator[None]:
     """Open one census.  Nested use is refused so a count is never silently shared."""
 
@@ -97,4 +119,5 @@ __all__ = [
     "admission_spans",
     "record_admission",
     "recording_admissions",
+    "suspended_admissions",
 ]

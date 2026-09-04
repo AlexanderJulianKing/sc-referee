@@ -1,0 +1,501 @@
+{
+  "profile": "multitest-v3.5-audit-fix-r1-library-correction-consumption-oracle-v1",
+  "provenance": {
+    "implementation_output_used": false,
+    "authored_from": [
+      "docs/adr/ADR-0079 3.5 amendment (this round)",
+      "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md section 6 and fix commit 7d46e8f",
+      "the Codex 3.5 audit verdict's four published reproducer digests",
+      "the custodian false-clearance measurement of 2026-09-04",
+      "each row's own frozen 3.4 sibling, recomputed live by the test"
+    ]
+  },
+  "rows": [
+    {
+      "fixture_name": "codex-blocker-1-e18n1-format-arms-on-raw-p",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:24787652107eb660fae9e5b1dae2c2ced8cd2162aac8cac418d0b28ed7a9f0b1",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "zip(results, raw_p_values, raw_p_values); verdict from result[\"raw_p\"], arms written with .format()",
+        "design_clause": "fix round 1 rule A; audit blocker 1",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  Codex reproducer 1, and byte-identical to the custodian's n1-raw-format-arms probe.  D1 admits the two formatted arms; that admission is about how the arm is spelled and says nothing about which value the verdict read."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d1-format-arm": 2
+      },
+      "expected_twin": "authority-n1-raw-plain-arms-without-the-correction"
+    },
+    {
+      "fixture_name": "codex-blocker-2-e18p3-dead-library-call",
+      "case_key": "E18:P3:d1b1fc47ccdabd0c2f22",
+      "fixture_source_sha256": "sha256:abed51d5ac05a95f43b814b7ff845dddccad89ea66d85d12eee35c1734eee717",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "multipletests([item[\"p_value\"] for item in results], alpha=ALPHA) added; both verdict sites still read result[\"p_value\"] < ALPHA",
+        "design_clause": "fix round 1 rule A; audit blocker 2",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  Its twin is `sealed-e18-p3-unaltered`, the same source without the added statement, and the two rows are required to agree."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d4a-numeric-group": 2,
+        "d4b-loop-terminal": 1
+      },
+      "expected_twin": "sealed-e18-p3-unaltered"
+    },
+    {
+      "fixture_name": "codex-blocker-3-e18p3-dead-call-string-group-tokens",
+      "case_key": "E18:P3:d1b1fc47ccdabd0c2f22",
+      "fixture_source_sha256": "sha256:67e3a64f7f5afd2edd62616d71038e692fd057654515b40693bbbdb570cafbe6",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "blocker 2 with the two group constants written as strings, so D4a is silent and D4b fires alone",
+        "design_clause": "fix round 1 rule A; audit blocker 3; pairing rule C",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  The audit asked for the frozen 3.4 reason here on the ground that D4b may never move a public result alone.  That rule is not the design's: section 1.4 says D4a alone changes nothing publicly, and the shipped 3.5 oracle pins `correct-d4a-string-group-constants` -- this source without the dead statement -- as a D4b-alone movement to candidate/none, a true accusation.  Refusing D4b alone outright would delete that pinned row.  The pairing is therefore applied to the clearance only (rule C), and this row's false clearance is closed by rule A instead, landing on the same candidate/none its twin already carries."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d4b-loop-terminal": 1
+      },
+      "expected_twin": "sealed-e18-p3-unaltered"
+    },
+    {
+      "fixture_name": "codex-blocker-4-e15p3-dead-library-call",
+      "case_key": "E15:P3:afe47b2a7ea87ed21a69",
+      "fixture_source_sha256": "sha256:c48b659f5b0b91412134c204050808b47aa60009c4dfd96d73cf87677dd6c0da",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "multipletests over the whole family added; each record's \"significant\" field is still computed from p_value < ALPHA inside compare_groups",
+        "design_clause": "fix round 1 rule A; audit blocker 4",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  Its twin is `sealed-e15-p3-unaltered`, and the two rows are required to agree."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d5-cardinality-read": 1
+      },
+      "expected_twin": "sealed-e15-p3-unaltered"
+    },
+    {
+      "fixture_name": "custodian-n1-control",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:e9b7355f0aba7a5c4f8c230a8f64f422e84993d1c64bca50229b53e9626948ff",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the sealed E18 N1 source, unaltered: verdict from adjusted_p < ALPHA over zip(results, adjusted_p_values, reject)",
+        "design_clause": "fix round 1 rules A and B, non-vacuity",
+        "design_text": "Every position's verdict is proved to consume its own corrected value, so the clearance stands exactly as it did before the round.  This is the row every mutant in the custodian's probe set is one edit away from, and the whole round is worthless if it moves."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "custodian-n1-raw-plain-arms",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:5fd8401194df5e03dde321d47b04b56e3040f9d68475fd49524a3794c63fd910",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "zip(results, raw_p_values, raw_p_values); verdict from result[\"raw_p\"] < ALPHA",
+        "design_clause": "fix round 1 rule A; custodian measurement 2026-09-04",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  The custodian measured this row cleared covered/complete by the shipped 3.4 lane as well, so the route is inherited and not something 3.5 introduced.  `authority-n1-raw-plain-arms-without-the-correction` is the authority for the expected row."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {},
+      "expected_twin": "authority-n1-raw-plain-arms-without-the-correction"
+    },
+    {
+      "fixture_name": "authority-n1-raw-plain-arms-without-the-correction",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:c635f7848184e9b497be64df940bfcda261e6e67d1593649390a706f5a9995d9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "custodian-n1-raw-plain-arms with the multipletests call and its import deleted",
+        "design_clause": "fix round 1, reason authority",
+        "design_text": "The identical program with the correction statement removed.  Its outputs were never read, so deleting it changes nothing a reader could observe, and the row the two raw-arm probes must carry is whatever this row carries.  Both lanes agree on it, so the authority is not a 3.5 artefact."
+      },
+      "expected_gate": "no-correction-present",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-verdict-from-the-zip-bound-reject-element",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:b355852e77d69e71fa46d320ed95a13984e1856191a8a8d2642674242233c836",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "verdict = \"DIFFERENT\" if rejected else \"NO DIFFERENCE\", rejected bound by the same zip over reject",
+        "design_clause": "fix round 1 rule B, recognised consumption form",
+        "design_text": "Every position's verdict is proved to consume its own corrected value, so the clearance stands exactly as it did before the round.  The per-position element of the reject array reached through the loop's own binding is the form the design names first, and reading it as a bare truth value rather than through a comparison must count."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-second-call-consumed-first-call-dead",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:18a723a2bc2c146990e0c4abc5dae286226f1ef890e6ffcbc7ca274631b6b945",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "two multipletests calls over the same family; the verdicts read the second call's reject array and nothing reads the first call's",
+        "design_clause": "fix round 1 rule A, per-call precision",
+        "design_text": "Rule A is per correction call, not per source.  The first call is dead and contributes nothing; the second is consumed at every position and corrects the whole family, so the row keeps its clearance.  A rule that refused any source containing a dead call would lose this true clearance."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-printed-verdict-from-raw-p",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:411b86b980124c91aeb28d904121ba544f9e80196cbca802f236d04daf5d2abe",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "reject printed with list(reject); the verdict still reads result[\"raw_p\"]",
+        "design_clause": "fix round 1 rule B",
+        "design_text": "Rule B.  The correction's outputs are loaded, so rule A cannot call them dead, but no position's verdict is proved to consume its own corrected value.  A clearance asserts every published verdict was read off a corrected value, so the clearance is refused on the reason the 3.2 AP path already emits at its own conclusion-consumption gate.  The shipped 3.4 lane clears this source covered/complete, so it is a second inherited false clearance, found by this round rather than by the audit.  It abstains rather than accusing because rule A cannot prove the outputs dead: adjusted_p_values is loaded by the loop's own zip."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-outputs-loaded-only-into-a-display",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:b124287e0b3623df8e6017cd42c4bd0b900f0f360174fa056fb52002d772db51",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "both arrays printed and nothing else; verdict from result[\"raw_p\"]",
+        "design_clause": "fix round 1 rule A, display exclusion",
+        "design_text": "Rule A.  The recognised library correction binds its `reject` and adjusted arrays and nothing ever loads them outside a display payload, so no verdict in the family can be read off a corrected value.  The correction corrects nothing, and the row is the row its twin with that statement deleted already carries.  A load inside a registered sink payload shows the value and never decides anything, which is why the display exclusion is part of rule A and not a refinement of it.  Counting a display load as consumption readmits this row."
+      },
+      "expected_gate": "dead-library-correction",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {},
+      "expected_twin": "authority-n1-raw-plain-arms-without-the-correction"
+    },
+    {
+      "fixture_name": "adversarial-adjusted-compared-at-the-wrong-index",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:7c4096bfc327afbc429735423813e5e5338646a33cf982ccf35f250f0668d9b5",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "every position's verdict compares adjusted_p_values[0]",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  Wrong-index consumption never reaches the consumption proof in this shape, so the round neither closes nor claims it."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-through-a-helper-that-returns-it",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:ff45ec347f1fdd98947b0ae1df01e4748181aff93c27b4a614a535de8a472ad2",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "zip(results, adjusted_p_values, decisions(reject)) with an identity helper",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  A correction output handed to a project helper is refused by the frozen return-shape census before consumption is asked about, so a genuinely correct analysis written this way is unsupported rather than accused."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-outputs-consumed-in-a-displayed-comprehension",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:fd72175ef4aabdd33d0f331ca1700d69ee763bb4c288154ee84fb0e85ccb81c8",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "verdicts = [\"DIFFERENT\" if item else \"NO DIFFERENCE\" for item in reject]",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  Iterating a correction output inside a comprehension is not one of the frozen return shapes, so the row is unsupported in both lanes."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-outputs-through-a-dataframe-column",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:be81c0bbf05903415e87c2ada48f8a7ca880abfc5e16c3d08b11bd1fa6091f67",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "frame[\"adjusted\"] = adjusted_p_values, then read back from the column",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  A correction output assigned into a frame column leaves the closed return shapes, so neither lane classifies it."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-adjusted-indexed-by-name-not-position",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:912f3a8dd133068d4cf1c0b8c3b80140b82240774bd75648ee8285d1d4f89715",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the adjusted array zipped against the declared column names rather than the result records",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  The rebuilt records carry no test lineage, so the family's conclusions are incomplete before the consumption proof is reached."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "pderived-conclusion-family-incomplete",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-indexed-by-an-enumerate-target",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:97ae6c981a648d4639214d87494b3766a2bc4c8b669c15cdf0520332bed6db65",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "reject[index] with index bound by enumerate(zip(...))",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  A non-literal subscript of a correction output is outside the frozen return shapes.  This is the boundary the design's `reject[i]` form sits on: a literal index is supported and a computed one is not."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-consumed-at-three-of-five-positions",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:43b5832b449708075ed4b868602fd2027e5f7bc825e2cc2ee75e7dbe83acc596",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "three verdicts from reject[0..2], two from raw_p_values[3..4]",
+        "design_clause": "fix round 1, named residual",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  This is the partial-consumption route the round does not reach: an earlier wall stands in front of it in this spelling, so the round can neither close it nor show it open.  Rule B would refuse a clearance built this way, but no executed row demonstrates that, and this row records the gap by name."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "hierarchical-gatekeeping-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-correction-over-three-of-five-inputs",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:37e247eecf8d6d9e05ecd1a210ea8507abe69eca94e1105489b80cd6dbcfe5d3",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "multipletests over three of the five raw p-values; the other two verdicts read the raw p",
+        "design_clause": "fix round 1, coverage boundary",
+        "design_text": "An earlier frozen gate declines this source before the consumption proof is reached.  The row is carried so the round is shown to change nothing there: the 3.5 row is the frozen 3.4 row byte for byte, recomputed live rather than transcribed.  A correction whose input is a list display of subscripted p-values is refused before classification in both lanes."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "sealed-e15-n1-unaltered",
+      "case_key": "E15:N1:f846b07b1d11131cec4d",
+      "fixture_source_sha256": "sha256:992e2289cce576886e554b4ccb92d1d10f58dee854d3990be756405761f1f2d3",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the sealed E15 N1 source, unaltered",
+        "design_clause": "fix round 1, sealed clearance control",
+        "design_text": "Every position's verdict is proved to consume its own corrected value, so the clearance stands exactly as it did before the round.  A sealed clearance that must survive the round unchanged."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expected_authorized_count": 4,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "sealed-e15-p3-unaltered",
+      "case_key": "E15:P3:afe47b2a7ea87ed21a69",
+      "fixture_source_sha256": "sha256:db2fbe393c5fda392ba8f13ef1a5176549194559c3fd104737331e72471eba4a",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E15 P3 source, unaltered",
+        "design_clause": "fix round 1, pinned movement control",
+        "design_text": "One of the four pinned 3.5 movements, and the twin of Codex reproducer 4: the same source without the dead correction statement.  The round may not move it."
+      },
+      "expected_gate": "no-correction-present",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d5-cardinality-read": 1
+      }
+    },
+    {
+      "fixture_name": "sealed-e17-n1-unaltered",
+      "case_key": "E17:N1:e2d8b1bdf4baa671a1b4",
+      "fixture_source_sha256": "sha256:3915679f036f5ab5378f23d91a84471a19c9c9d7fcf4aab8e4263a4c6b9971a8",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 N1 source, unaltered: one multipletests call over the complete family, each verdict from reject[i]",
+        "design_clause": "fix round 1, pinned movement control",
+        "design_text": "Every position's verdict is proved to consume its own corrected value, so the clearance stands exactly as it did before the round.  The only pinned 3.5 movement into a clearance.  It is also the row the pairing rule is measured against: D4a and D4b both fire on it, so rule C cannot touch it."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expected_authorized_count": 4,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d4a-numeric-group": 2,
+        "d4b-loop-terminal": 1,
+        "d5-cardinality-read": 1
+      }
+    },
+    {
+      "fixture_name": "sealed-e18-p2-unaltered",
+      "case_key": "E18:P2:5a9277448db34379ce78",
+      "fixture_source_sha256": "sha256:e601b7744a8c5d00f734ff1f427d58b8af76ad424e5eb4d7487748005480f103",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E18 P2 source, unaltered",
+        "design_clause": "fix round 1, pinned movement control",
+        "design_text": "One of the four pinned 3.5 movements.  The round may not move it."
+      },
+      "expected_gate": "no-correction-present",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d1-format-arm": 2
+      }
+    },
+    {
+      "fixture_name": "sealed-e18-p3-unaltered",
+      "case_key": "E18:P3:d1b1fc47ccdabd0c2f22",
+      "fixture_source_sha256": "sha256:e8ba72ac4b056d3b30f8eef7baba7348f038d42c2dfe412f2e44aa3edb29edd2",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E18 P3 source, unaltered",
+        "design_clause": "fix round 1, pinned movement control",
+        "design_text": "One of the four pinned 3.5 movements, and the twin of Codex reproducers 2 and 3: the same source without the dead correction statement.  The round may not move it."
+      },
+      "expected_gate": "no-correction-present",
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {
+        "d4a-numeric-group": 2,
+        "d4b-loop-terminal": 1
+      }
+    }
+  ]
+}

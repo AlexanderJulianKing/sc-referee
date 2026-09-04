@@ -15,6 +15,14 @@ survives by construction, so the only rows 3.5 can move are abstentions it conve
 classifications.  The 3.4 lane becomes the frozen previous lane under 3.5 exactly as the 3.3
 lane became the frozen previous lane under 3.4.
 
+Two closures narrow step 2, both applied before a frozen classification is returned and both
+one-directional.  The round-3 to round-7 alias closure refuses a classification outright.  The
+MT 3.5 fix round-1 consumption proof (`_consumption_narrowed`) refuses a *clearance* that rests
+on a library correction whose returned arrays never reach a decision; that route is inherited
+from the frozen lanes, so a proof living only in the 3.5 engine could never reach the rows it
+is for.  Neither closure can add a corrected position, change a family size, or turn an
+abstention into a classification.
+
 The round-3 to round-7 alias closure runs before any classification is returned -- the frozen
 one at step 2 and the re-analysed one at step 4 -- exactly as it does in 3.4.  It is not
 weakened, bypassed, or reordered here: this module calls the same 3.4 predicate over the same
@@ -35,6 +43,9 @@ from pathlib import Path
 from typing import Any
 
 from sc_referee.core.ids import sha256_digest
+from sc_referee.scientific_checks.code_csv_multiple_testing_admission_census_v3_5 import (
+    suspended_admissions,
+)
 from sc_referee.scientific_checks.code_csv_multiple_testing_comprehension_v3_4 import (
     normalize_comprehensions,
 )
@@ -66,6 +77,11 @@ _HELPER_RECORD_REASON = "unresolved-pvalue-consumer"
 #: The frozen reason the identical program carries when the same store is written through the
 #: collection name itself.  It is in the closed 3.3 reason set; 3.5 adds no reason.
 _COLLECTION_ALIAS_REASON = "pvalue-family-collection-unresolved"
+
+#: The frozen reason the 3.2 AP path already emits at its own conclusion-consumption gate.
+#: The fix round-1 library-correction consumption proof lands on the same one, so the closed
+#: set stays at 61.
+_CONSUMPTION_REASON = "unresolved-manual-correction-present"
 
 
 def _record_collection_alias_unresolved(content: bytes) -> bool:
@@ -233,6 +249,77 @@ def _reanalyze_with_v35_productions(
     return _apply_v35_ap(content, baseline=downstream, **arguments)
 
 
+def _consumption_narrowed(
+    content: bytes,
+    frozen: MultipleTestingDataflowResult,
+    *,
+    authorized_path: str,
+    group_column: str,
+    outcome_columns: tuple[str, ...],
+    csv_header: Any,
+    group_values: tuple[str, str],
+    csv_content: bytes,
+) -> MultipleTestingDataflowResult | None:
+    """MT 3.5 fix round 1: narrow a frozen 3.4 clearance whose correction is never consumed.
+
+    The false-clearance route the 3.5 audit demonstrated is inherited: `multipletests` over the
+    whole authorized family whose `reject` and adjusted arrays are never read, beside verdicts
+    printed from raw p-values, is cleared `covered`/`complete` by the shipped 3.4 lane as well,
+    and therefore by every lane before it.  The custodian measured it on 3.4 directly.  Step 2
+    of the ordering rule returns a frozen 3.4 classification untouched, so the 3.5 core's own
+    consumption proof cannot reach those rows unless it is applied here, exactly as the
+    round-3 to round-7 alias closure is applied at both classification returns.
+
+    The narrowing is one-directional and checked to be so.  It can only remove corrected
+    positions from the frozen row or replace the row with the frozen consumption reason; it
+    can never add a corrected position, change the family size, or turn an abstention into a
+    classification.  `None` means the frozen row stands.
+    """
+
+    if frozen.facts is None or not frozen.facts.corrected_positions:
+        return None
+    arguments: dict[str, Any] = {
+        "authorized_path": authorized_path,
+        "group_column": group_column,
+        "outcome_columns": outcome_columns,
+        "csv_header": csv_header,
+        "group_values": group_values,
+        "csv_content": csv_content,
+    }
+    normalization = normalize_comprehensions(content, outcome_columns)
+    analysis_tree: ast.Module | None = None if normalization is None else normalization.tree
+
+    def probe() -> MultipleTestingDataflowResult:
+        return _apply_v35_ap(
+            content,
+            baseline=_analyze_v3_core(content, analysis_tree=analysis_tree, **arguments),
+            **arguments,
+        )
+
+    # The probe posts no admissions: the row it is asked about is one the ordering rule is
+    # about to answer from the frozen lane, and a probe that changes nothing may not leave a
+    # 3.5 admission behind it.  When it does change the row, it is re-run with the census open
+    # below, so a published row always records its own analysis.
+    with suspended_admissions():
+        core = probe()
+    if core.reason == _CONSUMPTION_REASON:
+        # The core reached the consumption gate and refused: some position of the recognised
+        # library correction is neither proved to consume its own corrected value nor proved
+        # to conclude from its own raw p-value.  A clearance may not stand on that.
+        return MultipleTestingDataflowResult(None, _CONSUMPTION_REASON)
+    if core.reason is not None:
+        # The 3.5 core cannot reach a classification at all for some other reason, so it has
+        # nothing to say about this row's corrected positions and the frozen row stands.
+        return None
+    if core.facts is None or core.facts.family_size != frozen.facts.family_size:
+        return None
+    before = set(frozen.facts.corrected_positions)
+    after = set(core.facts.corrected_positions)
+    if not after < before:
+        return None
+    return probe()
+
+
 def analyze_code_csv_multiple_testing_dataflow(
     content: bytes,
     *,
@@ -260,6 +347,9 @@ def analyze_code_csv_multiple_testing_dataflow(
         # idempotent and keeps the closure ahead of every return in this module.
         if _record_collection_alias_unresolved(content):
             return MultipleTestingDataflowResult(None, _COLLECTION_ALIAS_REASON)
+        narrowed = _consumption_narrowed(content, frozen, **arguments)
+        if narrowed is not None:
+            return narrowed
         # Step 2: a frozen 3.4 classification is returned untouched and no production is tried.
         return frozen
     attempted = _reanalyze_with_v35_productions(content, **arguments)
