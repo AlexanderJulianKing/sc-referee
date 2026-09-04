@@ -1,4 +1,4 @@
 interface:
   display_name: "Method Contract"
-  short_description: "Draft, confirm, and freeze one closed analysis requirement"
-  default_prompt: "Use $sc-referee:method-contract (or $method-contract standalone) to draft one closed analysis requirement from my protocol and freeze the scientist-confirmed closed analysis requirement."
+  short_description: "Propose, validate, and freeze one closed analysis requirement"
+  default_prompt: "Use $sc-referee:method-contract (or $method-contract standalone) to propose one closed analysis requirement from my protocol and freeze the scientist-confirmed closed analysis requirement."

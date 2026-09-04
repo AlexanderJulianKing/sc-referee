@@ -191,6 +191,8 @@ def run_method_contract(
         try:
             confirmation = confirmed_draft_provenance(
                 draft_provenance,
+                repository=repository,
+                task=task_path,
                 profile=profile,
                 actor_id=normalized_actor,
             )

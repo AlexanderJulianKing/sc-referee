@@ -136,7 +136,7 @@ def test_method_contract_skill_is_separate_claimless_and_human_authorized(
     )
 
 
-def test_method_contract_skill_drafts_then_confirms(project_root: Path) -> None:
+def test_method_contract_skill_proposes_validates_then_confirms(project_root: Path) -> None:
     root = project_root / ".agents" / "skills" / "method-contract"
     body = (root / "SKILL.md").read_text(encoding="utf-8")
     reference = (root / "references" / "scientific-check-requirement.md").read_text(
@@ -144,21 +144,31 @@ def test_method_contract_skill_drafts_then_confirms(project_root: Path) -> None:
     )
 
     assert "The scientist does not write JSON." in body
+    assert "You read the protocol, propose the outcome family and the group" in body
+    assert "Division of labour" in body
+    assert "prose for meaning and does not choose columns" in body
     assert "sc-referee draft-profile <project-root>" in body
-    assert "--material-input <relative-csv-path>" in body
+    assert "--group-column <name>" in body
+    assert "--outcome-columns <ordered,comma,separated,names>" in body
+    assert "--proposed-by <agent-id>" in body
+    assert "--exclude <name>=<reason>" in body
     assert "--draft-provenance <new-profile.json.provenance.json>" in body
     assert "reads only the task file and the CSV header row" in body
     assert "never reads analysis code and never reads" in body
-    assert "If `draft-profile` refuses" in body
-    assert "Do not supply them yourself." in body
+    assert "repairs, reorders, or completes it" in body
+    assert "A refusal is a result to present, not an obstacle to route around." in body
+    assert "Never edit, reformat, or reword the governing protocol to" in body
     assert "Show the scientist the exact summary" in body
     assert "every excluded header column and why it was excluded" in body
-    assert "The confirmed family in the frozen profile remains the only authority." in body
+    assert "The confirmed family in the frozen profile remains" in body
     assert "Never infer the family, check, or candidate from code or from data values" in body
-    assert "and only through `draft-profile`" in body
+    assert "put every proposal through `draft-profile`" in body
     assert "Never infer the family, check, or candidate from the implementation" not in body
     assert "When the scientist explicitly supplies a complete supported profile" not in body
 
     assert "The scientist never types the JSON" in reference
     assert "draft provenance is written to" in reference
-    assert "Identifier, design-label, and group columns are never outcomes." in reference
+    assert "method-contract-draft/outcome-family/v2" in reference
+    assert "validates a proposal; it does not derive one" in reference
+    assert "Design-label columns such as `plot` or `replicate` are not special-cased." in reference
+    assert "conservative tripwire, not sentence parsing" in reference

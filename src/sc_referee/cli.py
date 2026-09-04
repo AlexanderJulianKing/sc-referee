@@ -60,9 +60,9 @@ from sc_referee.method_contract_draft import (
 )
 from sc_referee.method_contract_draft import (
     MethodContractDraftError,
-    draft_scientific_requirement_profile,
     draft_summary_text,
     refusal_text,
+    validate_proposed_requirement_profile,
 )
 from sc_referee.method_contract_run import run_method_contract
 from sc_referee.records.schema_registry import LocalSchemaRegistry
@@ -726,35 +726,67 @@ def draft_profile(
         "--material-input",
         help="Repository-relative CSV whose header row names the analyzed columns.",
     ),
+    group_column: str = typer.Option(
+        ...,
+        "--group-column",
+        help="Proposed two-group contrast column, exactly as it appears in the header.",
+    ),
+    outcome_columns: str = typer.Option(
+        ...,
+        "--outcome-columns",
+        help="Proposed ordered outcome family: header column names separated by commas.",
+    ),
+    proposed_by: str = typer.Option(
+        ...,
+        "--proposed-by",
+        help="Identity of the agent that proposed this family from the protocol.",
+    ),
+    exclude: list[str] = typer.Option(
+        [],
+        "--exclude",
+        help=("Header column the caller rules out as an outcome, as <name>=<reason>. Repeatable."),
+    ),
     output: Path = typer.Option(
         ...,
         "--output",
         "-o",
-        help="Absent path for the drafted profile JSON.",
+        help="Absent path for the validated profile JSON.",
     ),
     check_id: str = typer.Option(
         DRAFT_CHECK_ID,
         "--check-id",
-        help="Installed scientific check the drafted requirement belongs to.",
+        help="Installed scientific check the proposed requirement belongs to.",
     ),
     candidate_id: str = typer.Option(
         DRAFT_CANDIDATE_ID,
         "--candidate-id",
-        help="Published requirement candidate the drafted requirement selects.",
+        help="Published requirement candidate the proposed requirement selects.",
     ),
 ) -> None:
-    """Draft one scientific requirement profile from the protocol and the CSV header only."""
+    """Validate one proposed outcome family against the protocol text and the CSV header."""
 
     provenance_path = output.with_name(output.name + ".provenance.json")
     if output.exists() or output.is_symlink():
         raise typer.BadParameter(f"draft output already exists: {output}")
     if provenance_path.exists() or provenance_path.is_symlink():
         raise typer.BadParameter(f"draft provenance output already exists: {provenance_path}")
+    exclusions: dict[str, str] = {}
+    for entry in exclude:
+        name, separator, reason = entry.partition("=")
+        if not separator:
+            raise typer.BadParameter(f"--exclude must be <name>=<reason>, got: {entry}")
+        if name.strip() in exclusions:
+            raise typer.BadParameter(f"--exclude names {name.strip()} more than once")
+        exclusions[name.strip()] = reason
     try:
-        draft = draft_scientific_requirement_profile(
+        draft = validate_proposed_requirement_profile(
             repository,
             task=task,
             material_input=material_input,
+            group_column=group_column,
+            outcome_columns=[name for name in outcome_columns.split(",")],
+            proposed_by=proposed_by,
+            exclusions=exclusions,
             check_id=check_id,
             candidate_id=candidate_id,
         )
