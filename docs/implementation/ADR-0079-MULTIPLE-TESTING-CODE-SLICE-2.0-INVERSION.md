@@ -1218,3 +1218,27 @@ oracle so that the cost is recorded rather than discovered later.
 **Inherited defect.** Every route this round closes is present in the byte-frozen v3, v3.2, v3.3
 and v3.4 lanes and is closed only in v3.5, which supersedes them in the active development
 binding. The frozen lanes are unchanged and stay byte-identical.
+
+## Recall-delta 3.5 audit-fix round 3: lexical binders and rendered record identity
+
+The round-2 re-audit found two inherited false clearances and one false-accusation regression.
+Round 3 repairs only those proof boundaries. The return-name census now records the lexical scope
+of every binder. A nested function or lambda parameter/local, a class attribute or method
+parameter, and a comprehension target do not rebind the enclosing function's correction return;
+an ordinary loop target does. A `global` or `nonlocal` declaration is retained as a foreign
+binding when it targets the establishing scope. Structural-pattern captures -- including nested
+sequence, mapping, class and or-pattern captures and mapping/star rests -- are ordinary bindings
+in the scope containing the `match` statement.
+
+Position identity additionally recognizes a constant-integer subscript of the reconstructed
+p-record sequence, a uniquely literal-bound integer spelling of that subscript, and a unique
+intermediate name for the selected record. A sink with a consuming correction origin but no
+provable rendered position no longer accumulates that origin as though it applied to every family
+position: it is unresolved on the existing `misplaced` path. Thus swapped hand-unrolled verdicts
+abstain while the aligned spelling clears.
+
+All new refusals land on `unresolved-manual-correction-present`; no reason is added and the closed
+set remains 61. The 18-row round-3 oracle reproduces the re-audit's eight SHA-256 sources, restores
+the five demonstrated correct analyses to `covered`/`complete`, and carries four independent
+mutation kills. The byte-frozen analyzers, schemas, envelopes, sweep results and ADR-0081 anchors
+remain unchanged.
