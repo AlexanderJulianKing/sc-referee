@@ -97,6 +97,18 @@ recorded in
 - The broader manual-correction family remains open, including split-then-cap and `None`-sentinel
   raw/corrected partitions. See the same
   [manual-correction reconciliation](implementation/MULTITEST-RECALL-RECON-MANUAL-CORRECTION-2026-09-03.md).
+- Two rounds of adversarial review found routes that cleared a family whose verdicts were read off
+  the raw p-value while the corrected values went unread. Both are closed in `3.5.0`. Both are still
+  present in the byte-frozen `3.1` to `3.4` lanes, which `3.5.0` supersedes in the active development
+  binding. See the round 1 and round 2 audit-fix records in
+  [`ADR-0079`](implementation/ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md).
+- Two contrived shapes still clear at the analyzer level in `3.5.0` and in the frozen `3.4` lane: a
+  constant index rebound before hand-unrolled prints (through a one-element `for`, an augmented
+  assignment, a `match` capture, or a walrus), and the results collection reordered through a
+  `match` capture or a `for` target before position-indexed prints. Negative indexing of the
+  correction vector abstains where the positive spelling clears. No sealed case contains these
+  shapes. They are recorded in
+  [`ADR-0079`](implementation/ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md).
 - Pinned read-only forms deliberately abstain. The round oracles include read-only helpers over
   mapping `keys`, `items`, `values`, and `copy`; wrappers such as `OrderedDict`, `deque`, and
   `tabulate`; scalar-projection helpers; an `operator.itemgetter` sort key; tracing decorators;

@@ -96,18 +96,18 @@ frontier is the recognition that finds what to compute over.
 | Family | What it catches | Built today | Stage | Next step |
 |---|---|---|---|---|
 | **Dependence / pseudoreplication** | Repeated measurements from one subject counted as independent (300 cells from 3 mice reported as n=300) | Evaluator, safeguard registry, data provers, full recognizer, pilot pipeline, installed grant, and production controller path | **Product-wired** (sealed exam 7/7 at the strict two-of-two bar; exact grant installed; production Finding and zero-Finding control replayed) | Preserve exact pins and qualify any broader envelope separately |
-| **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation, plus the full recognizer package (IR, kernel, prover, analyzer, adapter) | **Development lane 3.5.0**; sealed examinations E10-E18; promotion window not reached (E17+E18 scored 6/12 against the required 7/12) | MT 3.5 recall deltas 2/3/D and closure hardening (closed read grammar) |
+| **Multiple testing** | An incomplete or mis-scoped correction across a family of tests | Exact complete-family Benjamini-Hochberg recomputation, plus the full recognizer package (IR, kernel, prover, analyzer, adapter) | **Development lane now at 3.5.0**; sealed examinations E10-E18 examined lanes 1.0.0 through 3.4.0; promotion window not reached (E17+E18 scored 6/12 against the required 7/12) | MT 3.5 recall deltas 2/3/D and closure hardening (closed read grammar) |
 | **Design integrity & aggregation** | Aggregation that merges or drops design groups; broken pairing | Exact categorical design, pairing, and aggregation calculations | Recon | Queued third; reuses dependence evidence |
 | **Model / response compatibility** | A model fitted on a scale incompatible with its response | Exact call registry and response-scale comparison | Planned | |
 | **Circular selection ("double dipping")** | Selecting features with the same data later used to test them | A working selection-reuse observation | Planned | |
 | **Identifier integrity** | Sample identifiers that silently fail to match across files | Exact set comparison across tabular and matrix inputs | Planned | |
 
-### The queue right now
+### The queue right now (as of 2026-09-04)
 
 | Slot | Work |
 |---|---|
-| Reached | Multiple-testing development lane 3.5.0 and sealed examinations E10-E18; the E17+E18 promotion window scored 6/12 against the required 7/12 and did not promote |
-| Next | MT 3.5 recall deltas 2/3/D |
+| Reached | Production Findings for complete-domain and dependence; multiple-testing development lane 3.5.0 after sealed examinations E10-E18 (E17+E18 scored 6/12 against the required 7/12, so the lane did not promote) |
+| Next | MT 3.5 recall deltas 2/3/D, and further copy-dosage blind pilots |
 | Then | Multiple-testing closure hardening with a closed read grammar |
 
 Verification reviews gate every hand-off in this queue: no item advances past a review that found

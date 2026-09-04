@@ -11,12 +11,12 @@ request. That history is provenance, not a compatibility requirement.
 
 Program `0.4.0` uses public record schema `0.21.0` and adds these user-visible release mechanics:
 
-- The public record schema advances from `0.19.0` to `0.21.0`. Schema `0.20.0` adds the exact
-  dependence detector `2.1.0` qualification identity and the materiality shape for reportless
-  Findings. Schema `0.21.0` adds the exact dependence detector `3.1.0` qualification identity.
-  Schemas `0.19.0` and `0.20.0` remain immutable migration baselines. See the changelogs under
+- The program has reported public record schema `0.21.0` since before this release; the README
+  banner was stale at `0.19.0` and is corrected here. Schema `0.20.0` adds the exact dependence
+  detector `2.1.0` qualification identity and the materiality shape for reportless Findings.
+  Schema `0.21.0` adds the exact dependence detector `3.1.0` qualification identity. Schemas
+  `0.19.0` and `0.20.0` remain immutable migration baselines. See the changelogs under
   `reference/schemas-v0.20.0/` and `reference/schemas-v0.21.0/`.
-
 - `sc-referee draft-profile` deterministically validates an agent's proposed ordered outcome
   family and two-group contrast column against the selected protocol and CSV header. It writes the
   validated profile plus a `.provenance.json` sidecar; validation gives the proposal no authority.
