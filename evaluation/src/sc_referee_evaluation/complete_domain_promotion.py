@@ -614,7 +614,7 @@ def _project_entry(entry: Mapping[str, Any], case_id: str, expected_role: str) -
     ):
         raise CompleteDomainPromotionError(f"Held-out outcome is inconsistent for {case_id}.")
     audit_lock_digest = entry.get("audit_lock_digest")
-    if not _is_sha256(audit_lock_digest):
+    if not isinstance(audit_lock_digest, str) or not _is_sha256(audit_lock_digest):
         raise CompleteDomainPromotionError(f"Held-out audit lock is malformed for {case_id}.")
     entry_digest = semantic_digest(dict(entry))
     result_id = stable_id("detector-result-projection", HELDOUT_LEDGER_DIGEST, case_id)

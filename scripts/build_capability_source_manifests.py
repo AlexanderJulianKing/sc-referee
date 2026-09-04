@@ -13,6 +13,9 @@ from sc_referee.version import SCHEMA_VERSION, __version__
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifests-v1"
 GENERATED_AT = "2026-07-30T00:00:00Z"
+# These source records were created and content-addressed by program 0.3.0. A later package
+# release must not relabel them and invalidate their qualification or registry bindings.
+FROZEN_MANIFEST_TOOL_VERSION = "0.3.0"
 _INSTALLED_QUALIFICATION_PATHS = (
     ROOT / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
     "procedure-v3.1.0-code-csv-lane/envelope-9-promotion-v021/"
@@ -206,7 +209,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 header"],
@@ -263,7 +266,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11"],
@@ -316,7 +319,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 input"],
@@ -368,7 +371,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 JSON input"],
@@ -415,7 +418,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 input"],
@@ -475,7 +478,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": [
@@ -526,7 +529,7 @@ def main() -> None:
             "created_at": GENERATED_AT,
             "method": "deterministic_release_manifest",
             "tool": "sc-referee",
-            "tool_version": __version__,
+            "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
         },
         "record_type": "parser_manifest",
         "schema_version": SCHEMA_VERSION,
@@ -619,7 +622,7 @@ def main() -> None:
                 "created_at": "2026-08-02T00:00:00Z",
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": [
@@ -793,7 +796,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -948,7 +951,7 @@ def main() -> None:
                 "created_at": "2026-08-21T22:10:00-07:00",
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -1122,7 +1125,7 @@ def main() -> None:
                 "created_at": "2026-08-24T00:00:00-07:00",
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -1761,7 +1764,7 @@ def main() -> None:
                 "created_at": "2026-08-02T00:00:00Z",
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -2489,6 +2492,8 @@ def main() -> None:
         _write(collection_name, public_collection)
 
     manifest_set = _load("manifest-set.json")
+    manifest_set["manifest_set_id"] = f"capability-manifest-set:sc-referee-{__version__}"
+    manifest_set["release_version"] = __version__
     manifest_set["schema_version"] = SCHEMA_VERSION
     manifest_set["generated_at"] = GENERATED_AT
     for descriptor in manifest_set["collections"]:

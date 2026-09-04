@@ -31,6 +31,23 @@ def test_packaged_schema_release_is_exact_copy(project_root: Path) -> None:
             ).read_bytes()
 
 
+def test_packaged_recognition_experiments_are_exact_copies(project_root: Path) -> None:
+    pairs = (
+        (
+            "dependence-recognition",
+            "EXPERIMENT-0058-DEPENDENCE-SEMANTIC-V1-SHADOW.md",
+        ),
+        (
+            "multiple-testing-recognition",
+            "EXPERIMENT-0059-MULTIPLE-TESTING-SEMANTIC-V1-SHADOW.md",
+        ),
+    )
+    for resource_directory, filename in pairs:
+        packaged = project_root / "src" / "sc_referee" / "resources" / resource_directory / filename
+        repository = project_root / "docs" / "implementation" / filename
+        assert packaged.read_bytes() == repository.read_bytes()
+
+
 def test_default_schema_root_uses_installed_package_resources(
     monkeypatch: object, tmp_path: Path
 ) -> None:
@@ -48,7 +65,7 @@ def test_version_distinguishes_program_schema_and_starter_lineage() -> None:
     result = CliRunner().invoke(app, ["version"])
 
     assert result.exit_code == 0
-    assert result.stdout == ("sc-referee 0.3.0 (schema 0.21.0; starter lineage 0.1.0)\n")
+    assert result.stdout == ("sc-referee 0.4.0 (schema 0.21.0; starter lineage 0.1.0)\n")
 
 
 def test_numpy_is_a_direct_python_311_compatible_dependency(project_root: Path) -> None:

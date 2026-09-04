@@ -48,7 +48,7 @@ def test_public_documentation_freezes_version_and_epistemic_boundaries(
 ) -> None:
     text = _public_text(project_root)
 
-    assert "sc-referee 0.3.0 (schema 0.21.0; starter lineage 0.1.0)" in text
+    assert "sc-referee 0.4.0 (schema 0.21.0; starter lineage 0.1.0)" in text
     assert "Production audits do not execute project-authored code." in text
     assert "uninspected" in text
     assert "not no byte access" in text
