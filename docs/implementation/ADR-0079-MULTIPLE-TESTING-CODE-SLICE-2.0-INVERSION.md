@@ -1242,3 +1242,30 @@ set remains 61. The 18-row round-3 oracle reproduces the re-audit's eight SHA-25
 the five demonstrated correct analyses to `covered`/`complete`, and carries four independent
 mutation kills. The byte-frozen analyzers, schemas, envelopes, sweep results and ADR-0081 anchors
 remain unchanged.
+
+## Custodian post-audit note, 3.5 fix round 3 (2026-09-04)
+
+The round-3 re-audit (Codex, resumed session, verdict FIX-REQUIRED) confirmed every round-3
+claim it could execute: the eight sealed clearances, the eleven covered fixtures, the 468-row
+sweep, the movement set, the reason set of 61, and the frozen anchors. Two analyzer-level false
+clearance families remain, both present in the byte-frozen 3.4 lane and both requiring code that
+no sealed case, corpus case, fixture, or blind envelope contains:
+
+1. A constant index that is rebound before the hand-unrolled prints through a one-element `for`
+   target, an augmented assignment, a `match` capture, or a walrus (`index0 = 0` then
+   `for index0 in [1]: pass`), so that `results[index0]` renders a different outcome than the
+   `reject[0]` beside it. The rendered-position resolver follows the assignment table rather than
+   the round-3 lexical binder census.
+2. The record collection reordered through a `match` capture or a `for` target
+   (`match sorted(results, key=...): case results: pass`) before position-indexed prints, so the
+   labels and the correction decisions are no longer aligned.
+
+One conservative cost was also recorded: negative indexing of the correction vector
+(`reject[-1]`) and a `len(results) - 1` index abstain where the positive spelling clears.
+
+The custodian, under the maintainer's 2026-09-04 direction to publish with documented
+limitations, pins these as known limitations of the 3.5.0 development lane rather than opening a
+fourth round. Closing them means making rendered-position and collection-identity resolution
+consult the same lexical binder census the return-name proof uses. They are recorded here, in
+`docs/CAPABILITIES.md`, and in the round-3 verdict kept with the custodian's tooling. No sealed
+result is affected. The lane still cannot emit a Finding.
