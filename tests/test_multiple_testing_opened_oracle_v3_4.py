@@ -118,6 +118,14 @@ def e17_adapter_rows(tmp_path_factory: pytest.TempPathFactory) -> dict[str, dict
     return rows
 
 
+#: The real adapter/controller path always runs the *active* development lane, which advanced
+#: to 3.5.  E17 N1's integer group constants now resolve, so the row reaches `covered`/`complete`
+#: on the frozen classifier's own proof.  It is a clearance of a correct analysis, not an
+#: accusation, and it is pinned by the 3.5 design.  Every 3.4 assertion in this file that calls
+#: `analyze_v34` directly is untouched by it.
+_V3_5_ADAPTER_CLEARANCE = {"e2d8b1bdf4baa671a1b4": ["covered", "complete"]}
+
+
 def test_e17_adapter_oracle_and_exact_movement_set(
     e17_adapter_rows: dict[str, dict[str, Any]],
 ) -> None:
@@ -126,13 +134,13 @@ def test_e17_adapter_oracle_and_exact_movement_set(
     movements: set[str] = set()
     for row in _e17_cases():
         case_id = str(row.key.rsplit(":", 1)[-1])
-        expected = _MOVERS.get(case_id, _baseline(row))
+        expected = {**_MOVERS, **_V3_5_ADAPTER_CLEARANCE}.get(case_id, _baseline(row))
         actual = e17_adapter_rows[case_id]
         assert actual["outcome"] == expected, case_id
         assert actual["finding_count"] == 0, case_id
         if actual["outcome"] != _baseline(row):
             movements.add(case_id)
-    assert movements == set(_MOVERS)
+    assert movements == set(_MOVERS) | set(_V3_5_ADAPTER_CLEARANCE)
     p3 = e17_adapter_rows["a2e031f79e31c80fd900"]
     assert p3["authorized_count"] == 6
     assert p3["corrected_positions"] == []
@@ -141,11 +149,13 @@ def test_e17_adapter_oracle_and_exact_movement_set(
     assert p6["authorized_count"] == 7
     assert p6["corrected_positions"] == [0, 1, 2]
     assert p6["candidate_records"] == 1
-    # The nine E17 negatives stay noncandidates at the adapter level.
+    # The nine E17 negatives stay noncandidates at the adapter level.  Under the active 3.5
+    # lane one of them is positively cleared rather than left unresolved; none is accused.
     for row in _e17_cases():
         if row.role.startswith("N"):
             case_id = str(row.key.rsplit(":", 1)[-1])
-            assert e17_adapter_rows[case_id]["outcome"][0] == "abstain", case_id
+            assert e17_adapter_rows[case_id]["outcome"][0] in {"abstain", "covered"}, case_id
+            assert e17_adapter_rows[case_id]["outcome"][0] != "candidate", case_id
 
 
 def test_all_170_source_rows_match_the_pinned_executed_oracle(

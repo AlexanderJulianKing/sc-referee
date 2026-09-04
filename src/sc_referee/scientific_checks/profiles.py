@@ -14,7 +14,10 @@ from sc_referee.multiple_testing_scope_attestations_v3_3 import (
     MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_3_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_SCOPE_ATTESTATIONS_FROZEN_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.multiple_testing_scope_attestations_v3_4 import (
-    MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_4_IMPLEMENTATION_DIGEST,
+    MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_4_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_SCOPE_ATTESTATIONS_FROZEN_V3_4_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.multiple_testing_scope_attestations_v3_5 import (
+    MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_5_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_dependence_adapter_v3_0 import (
     CODE_CSV_DEPENDENCE_ADAPTER_IMPLEMENTATION_DIGEST as CODE_CSV_DEPENDENCE_ADAPTER_V3_0_IMPLEMENTATION_DIGEST,
@@ -91,6 +94,9 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_3 import 
     CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_ADAPTER_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_4 import (
+    CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_ADAPTER_V3_4_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_5 import (
     CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST,
     COMPLETE_FAMILY_CORRECTION_OPERAND,
     MULTIPLE_TESTING_CODE_ADAPTER_ID,
@@ -109,6 +115,9 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_adapter_v3_4 import 
 from sc_referee.scientific_checks.code_csv_multiple_testing_admission_census_v3_4 import (
     CODE_CSV_MULTIPLE_TESTING_ADMISSION_CENSUS_IMPLEMENTATION_DIGEST,
 )
+from sc_referee.scientific_checks.code_csv_multiple_testing_admission_census_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_ADMISSION_CENSUS_V3_5_IMPLEMENTATION_DIGEST,
+)
 from sc_referee.scientific_checks.code_csv_multiple_testing_comprehension_v3_4 import (
     CODE_CSV_MULTIPLE_TESTING_COMPREHENSION_IMPLEMENTATION_DIGEST,
 )
@@ -120,6 +129,9 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_correction_model_v3_4 import (
     CODE_CSV_MULTIPLE_TESTING_CORRECTION_MODEL_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_core_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_DATAFLOW_CORE_V3_5_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v2 import (
     CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V2_IMPLEMENTATION_DIGEST,
@@ -146,13 +158,22 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_3 import
     CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_4 import (
-    CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST,
+    CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V3_4_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_dataflow_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V3_5_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_helper_record_v3_3 import (
     CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_helper_record_v3_4 import (
     CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_helper_record_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_V3_5_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_recall_deltas_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_RECALL_DELTAS_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3_1 import (
     CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_IMPLEMENTATION_DIGEST as CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_V3_1_IMPLEMENTATION_DIGEST,
@@ -166,8 +187,14 @@ from sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3_3 im
 from sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3_4 import (
     CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_IMPLEMENTATION_DIGEST,
 )
+from sc_referee.scientific_checks.code_csv_multiple_testing_record_model_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_V3_5_IMPLEMENTATION_DIGEST,
+)
 from sc_referee.scientific_checks.code_csv_multiple_testing_terminal_presentation_v3_3 import (
     CODE_CSV_MULTIPLE_TESTING_TERMINAL_PRESENTATION_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.code_csv_multiple_testing_terminal_presentation_v3_5 import (
+    CODE_CSV_MULTIPLE_TESTING_TERMINAL_PRESENTATION_V3_5_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.copy_dosage_adapter import (
     COPY_DOSAGE_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -237,6 +264,9 @@ from sc_referee.scientific_checks.integration_multiple_testing_v3_3 import (
     MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_INTEGRATION_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.integration_multiple_testing_v3_4 import (
+    MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_INTEGRATION_V3_4_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.integration_multiple_testing_v3_5 import (
     MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.multiple_testing_recognition_adapter import (
@@ -261,7 +291,10 @@ from sc_referee.scientific_checks.multiple_testing_scope_questions_v3_3 import (
     MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_3_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_SCOPE_QUESTIONS_FROZEN_V3_3_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.multiple_testing_scope_questions_v3_4 import (
-    MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_4_IMPLEMENTATION_DIGEST,
+    MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_4_IMPLEMENTATION_DIGEST as MULTIPLE_TESTING_SCOPE_QUESTIONS_FROZEN_V3_4_IMPLEMENTATION_DIGEST,
+)
+from sc_referee.scientific_checks.multiple_testing_scope_questions_v3_5 import (
+    MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_5_IMPLEMENTATION_DIGEST,
 )
 from sc_referee.scientific_checks.python_founder_adapter import (
     PYTHON_FOUNDER_ADAPTER_IMPLEMENTATION_DIGEST,
@@ -406,7 +439,7 @@ def scientific_check_release_registry() -> ScientificCheckRegistry:
                 == "check:authorized-independent-unit-entry-into-row-independent-procedure"
                 else (
                     "detector:bounded-code-csv-multiple-testing-conflict",
-                    "3.4.0",
+                    "3.5.0",
                 )
                 if module.manifest.check_id == MULTIPLE_TESTING_CODE_CHECK_ID
                 else ("detector:bounded-analysis-method-conflict", "0.3.0")
@@ -720,10 +753,10 @@ def scientific_check_release_projection(
                 MULTIPLE_TESTING_SCOPE_ATTESTATIONS_FROZEN_V3_3_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_multiple_testing_adapter_v3_4.py": (
-                CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST
+                CODE_CSV_MULTIPLE_TESTING_ADAPTER_V3_4_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_multiple_testing_dataflow_v3_4.py": (
-                CODE_CSV_MULTIPLE_TESTING_DATAFLOW_IMPLEMENTATION_DIGEST
+                CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V3_4_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/code_csv_multiple_testing_record_model_v3_4.py": (
                 CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_IMPLEMENTATION_DIGEST
@@ -741,13 +774,46 @@ def scientific_check_release_projection(
                 CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/integration_multiple_testing_v3_4.py": (
-                MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST
+                MULTIPLE_TESTING_INTEGRATION_V3_4_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/multiple_testing_scope_questions_v3_4.py": (
-                MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_4_IMPLEMENTATION_DIGEST
+                MULTIPLE_TESTING_SCOPE_QUESTIONS_FROZEN_V3_4_IMPLEMENTATION_DIGEST
             ),
             "multiple_testing_scope_attestations_v3_4.py": (
-                MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_4_IMPLEMENTATION_DIGEST
+                MULTIPLE_TESTING_SCOPE_ATTESTATIONS_FROZEN_V3_4_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_adapter_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_ADAPTER_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_dataflow_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_DATAFLOW_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_dataflow_core_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_DATAFLOW_CORE_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_terminal_presentation_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_TERMINAL_PRESENTATION_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_recall_deltas_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_RECALL_DELTAS_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_admission_census_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_ADMISSION_CENSUS_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_record_model_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_RECORD_MODEL_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/code_csv_multiple_testing_helper_record_v3_5.py": (
+                CODE_CSV_MULTIPLE_TESTING_HELPER_RECORD_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/integration_multiple_testing_v3_5.py": (
+                MULTIPLE_TESTING_INTEGRATION_IMPLEMENTATION_DIGEST
+            ),
+            "scientific_checks/multiple_testing_scope_questions_v3_5.py": (
+                MULTIPLE_TESTING_SCOPE_QUESTIONS_V3_5_IMPLEMENTATION_DIGEST
+            ),
+            "multiple_testing_scope_attestations_v3_5.py": (
+                MULTIPLE_TESTING_SCOPE_ATTESTATIONS_V3_5_IMPLEMENTATION_DIGEST
             ),
             "scientific_checks/multiple_testing_scope_questions_v1.py": sha256_digest(
                 (
@@ -990,6 +1056,7 @@ def _method_conflict_detector_manifests() -> Mapping[tuple[str, str], Mapping[st
         ("detector:bounded-code-csv-multiple-testing-conflict", "3.2.0"),
         ("detector:bounded-code-csv-multiple-testing-conflict", "3.3.0"),
         ("detector:bounded-code-csv-multiple-testing-conflict", "3.4.0"),
+        ("detector:bounded-code-csv-multiple-testing-conflict", "3.5.0"),
     }
     matches = [
         item

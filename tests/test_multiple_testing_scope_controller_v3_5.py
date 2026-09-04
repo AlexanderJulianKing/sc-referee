@@ -20,8 +20,8 @@ from sc_referee.multiple_testing_scope_attestations_v1 import (
     CERTAINTY_BASIS,
     COMPLETE_OPTION,
 )
-from sc_referee.multiple_testing_scope_attestations_v3_4 import (
-    apply_attestation as apply_attestation_v3_4,
+from sc_referee.multiple_testing_scope_attestations_v3_5 import (
+    apply_attestation as apply_attestation_v3_5,
 )
 
 _SCHEMAS = Path("reference/schemas-v0.21.0")
@@ -148,7 +148,7 @@ def _answer_file(
     path.write_text(canonical_json(value), encoding="utf-8")
 
 
-def test_controller_reaches_v3_4_ap_failure_without_clearance(
+def test_controller_reaches_v3_5_ap_failure_without_clearance(
     tmp_path: Path,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -177,14 +177,13 @@ def test_controller_reaches_v3_4_ap_failure_without_clearance(
     attestation = tmp_path / "answer-complete.json"
     _answer_file(attestation, question, source=source)
     calls: list[dict[str, Any]] = []
-    # This is the frozen-3.4 replay path.  The development controller advances
-    # independently; route this historical assertion through the frozen implementation.
+    assert controller_module.apply_attestation is apply_attestation_v3_5
 
-    def observed_v3_4_call(*args: Any, **kwargs: Any) -> Any:
+    def observed_v3_5_call(*args: Any, **kwargs: Any) -> Any:
         calls.append(kwargs)
-        return apply_attestation_v3_4(*args, **kwargs)
+        return apply_attestation_v3_5(*args, **kwargs)
 
-    monkeypatch.setattr(controller_module, "apply_attestation", observed_v3_4_call)
+    monkeypatch.setattr(controller_module, "apply_attestation", observed_v3_5_call)
     answered_output = tmp_path / "audit-with-answer"
     answered = run_audit(
         project,

@@ -746,3 +746,217 @@ an eighth round. The residuals are queued as MT 3.5, whose recommended direction
 this closure: classify only while every use of the family collection and every value derived from
 it stays inside a closed grammar of proven read-only forms, so that convergence is by construction
 rather than by enumeration of store shapes.
+
+## Recall-delta 3.5 amendment
+
+The accepted design `docs/implementation/MULTITEST-3.5-RECALL-DELTAS-DESIGN-2026-09-03.md`,
+Revision 0, has raw SHA-256
+`b48436c2374041fb8a1651ada4e7da920d8a91866c3894c51ea0566bdfa599b2` and advances only the
+development check, adapter, and detector to `3.5.0`. Version 3.5 ships four syntactic admissions in
+three groups, specifies two more that are not installed, and adds **no scientific classification
+rule**, test API, correction form, threshold, family-position source, row-mask route, reader,
+reducer, record mutation, conclusion polarity, or wording rule. The closed abstention-reason set
+stays at **61** and is byte-identical to the 3.4 set. The contract profile stays `1.2.0`. The
+correction recogniser is the 3.4 one, unchanged.
+
+**Corrected trigger attribution, observed rather than inferred.** Two attributions in the E18 recon
+are corrected here by measurement, and the corrections decide where the code goes. First, delta 4a
+does **not** belong in `_mask`. The recon attributed E18 P3's group-mask refusal to `_mask`
+(`dataflow_v3_3.py:7628`) reading its comparator through `_Resolver.string`; an executed counter on
+`_mask` during the 3.4 re-analysis of E18 P3 records **zero calls**. The frozen route that parses
+`data[data[GROUP_COLUMN] == LOW_SALT]` for a two-step group slice is the engine's own
+`_bare_group_mask_frame` (`dataflow_v3_3.py:11751`) and `_mask_rows` (`dataflow_v3_3.py:11855`).
+Second, delta 3 does **not** reach the second wall the recon names. On the sealed E18 P6 source with
+only the reader opened, the second wall is `helper-free-name-unbound`, captured in the helper
+binder's own frame at the free name `row`, line 56, in the helper `group_values`: the comprehension
+target of a `return`-statement comprehension is not in `local_names`, because `_store_names` is
+collected over `body_without_return`. That wall sits before the AP selector where delta 2 lives.
+
+**Delta 1, formatted display arms, shipped.** At three arm positions only -- the inline arm test in
+`_terminal_rendering_ifexp`, the assignment-arm test in `_mt_v21_terminal_rendering_if`, and the arm
+test in `_terminal_ifexp_positions` -- an arm is a display value when it is a bare string constant
+(frozen, unchanged), a `Call(func=Attribute(value=Constant(str), attr="format"), args=ARGVAL+,
+keywords=[])`, or a `JoinedStr` of string constants and `FormattedValue`s. `ARGVAL` is a non-bool
+scalar `str`/`int`/`float` constant, such a constant under unary `+`/`-`, or a Name bound exactly
+once at module level to a scalar literal with exactly one Store in the whole module and no
+`AugAssign`. Every `FormattedValue.format_spec` must be `None` or wholly constant string text, at
+least one `FormattedValue` must be present, and the concatenated constant text must satisfy the
+frozen 256-byte display bound. An admitted arm must additionally carry an empty `_p_origins` and no
+decision position under `_decision_positions_in_expr`; everything else in the frozen exemption is
+unchanged. Refused: an argument that is a `Call`, an `Attribute`, a `Subscript`, a `BinOp`, a
+`Compare`, or a comprehension; a Name outside the module-constant table; the p-value or any
+p-derived value; `keywords` on `.format`; a `Starred` argument; `.format` on anything but a bare
+display constant; an attribute call other than `str.format`; the `%` form; a nested call inside an
+f-string interpolation; a non-constant `format_spec`; and the matched print-payload arm test at
+`dataflow_v3_3.py:13994`, which is deliberately left frozen. The shared `_mt_v21_display_string` and
+`_display_string` predicates, which have twenty other call sites between them, are **not** widened.
+The design narrows the brief: the threshold `ALPHA` is admitted because it is a module-level
+constant, and the p-value is refused, because interpolating a p-derived value would give the
+assigned verdict name a p-lineage it does not have.
+
+**Delta 2, set literals in the AP selector, specified and NOT installed.** A module-level `NAME = {
+STR (, STR)* }` binding is readable by the membership branch of `_static_bool` when the value is an
+`ast.Set` with at least one element and every element a non-bool `str` constant, the written
+elements are already unique, the name has exactly one Store or Del in the whole module and no
+`AugAssign`, and **every** Load of the name is the right operand of an `In` or `NotIn`
+`ast.Compare` with one operator and one comparator. The table is never merged into `sequences`, so a
+set can never become a row-table iterator, an `enumerate` argument, a factor source, or an ordered
+position source. Refused: `ast.SetComp`, `set(...)`, `frozenset(...)`, any non-string element, a
+written duplicate, a name used in iteration, `len()`, subscript, or any non-membership position, a
+name bound more than once, and a binding that is not at module level. All nine refusals and the
+three admissions are executed against the production predicate.
+
+**Delta 3, standard-library `csv` reader lineage, specified and NOT installed.** `with open(PATH,
+KW*) as HANDLE: return list(csv.DictReader(HANDLE))` and the `csv.reader` form are an authorized
+reader lineage when the `with` has exactly one item and exactly one body statement, the context
+expression is a call to the unshadowed `open` with exactly one positional argument, the `as` target
+is a simple Name, the body statement is a `Return` of `list(...)` with one argument and no keywords,
+and that argument is a `csv.DictReader`/`csv.reader` call with exactly one positional argument that
+is the `with` handle Name and no keywords. `KW` is `newline=`, `encoding=`, or a `mode=` without
+`"b"`, each a string constant. Refused: `restkey`, `restval`, an explicit `delimiter`, `dialect`,
+`quotechar`, or any other reader keyword; binary mode; a reader not materialised by `list(...)`; a
+filtered or transforming comprehension in place of `list(...)`; more than one `with` item; more than
+one body statement; an `open` keyword outside the admitted set; and a reader over a handle other
+than the `with` target. All nine refusals and both admissions are executed against the production
+predicate, and the sealed E18 N6 reader, which iterates `csv.DictReader(handle)` inside a `for`,
+records zero admitted paths.
+
+**Delta 4a, numeric group-mask comparator, shipped.** A numeric-token helper is consulted at the
+comparator position in `_bare_group_mask_frame` and in `_mask_rows`, and nowhere else. It admits a
+non-bool `int`/`float` literal, such a literal under unary `+`/`-`, or a Name bound exactly once at
+module level to such a literal, when all of: the mask is an `ast.Compare` with one `ast.Eq` operator
+and one comparator whose other side is a `Subscript` reading the contract group column; every
+non-header cell of that column in the authorized CSV parses as a finite decimal under `repr`
+normalisation; the two contract `group_values` tokens normalise to two distinct decimal texts; the
+literal's own normalised decimal text equals exactly one of those two tokens; and the value is not a
+`bool`, not non-finite, and its text carries no thousands separator, underscore, or surrounding
+whitespace. The admitted value is the CSV token, so everything downstream sees the same string the
+frozen path would have seen for a string-spelled group constant. Refused: `!=` and every operator
+other than `==`; a comparator that is a call, an attribute, a subscript, or arithmetic; a `bool`; a
+non-finite float; a token column that is not wholly decimal; two group tokens that collapse under
+normalisation; a literal matching neither token or both; and a mask on a column that is not the
+group column. `_Resolver.string` is **not** widened, and neither is `_mask`. `!=` is refused
+deliberately: admitting it would require returning the other group token, which means reading the
+binary group domain inside a predicate that does not hold it.
+
+**Delta 4b, terminal-position proof for a presentation loop, shipped as 4a's pair.** A sixth `For`
+exemption in `_hierarchy_guard` exempts a loop's own iterator control when all five hold: the owner
+is an `ast.For`, not `ast.AsyncFor`, with no `orelse` and a non-empty body, and the iterator is a
+bare Name, `enumerate(NAME)`, or `enumerate(NAME, start=<int literal>)` with `enumerate`
+unshadowed; no node under the loop is a `Return`, `Break`, `Continue`, `Raise`, `While`, `Try`,
+`Match`, `Assert`, `With`, `AsyncWith`, `AsyncFor`, `Global`, `Nonlocal`, `Lambda`, `Yield`,
+`YieldFrom`, `Await`, `FunctionDef`, `AsyncFunctionDef`, or `ClassDef`, and no call under it
+resolves to `sys.exit`; no registered test API call, no recognised correction API call, and no
+`.pvalue` attribute read occurs at any source position at or after the loop's own position; for
+every name the loop binds, including its target, every Load of that name after the loop's end and
+outside it is dominated by a Store outside the loop and after its end; and at least one statement in
+the loop body is an `ast.Expr` whose call is a registered sink. The exemption applies to the loop's
+own iterator control only: every `If`, `IfExp`, comprehension, and boolean control inside the body
+is still a separate entry in the guard's control list, judged on its own frozen exemptions. Refused:
+a loop followed by a registered test; an early `return`; a `break`; a `continue`; a binding that
+escapes; a loop that renders nothing; an iterator that is a call other than the two `enumerate`
+forms; a non-literal `start`; a positional second argument to `enumerate`; an `async for`; and a
+loop with an `orelse`.
+
+**Delta 5, cardinality read of the reconstructed family, shipped.** A sixth admitted form in the
+`Call` branch of `_off_grammar_transform_guard` admits `len(COLLECTION)` when the callee resolves to
+the unshadowed builtin `len` with exactly one positional argument and no keywords; the argument is a
+bare `ast.Name`; `_p_sequence` of that Name is exactly the contract-order position tuple `0..N-1`;
+the name has exactly one Store or Del in the analysis scope; and every ancestor of the call, up to
+and including the enclosing statement, is a display node -- an `ast.JoinedStr`, an
+`ast.FormattedValue`, a `"<literal>".format(...)` call, a `print`/`str` call, or a registered sink
+call -- with the enclosing statement an `ast.Expr` whose call is a registered sink, and the call
+additionally satisfying the frozen `_mt_v2_rendering_load_reaches_sink` route. The admitted value is
+the family size, which the analyser already holds from the contract, so the admission introduces no
+new value route into the model; what it removes is an unaccounted-for consumer of the record
+collection. Refused: a `len()` whose value enters a comparison, arithmetic, a subscript, a `range`
+loop bound, a threshold, an assignment to a local, a record store, or a return; a `len()` over a
+filtered comprehension or over any Name whose `_p_sequence` is not the complete contract-order
+family; a `len()` with keywords or with more than one argument; and a shadowed `len`. The
+load-bearing refusal is storing the value before printing it, because a stored value is no longer
+provably display-only.
+
+**The ordering rule, inherited unchanged.** A row the unchanged 3.4 lane classifies is returned
+untouched and no 3.5 production is attempted. A row it abstains on is re-analysed with the shipped
+productions, and that re-analysis is adopted only when it is itself a classification; otherwise the
+frozen 3.4 reason is returned byte-for-byte. The round-3 to round-7 alias closure runs before any
+classification is returned, at both points a classification can be returned, and is neither
+weakened, bypassed, nor reordered. The 3.4 lane is therefore the frozen previous lane under 3.5
+exactly as the 3.3 lane was under 3.4.
+
+**The executed movement set is exactly four rows.**
+
+```text
+E15:P3:afe47b2a7ea87ed21a69  abstain unresolved-manual-correction-present
+                          -> candidate none, corrected {}, N=5            (delta 5)
+E17:N1:e2d8b1bdf4baa671a1b4  abstain test-operand-lineage-unresolved
+                          -> covered complete, corrected {0,1,2,3}, N=4   (delta 4a)
+E18:P2:5a9277448db34379ce78  abstain hierarchical-gatekeeping-present
+                          -> candidate none, corrected {}, N=6            (delta 1)
+E18:P3:d1b1fc47ccdabd0c2f22  abstain test-operand-lineage-unresolved
+                          -> candidate none, corrected {}, N=5            (deltas 4a+4b)
+```
+
+Three are catches. **The E17 N1 clearance is true, and a false clearance is held to the same zero
+standard as a false accusation.** The source calls `multipletests(p_raw, alpha=ALPHA)` once over all
+four declared outcomes and reads every verdict off the `reject` vector, printing the raw p-values
+for reference only. Its group constants are the integers `GROUP_LOW = 18` and `GROUP_HIGH = 24`, and
+the authorized CSV's `temperature_c` column holds exactly the two tokens `18` (40 rows) and `24` (40
+rows). Delta 4a maps each literal onto exactly one token, the operand lineage resolves, and the
+**frozen** classifier then reaches `covered`/`complete` over positions `{0,1,2,3}` of 4 on its own.
+No 3.5 production made that call. All 181 other evidence rows and all 245 frozen 3.4 fixtures are
+outcome-identical, and no frozen classification anywhere is lost.
+
+**Every none-flip population is zero.** Opened negatives `0/81`; corpus correct-labelled cases
+`0/25`; all correct-analysis fixtures `0/199`; new 3.5 correct-analysis fixtures `0/5`; frozen 3.4
+fixtures that moved at all `0/245`; frozen 3.4 evidence rows that moved at all `2/170`, both pinned;
+negatives gaining a candidate `0/81`; real-pipeline negatives gaining a non-complete classification
+`0/81`; custodian probe projects that moved `0/64`. The corpus score is unchanged at `0/25` correct
+candidates and `19/25` misstep candidates, with zero adapter-row movements across all fifty rows.
+
+**The admission census, across 185 evidence cases and 283 fixtures.** `d1-format-arm` 14 admitted
+spans, `d2-set-selector` 0 (specified, not installed), `d3-csv-reader` 0 (specified, not installed),
+`d4a-numeric-group` 20, `d4b-loop-terminal` 9, `d5-cardinality-read` 9. Across the 185 evidence
+cases the shipped productions fire on **four** rows in total, and every one of them is a pinned
+movement; every other admission in the census belongs to a fixture this design authored to test
+itself. An executed hook on `_off_grammar_transform_guard` records that 53 opened cases reach the
+guard, 17 of them negatives, and that exactly **one** case in the whole opened population carries a
+p-derived `len()`.
+
+**Retro candidate recall, computed on opened bytes.** E10 `5/6`, E11 `6/6`, E12 `6/6`, E13 `4/6`,
+E14 `4/6`, E15 `4/6` (was `3/6`, delta 5), E16 `4/6`, E17 `6/6`, E18 `4/6` (was `2/6`, deltas 1 and
+4). Retro recall over the nine opened envelopes moves from `40/54` to `43/54`, three catches. These
+are development projections and never rescore a sealed first-contact envelope: sealed E15 stays
+`2/6`, sealed E17 stays `4/6`, sealed E18 stays `2/6`, and the E17+E18 promotion window is unchanged
+at `6/12`. The clearance does not enter the recall table, because E17 N1 is a negative; what changes
+is that one more correct analysis is positively cleared rather than left unresolved. Eleven of the
+54 opened positives still abstain, down from fourteen.
+
+**The correction-scope question census is `28` before and `28` after, with an empty removed set.**
+E15 P3 carried no correction-scope question under 3.4 even though its reason qualifies, because
+`locate_correction_scope_witness` finds no witness in a program that contains no correction at all.
+That is the question layer working, and it is why closing delta 5 removes nothing.
+
+**The decision not to install deltas 2 and 3, with its executed evidence.** Delta 3 was measured
+with a deliberately over-generous stand-in: any module containing a `csv.DictReader` or `csv.reader`
+call is granted the authorized path, which is strictly looser than the section 1.3 grammar, so
+whatever it cannot reach the real grammar cannot reach either. On E18 P6 that stand-in moves the
+abstention from `authorized-reader-lineage-unavailable` to `helper-free-name-unbound`, and that wall
+sits **before** the AP selector where delta 2 lives, so delta 2 cannot fire on E18 P6 either. Under
+the ordering rule an abstaining re-analysis returns the frozen 3.4 reason byte-for-byte, so
+installing either production would change no public byte anywhere in the evidence. Delta 2 is
+nonetheless demonstrated correct so a later delta can pick it up with the equivalence already
+proved: on a pandas rung of E18 P6 that clears the reader and the row model but keeps the `set`
+literal, the set and tuple spellings of the same three-name selector both produce
+`candidate`/`strict_subset` over positions `(0, 3, 4)` of 8. Neither may be installed until the
+third wall behind delta 3 -- the comprehension target bound inside a helper `return` -- is closed
+and every population is re-run.
+
+**What is unchanged.** Classification, correction recognition, the AP correction model, wording, the
+61-reason closed set, the contract profile `1.2.0`, the round-3 to round-7 closure, every frozen
+3.1/3.2/3.3/3.4 file and result, every corpus replay record, every prior comparison row, every
+qualified lane, every GrantPin, every wording object, and every scoring byte. The byte-frozen 3.3
+dataflow and terminal-presentation modules are copied, not edited: the shipped lane runs
+`code_csv_multiple_testing_dataflow_core_v3_5.py` and
+`code_csv_multiple_testing_terminal_presentation_v3_5.py`, and the frozen originals stay at their
+ADR-0081 digests, asserted by a test that reads each file.

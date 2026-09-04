@@ -1599,6 +1599,53 @@ def main() -> None:
         "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md"
     )
     _upsert(detector_collection, "detector_id", multiple_testing_v3_4)
+    multiple_testing_v3_5 = deepcopy(multiple_testing_v3_4)
+    multiple_testing_v3_5["detector_version"] = "3.5.0"
+    multiple_testing_v3_5["description"] = (
+        "Admits a formatted display arm at three terminal-rendering positions, a numeric "
+        "group-mask comparator naming one authorized CSV group token, a terminal presentation "
+        "loop's own iterator control, and a display-only cardinality read of the complete "
+        "p-record family, only where the unchanged multiple-testing 3.4 lane abstained."
+    )
+    multiple_testing_v3_5["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_5.py"
+    )
+    multiple_testing_resource_v3_5 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_5.py"
+    )
+    multiple_testing_v3_5["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_5:"
+            "BoundedCodeCsvMultipleTestingConflictV3_5Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_5.read_bytes()),
+    }
+    multiple_testing_v3_5["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_named_disqualifiers_refuse_their_production"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_all_283_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_5.py::test_e18_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_delta_2_and_delta_3_are_not_in_the_shipped_recognizer_set"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_5.py::test_open_corpus_is_byte_identical_to_v3_4"
+        ],
+    }
+    multiple_testing_v3_5["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.5-RECALL-DELTAS-DESIGN-2026-09-03.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_5)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )
