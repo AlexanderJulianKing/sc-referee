@@ -840,6 +840,14 @@ def main() -> int:
         ]
         expected_capability_detectors = [
             {
+                "binding_grants": [
+                    {
+                        "binding_id": "method-conflict-binding:complete-domain-exposure-denominator-v1",
+                        "check_id": "check:complete-domain-exposure-denominator",
+                        "qualification_ref": "qualification:complete-domain-exposure-denominator-v207-round2",
+                        "strongest_output_type": "finding",
+                    }
+                ],
                 "detector_id": "detector:bounded-analysis-method-conflict",
                 "maturity": "experimental",
                 "qualification_ref": None,
@@ -847,6 +855,14 @@ def main() -> int:
                 "strongest_output_type": "disclosure",
             },
             {
+                "binding_grants": [
+                    {
+                        "binding_id": "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1",
+                        "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+                        "qualification_ref": "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
+                        "strongest_output_type": "finding",
+                    }
+                ],
                 "detector_id": "detector:bounded-code-csv-dependence-conflict",
                 "maturity": "experimental",
                 "qualification_ref": None,
