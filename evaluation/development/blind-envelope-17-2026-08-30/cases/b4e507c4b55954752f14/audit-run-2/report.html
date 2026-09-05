@@ -1,0 +1,558 @@
+
+
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sc-referee audit</title>
+  <style>
+    :root { color-scheme: light dark; font-family: system-ui, sans-serif; }
+    body { max-width: 72rem; margin: 0 auto; padding: 2rem; line-height: 1.5; }
+    header, section { margin-bottom: 2rem; }
+    .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem; }
+    .card { border: 1px solid #8886; border-radius: .5rem; padding: 1rem; margin-bottom: 1rem; }
+    .count { font-size: 1.8rem; font-weight: 700; }
+    code, pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+    details { margin: .75rem 0; }
+    .notice { border: 1px solid #8888; border-radius: .5rem; padding: .75rem 1rem; }
+    .source-excerpt { border: 1px solid #8886; border-radius: .5rem; padding: .75rem 1rem; scroll-margin-top: 1rem; }
+    .decision-panel { background: #8881; border-radius: .5rem; padding: 1rem; margin: 1rem 0; }
+    .decision-panel h4 { margin-top: 0; }
+    blockquote { margin-left: 0; padding: .75rem; background: #8881; }
+  </style>
+</head>
+<body>
+
+
+
+
+
+<header>
+  <h1>sc-referee scientific audit</h1>
+  
+  <p><strong>Coverage-limited audit: the deterministic run completed, but required evidence or supported detector coverage was unavailable.</strong></p>
+  <p>Zero Findings is not evidence that uncovered claims or operations are correct.</p>
+  
+  <p class="notice">This report is not a determination that the analysis is correct, safe, publication-ready, or free of uninspected scientific issues.</p>
+</header>
+<section class="summary" aria-label="Assessment counts">
+  <div class="card"><div class="count">0</div><div>Findings</div></div>
+  <div class="card"><div class="count">1</div><div>Conditional concerns</div></div>
+  <div class="card"><div class="count">2</div><div>Material questions</div></div>
+  <div class="card"><div class="count">25</div><div>Material disclosures</div></div>
+  <div class="card"><div class="count">1</div><div>Routine not-applicable checks</div></div>
+</section>
+<section>
+  <h2>Claims needing correction</h2>
+  <p>None in the inspected detector path.</p>
+</section>
+<section>
+  <h2>Coverage and completion</h2>
+  <p><strong>Run coverage state:</strong> partial evidence unavailable</p>
+  <p>5 of 5 inventoried files were classified; 4 were deeply inspected.</p>
+  <p>0 of 0 claims were inspected; 0 had complete lineage.</p>
+  <h3>Parser surfaces</h3>
+  <ul><li>parser:markdown-inventory:DATA_DESCRIPTION.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:PROTOCOL.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:python-ast-tokenize:analysis.py: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li><li>parser:markdown-inventory:report.md: covered. State parsed; 0 syntax issue(s) and 0 opaque construct(s).</li></ul>
+  <h3>Detector targets</h3>
+  <ul><li><code>detector:bounded-analysis-method-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-code-csv-dependence-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-code-csv-multiple-testing-conflict</code>: 1 of 0 evaluated (not covered). The experimental bounded mechanical profile evaluated 1 target(s); 0 evaluation candidate(s) have no production Finding authority.</li><li><code>detector:bounded-report-mean-direction</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-reported-method-contract-conflict</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:bounded-feature-identifier-identity</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:population-comparison-estimand</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:denominator-control-set</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:explicit-dependence</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li><li><code>detector:lineage-completeness</code>: 0 of 0 evaluated (not covered). No target entered an applicable qualified or declared experimental detector envelope.</li></ul>
+  <h3>Pending or unprocessed work</h3><ul><li>Resolve the ambiguous publication surface.</li><li>Extract provenance-bearing final claims after the publication surface is resolved.</li><li>Run only detectors whose qualified envelopes apply to the locked records.</li></ul>
+  <h3>Known coverage gaps</h3><ul><li>No SelectionEnvelope was reconstructed.</li><li>No final claim was bound to a complete ScientificContract.</li><li>No qualified production detector target was eligible.</li><li>1 delimited table(s) have header-only structural inventory; row shape, values, storage types, and scientific meanings remain unknown.</li></ul>
+</section>
+<section>
+  <h2>Experimental detector outputs</h2>
+  <p>These are deterministic development outputs, not Findings. An evaluation candidate cannot enter production Finding admission unless a later, independently supported qualification promotes the exact detector version.</p>
+  
+  <article class="card" id="experimental-detector-result-1">
+    <h3><code>detector:bounded-code-csv-multiple-testing-conflict</code></h3>
+    <p><strong>State:</strong> material question candidate. <strong>Maturity:</strong> experimental; <strong>production Finding permission:</strong> none.</p>
+    <p>A local correction occurrence is structurally located; complete-family scope remains unresolved.</p>
+    <p><strong>Evaluation-only bounded statement:</strong> Static analysis located correction-related computation but did not establish complete-family coverage.</p>
+    <details><summary>Coverage gaps</summary><ul><li>Complete-family correction-position equality is unresolved.</li></ul></details>
+    
+<details><summary>Exact evidence and bounded excerpts</summary>
+
+  <section class="evidence-item">
+    <h4>A bounded correction-related AST occurrence was located at the recorded source span.</h4>
+    <p>Role: context</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#experimental-detector-result-1-evidence-1-source-1"><code>analysis.py:70:27</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="experimental-detector-result-1-evidence-1-source-1">
+    <p><code>analysis.py:70:27</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <p>No quoted excerpt was stored for this source.</p>
+  </div>
+  
+</div>
+
+  </section>
+
+</details>
+
+  </article>
+  
+</section>
+<section>
+  <h2>Answer-side adjudicated root causes</h2>
+  <p>These qualification records preserve exact cross-provider panel decisions. They are not Findings in this audit and do not establish detector equivalence, global correctness, or publication readiness.</p>
+  <p>No answer-side adjudicated root-cause records are carried by this bundle.</p>
+</section>
+<section>
+  <h2>Detector qualification evidence</h2>
+  <p>These records are qualification-only evidence. Evaluation candidates are not Findings, case outcomes are not detector qualifications, and no metric shown here permits promotion.</p>
+  <h3>Scientific-label review basis</h3>
+  <p>No scientific-label adjudications are carried by this bundle.</p>
+  <h3>Evaluation candidates</h3>
+  <p>No qualification-only detector candidates are carried by this bundle.</p>
+  <h3>Fresh Stage-3 comparisons</h3>
+  <p>No Stage-3 comparison reviews are carried by this bundle.</p>
+  <h3>Deterministic case outcomes</h3>
+  <p>No reconciled detector case outcomes are carried by this bundle.</p>
+  <h3>Clustered metric sets</h3>
+  <p>No clustered qualification metric set is carried by this bundle.</p>
+  <h3>Static qualification proof records</h3>
+  <p>No static qualification profile is carried by this bundle.</p>
+  
+</section>
+<section>
+  <h2>Conditional concerns requiring scientific review</h2>
+  
+  <article class="card" id="concern-1">
+    <h3>If the located correction does not cover all 7 declared outcomes, the declared family may be incompletely corrected.</h3><p>If the correction at analysis.py:70:27 does not cover all 7 declared outcomes, some family conclusions may be based on incomplete multiple-testing control.</p>
+    
+    <p><strong>Potential impact:</strong> material if true — Complete-family correction scope determines whether the declared multiplicity requirement was satisfied.</p>
+    <p><strong>Review priority:</strong> high</p>
+    <p><a href="#question-material-question-multiple-testing-correction-scope-a49dc25cee1ff1aef0500ff3">Open the linked material question</a></p>
+    <p><strong>Why it matters:</strong> Complete-family coverage determines whether the declared multiple-testing requirement was satisfied.</p>
+    
+  </article>
+  
+</section>
+<section>
+  <h2>Material questions</h2>
+  
+  
+  
+  <article class="card" id="question-question-publication-surface-9282d3642297dd5a0c34"><h3>Which inventoried artifact is the final publication surface for this audit?</h3><p>The selected surface determines which final claims and backward lineage paths are material.</p>
+    <p><strong>Status:</strong> open. <strong>Priority:</strong> high</p>
+    
+    <p><strong>Blocked detectors:</strong> <code>detector:claim-result-direction</code>, <code>detector:population-comparison-estimand</code>, <code>detector:denominator-control-set</code>, <code>detector:explicit-dependence</code>, <code>detector:lineage-completeness</code></p>
+    <details><summary>Response paths and evidence searched</summary>
+      <ul><li><strong>DATA_DESCRIPTION.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>PROTOCOL.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>report.md:</strong> This artifact becomes the selected publication surface for claim-centric inspection.</li><li><strong>None or unknown:</strong> Publication materiality remains unassessed and candidate audits remain separate.</li></ul>
+      <ul><li>whole-repository file inventory: Filename signals identified candidates but are not sufficient to select one.</li></ul>
+    </details>
+  </article>
+  
+  
+  
+  <article class="card" id="question-material-question-multiple-testing-correction-scope-a49dc25cee1ff1aef0500ff3"><h3>Does this correction cover all 7 declared outcomes?</h3><p>Static analysis located correction-related computation at analysis.py:70:27, but could not prove whether it covers all 7 outcomes in the declared family. The answer can change how this unresolved case is recorded; it cannot create a tool Finding by itself.</p>
+    <p><strong>Status:</strong> open. <strong>Priority:</strong> high</p>
+    
+    <p><strong>Blocked detectors:</strong> <code>detector:bounded-code-csv-multiple-testing-conflict</code></p>
+    <details><summary>Response paths and evidence searched</summary>
+      <ul><li><strong>No — it does not cover all declared outcomes:</strong> Records an author attestation of incomplete scope as a non-Finding conditional concern.</li><li><strong>Yes — it covers all declared outcomes:</strong> Guides a structural recheck; the claim alone cannot establish complete coverage.</li><li><strong>Unknown:</strong> Leaves the question open.</li></ul>
+      <ul><li>analysis.py:70:27: A closed correction occurrence was located; complete-family coverage remains unresolved.</li></ul>
+    </details>
+  </article>
+  
+</section>
+
+
+
+<section>
+  <h2>Coverage and trust disclosures</h2>
+  
+  
+  
+  <article class="card" id="disclosure-1"><h3>No production detector was eligible in the general static audit</h3><p>The repository was inventoried and supported source files were parsed, but a qualified production detector envelope was not available; incomplete claim contracts or lineage may additionally restrict targets.</p>
+    <p><strong>Importance:</strong> material</p><p><strong>Interpretive consequence:</strong> Zero Findings from this run cannot be interpreted as evidence that the scientific workflow is correct.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-2"><h3>Some Python operations remain opaque to static inspection</h3><p>20 operation(s) were preserved with unresolved callable or runtime semantics.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> The internal scientific behavior of those operations was not established.</p>
+    
+<div class="evidence-package">
+  <p><strong>Source navigation:</strong></p>
+  <ul>
+  
+    <li><a href="#disclosure-2-source-1"><code>analysis.py:91-91</code></a></li>
+  
+    <li><a href="#disclosure-2-source-2"><code>analysis.py:59-59</code></a></li>
+  
+    <li><a href="#disclosure-2-source-3"><code>analysis.py:87-87</code></a></li>
+  
+    <li><a href="#disclosure-2-source-4"><code>analysis.py:46-46</code></a></li>
+  
+    <li><a href="#disclosure-2-source-5"><code>analysis.py:65-65</code></a></li>
+  
+    <li><a href="#disclosure-2-source-6"><code>analysis.py:86-86</code></a></li>
+  
+    <li><a href="#disclosure-2-source-7"><code>analysis.py:51-51</code></a></li>
+  
+    <li><a href="#disclosure-2-source-8"><code>analysis.py:82-82</code></a></li>
+  
+    <li><a href="#disclosure-2-source-9"><code>analysis.py:58-58</code></a></li>
+  
+    <li><a href="#disclosure-2-source-10"><code>analysis.py:85-85</code></a></li>
+  
+    <li><a href="#disclosure-2-source-11"><code>analysis.py:57-57</code></a></li>
+  
+    <li><a href="#disclosure-2-source-12"><code>analysis.py:83-83</code></a></li>
+  
+    <li><a href="#disclosure-2-source-13"><code>analysis.py:84-84</code></a></li>
+  
+    <li><a href="#disclosure-2-source-14"><code>analysis.py:56-57</code></a></li>
+  
+    <li><a href="#disclosure-2-source-15"><code>analysis.py:83-83</code></a></li>
+  
+    <li><a href="#disclosure-2-source-16"><code>analysis.py:84-84</code></a></li>
+  
+    <li><a href="#disclosure-2-source-17"><code>analysis.py:61-61</code></a></li>
+  
+    <li><a href="#disclosure-2-source-18"><code>analysis.py:55-55</code></a></li>
+  
+    <li><a href="#disclosure-2-source-19"><code>analysis.py:52-53</code></a></li>
+  
+    <li><a href="#disclosure-2-source-20"><code>analysis.py:54-54</code></a></li>
+  
+  </ul>
+  
+  <div class="source-excerpt" id="disclosure-2-source-1">
+    <p><code>analysis.py:91-91</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>main()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-2">
+    <p><code>analysis.py:59-59</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-3">
+    <p><code>analysis.py:87-87</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-4">
+    <p><code>analysis.py:46-46</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>pd.read_csv(CSV_FILE)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-5">
+    <p><code>analysis.py:65-65</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>stats.ttest_ind(a, b)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-6">
+    <p><code>analysis.py:86-86</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("   verdict: %s" % verdict)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-7">
+    <p><code>analysis.py:51-51</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Sit-stand workstation evaluation")</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-8">
+    <p><code>analysis.py:82-82</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("%d. %s" % (position, outcome))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-9">
+    <p><code>analysis.py:58-58</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Significance threshold: %.2f" % ALPHA)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-10">
+    <p><code>analysis.py:85-85</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("   %s = %.4f" % (p_label, p_used))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-11">
+    <p><code>analysis.py:57-57</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>", ".join(MUSCULOSKELETAL)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-12">
+    <p><code>analysis.py:83-83</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>a.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-13">
+    <p><code>analysis.py:84-84</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>b.mean()</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-14">
+    <p><code>analysis.py:56-57</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Hand correction (p x %d, capped at 1) applied to: %s"
+          % (N_COMPARISONS, ", ".join(MUSCULOSKELETAL)))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-15">
+    <p><code>analysis.py:83-83</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("   mean %s = %.2f" % (GROUP_A, a.mean()))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-16">
+    <p><code>analysis.py:84-84</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("   mean %s = %.2f" % (GROUP_B, b.mean()))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-17">
+    <p><code>analysis.py:61-61</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>enumerate(OUTCOMES, start=1)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-18">
+    <p><code>analysis.py:55-55</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Comparisons made in this evaluation: %d" % N_COMPARISONS)</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-19">
+    <p><code>analysis.py:52-53</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Employees: %d total, %d %s, %d %s"
+          % (len(data), len(fixed), GROUP_A, len(sit_stand), GROUP_B))</code></blockquote>
+  </div>
+  
+  <div class="source-excerpt" id="disclosure-2-source-20">
+    <p><code>analysis.py:54-54</code> · <code>sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052</code></p>
+    <blockquote><code>print("Test: independent two-sample t-test on each declared outcome")</code></blockquote>
+  </div>
+  
+</div>
+
+  </article>
+  
+  
+  <article class="card" id="disclosure-3"><h3>Scientific check representation is unsupported</h3><p>check:authorized-complete-family-correction-over-code-test-battery: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-4"><h3>Scientific check representation is unsupported</h3><p>check:authorized-independent-unit-entry-into-row-independent-procedure: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-5"><h3>Scientific check representation is unsupported</h3><p>check:casrx-isoform-axis-model: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-6"><h3>Scientific check representation is unsupported</h3><p>check:classifier-derived-copy-dosage-representation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-7"><h3>Scientific check representation is unsupported</h3><p>check:complete-domain-exposure-denominator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-8"><h3>Scientific check representation is unsupported</h3><p>check:complete-family-correction-over-performed-test-battery: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-9"><h3>Scientific check representation is unsupported</h3><p>check:direct-standardization-conditioning-set: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-10"><h3>Scientific check representation is unsupported</h3><p>check:directional-measurement-error-interpretation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-11"><h3>Scientific check representation is unsupported</h3><p>check:expected-count-background-construction: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-12"><h3>Scientific check representation is unsupported</h3><p>check:expected-count-focal-target-handling: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-13"><h3>Scientific check representation is unsupported</h3><p>check:founder-orientation-before-hmm-emission: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-14"><h3>Scientific check representation is unsupported</h3><p>check:full-map-ancestry-exposure: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-15"><h3>Scientific check representation is unsupported</h3><p>check:ld-covariance-whitening-before-robust-fit: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-16"><h3>Scientific check representation is unsupported</h3><p>check:local-perturbation-primary-row-scope: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-17"><h3>Scientific check representation is unsupported</h3><p>check:local-perturbation-regression-specification: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-18"><h3>Scientific check representation is unsupported</h3><p>check:mvmr-residual-heterogeneity-estimator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-19"><h3>Scientific check representation is unsupported</h3><p>check:paired-bridge-location-alignment: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-20"><h3>Scientific check representation is unsupported</h3><p>check:phase-split-mvmr-instrument-construction: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-21"><h3>Scientific check representation is unsupported</h3><p>check:poststratified-misclassification-estimator: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-22"><h3>Scientific check representation is unsupported</h3><p>check:posttreatment-missingness-strategy: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-23"><h3>Scientific check representation is unsupported</h3><p>check:recoverable-technical-group-adjustment: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-24"><h3>Scientific check representation is unsupported</h3><p>check:somatic-clonality-representation: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  <article class="card" id="disclosure-25"><h3>Scientific check representation is unsupported</h3><p>check:within-sequence-transition-path-continuity: No applicable operand was produced and at least one adapter boundary is unsupported.</p>
+    <p><strong>Importance:</strong> important</p><p><strong>Interpretive consequence:</strong> This experimental question-only check cannot emit a Finding. Unavailable or unchecked representations remain explicit.</p>
+    
+  </article>
+  
+  
+  
+  <details>
+    <summary>1 routine not-applicable scientific-check record</summary>
+    <p>These negative applicability records are retained for deterministic replay. They are coverage bookkeeping, not concerns about the workflow.</p>
+    <ul><li><code>check:mvmr-cross-exposure-covariance</code>: check:mvmr-cross-exposure-covariance: Every completed adapter determined that its exact representation does not apply.</li></ul>
+  </details>
+  
+</section>
+<section>
+  <h2>External reproduction requests</h2>
+  <p>These are proposed evidence requests only. They do not authorize sc-referee to execute project code, use credentials, or submit work to a scheduler.</p>
+  <p>No external reproduction request was generated for the selected scope.</p>
+</section>
+<section>
+  <h2>Claim lineage</h2>
+  <p>Each grade is independent. A partial aggregate does not show that the project workflow executed or that the report was reproduced.</p>
+  
+</section>
+<section>
+  <h2>Asset identity</h2>
+  <p>Identity strength limits only claims, lineage, or detector conclusions for which exact asset identity is a material premise. A weak or unidentified asset is a coverage and reproducibility limitation, not a scientific defect.</p>
+  
+  <article class="card"><h3><code>file:1843c06993088fba6a72</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:cb55ca636434bd2016ab</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:18b99985879246b8e03f</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:ac8c5a231a4e29a54239</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>file:749c2e15292adaf30490</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact:37f4b3939aafd3a8d988</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:804b1af26c40c267091b</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:6085b70f0e0e7b317363</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+  <article class="card"><h3><code>artifact-publication:abc3933d365d18ecae23</code></h3>
+    <p>Tier: full digest.</p>
+    
+  </article>
+  
+</section>
+<section>
+  <h2>Audit identity and provenance</h2>
+  <p>Run: <code>audit:25da8830db5c439d9ed2b7d616d53564</code></p><p>Semantic lock: <code>sha256:2cae3d7b267de543a989adf84202055f89ff7ee65e70cade75eddd72ff842d4b</code></p>
+  <p>Snapshot: <code>sha256:ad96e62f276fba4fd31b47d1dcebd4a13ad0b7b717c723a23ed00e4d092a8b93</code>; live workspace: unchanged.</p>
+  <p>External evidence records: 0. Project/auditor environments: 1. Environment reconstructions: 0. Reproduction requests: 0.</p>
+  
+  <article class="card">
+    <h3>Performance measurement through semantic lock</h3>
+    <p>This is a replayable boundary measurement, not total run duration. Post-lock report, storage, and integrity time is excluded.</p>
+    <p>User-visible elapsed: 0.21560662519186735 seconds; paused for scientist: 0.0 seconds.</p>
+    <p>Controller-observed model calls: 0; parser-cache hits: 0; misses: 4; invalidations: 0.</p>
+    <p>Metered snapshot full-digest reads: 12408 bytes; sampled-fingerprint reads: 0 bytes. Other I/O is not included.</p>
+  </article>
+  
+</section>
+</body>
+</html>

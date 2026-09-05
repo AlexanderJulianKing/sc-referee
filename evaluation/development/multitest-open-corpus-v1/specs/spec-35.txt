@@ -1,0 +1,36 @@
+SPEC-35 - Urban heat and emergency department visits by neighbourhood
+
+SCENARIO
+A public health department compared 60 city neighbourhoods split by tree canopy cover,
+30 high-canopy and 30 low-canopy, using one summer of routine health and environmental
+data. Each neighbourhood contributes one summary row.
+
+DATA FILE: data.csv
+One row per neighbourhood. 60 neighbourhoods.
+Columns, in this order:
+  neighbourhood_id  strings like "NB-01"
+  canopy_class      exactly two values: "low" and "high"
+  mean_summer_temp_c    mean summer air temperature, degrees C. Low near 27.8
+                        (SD 1.4), high near 25.9 (SD 1.3)
+  heat_ed_visits_per_1000  heat-related emergency visits per 1000 residents. Low near
+                        3.85 (SD 1.60), high near 2.40 (SD 1.15)
+  asthma_ed_visits_per_1000  asthma emergency visits per 1000 residents. Low near
+                        9.2 (SD 3.1), high near 7.6 (SD 2.8)
+  night_temp_c          mean night-time minimum temperature, degrees C. Low near 20.4
+                        (SD 1.1), high near 19.1 (SD 1.0)
+  pm25_annual_ug_m3     annual mean PM2.5, ug/m3. Low near 11.4 (SD 2.2), high near
+                        9.8 (SD 2.0)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Do the testing and the reporting in separate stages. In the testing stage, loop over
+the five outcomes, run a two-sample test for a difference in means for each, and store
+each outcome's name, group means, and p-value into a lookup keyed by outcome name,
+printing nothing at this stage. In the reporting stage, iterate the lookup in the
+declared outcome order and print a formatted table, working out at that point whether
+each entry is significant by testing its stored p-value against the conventional
+five-percent cutoff. The count of entries in the lookup never affects the cutoff.
+
+REPORT: report.md
+Half a page. Present the five outcomes with p-values and verdicts and discuss what they
+imply for the city tree-planting programme.

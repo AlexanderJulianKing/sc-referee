@@ -1,0 +1,23 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "data.csv",
+      "group_contrast_column": "protocol",
+      "outcome_columns": [
+        "pain_score_6h",
+        "rescue_analgesia_24h_mg",
+        "serum_cortisol_6h_ug_dl",
+        "heart_rate_6h_bpm",
+        "respiratory_rate_6h_brpm",
+        "food_intake_24h_g",
+        "rectal_temperature_6h_c"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

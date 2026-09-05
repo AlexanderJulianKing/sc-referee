@@ -1,0 +1,39 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A wastewater engineering comparison at a municipal treatment works. Thirty-two pilot-scale trickling filter columns were fed the same settled sewage from a common header tank for ten weeks. Sixteen columns were packed with conventional crushed rock media and sixteen with plastic cross-flow media; packing media is the two-level grouping factor. Each column contributes one set of steady-state performance values averaged over the final two weeks. Four outcome variables were declared in the pilot plan before commissioning, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Biochemical oxygen demand removal, in percent. Rock media around 82, plastic media around 76, column spread roughly 6.
+2. Ammonium nitrogen removal, in percent. Rock media around 68, plastic media around 55, spread roughly 9.
+3. Effluent suspended solids, in milligrams per litre. Rock media around 18, plastic media around 25, spread roughly 6.
+4. Attached biofilm dry mass per unit media surface, in grams per square metre. Rock media around 45, plastic media around 38, spread roughly 9.
+
+Data file requirements:
+- One row per column. Include a column identifier for the pilot unit, one data column for each outcome in the declared order, and one column recording the packing media with exactly two distinct values.
+- Sixteen pilot units in each group.
+- Every pilot unit has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real pilot-plant records: values scattered around the typical levels above with realistic spread and sensible rounding, removal percentages between zero and one hundred, some outcomes where the two media clearly separate and some where they barely differ.
+- Include exactly one effluent suspended solids value that is implausibly high for its unit, of the kind an operator would suspect came from a disturbed sample rather than from steady-state performance. Leave it in the data file.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the packing media.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of pilot units in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the four declared outcomes, run a standard two-group significance test appropriate for continuous measurements comparing the two media, and keep the resulting p-values together as one family.
+- These four outcomes form a single declared family, so adjust the complete family together with a standard multiple-comparisons correction applied to all four p-values at once, at the conventional 0.05 family level. Every significance verdict for the declared outcomes must come from the adjusted values.
+- In addition, re-run exactly one outcome's comparison once, the effluent suspended solids comparison, with the single implausibly high value excluded. Label this clearly in the script's output as a sensitivity check on that one outcome. It is not part of the declared family, it produces no new verdict, and no conclusion may be drawn from it beyond whether the family result for that outcome holds up.
+- Print each declared outcome's raw p-value, its adjusted value, and its verdict, then print the sensitivity check separately under its own label.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of pilot units, mean, and spread.
+- Explain in plain words that all four declared outcomes were adjusted together as one family and that the conclusions rest on the adjusted values.
+- State the conclusion for each declared outcome in the declared order.
+- Describe the re-run of the suspended solids comparison in a clearly separate part of the report as a robustness check on an already-decided outcome, saying explicitly that it is not an inferential result and does not add a conclusion of its own.
+- Write the report in your own words, as the process engineer who ran this pilot study.

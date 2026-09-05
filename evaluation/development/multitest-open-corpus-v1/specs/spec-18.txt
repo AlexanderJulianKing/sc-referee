@@ -1,0 +1,42 @@
+SPEC-18 - Mycorrhizal inoculant in wheat
+
+SCENARIO
+An agronomy trial sowed spring wheat with or without a commercial arbuscular
+mycorrhizal inoculant on one field with uniform soil, and harvested individual
+one-metre row sections as sampling units.
+
+DATA FILE: data.csv
+One row per row-section. 80 sections: 40 per treatment.
+Columns, in this order:
+  section_id      strings like "RS-001"
+  inoculant       exactly two values: "none" and "inoculated"
+  grain_yield_g         grain per section, grams. None near 268 (SD 44), inoculated
+                        near 285 (SD 46)
+  thousand_kernel_g     thousand-kernel weight, grams. None near 38.2 (SD 3.1),
+                        inoculated near 39.4 (SD 3.2)
+  grain_protein_pct     grain protein, percent. None near 11.8 (SD 1.0), inoculated
+                        near 12.1 (SD 1.0)
+  root_colonisation_pct roots colonised, percent. None near 18 (SD 8), inoculated
+                        near 41 (SD 12)
+  shoot_p_pct           shoot phosphorus, percent of dry matter. None near 0.28
+                        (SD 0.05), inoculated near 0.33 (SD 0.06)
+  tiller_count          fertile tillers per section, whole numbers. None near 122
+                        (SD 18), inoculated near 128 (SD 19)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Write the multiplicity control by hand as a label-shuffling procedure rather than using
+any packaged correction. First compute the observed test statistic for each of the six
+outcomes from the real treatment labels. Then repeat a fixed number of times, exactly
+five thousand, the following: shuffle the treatment labels across all sections, recompute
+all six statistics on the shuffled labels, and record only the single largest absolute
+statistic from that shuffle. Each outcome's family-wise adjusted p-value is the share of
+shuffles whose recorded maximum is at least as extreme as that outcome's observed
+statistic. Fix the shuffle seed so the result reproduces, print the shuffle count, and
+call an outcome significant only when its adjusted p-value from this maximum-statistic
+procedure is below five percent.
+
+REPORT: report.md
+Half a page. Explain the label-shuffling maximum-statistic procedure in plain words,
+state the shuffle count and seed, give each outcome's adjusted p-value, and interpret
+the surviving results.

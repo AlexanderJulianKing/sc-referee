@@ -1,0 +1,63 @@
+{
+  "1532d863877a21f078d4": {
+    "DATA_DESCRIPTION.md": "aaef81d481a21faa75e19d5cf9ed7626ee005501ba9118691adf3f940facd547",
+    "sunflower_trial.csv": "6ed518470e809668f0dd8fadcf121cf9a7bcf097564838ca9370feeb6e1f2859"
+  },
+  "265b4a50ff46707c3a26": {
+    "DATA_DESCRIPTION.md": "ee3b62ab659f352ae558288d36e4d5aebab52bfed7f5b22d3db8b3d3ce7d470e",
+    "aphasia_therapy_data.csv": "51d6342a410994af6cd94a7c9e7cf42d462ada73203a37863cb52b1b98d069eb"
+  },
+  "5926525400e0ed097c31": {
+    "DATA_DESCRIPTION.md": "d81a5f8864850d88b6ebad6f399a55f159f9adfffab31d3f43a37aa1593f3476",
+    "cane_ripener_trial.csv": "bf3dc86f8305e18705373525be0b8f07914e5d96f4e00be3a05be6934d634fcd"
+  },
+  "63ea01a01e2f5c56509b": {
+    "DATA_DESCRIPTION.md": "af6257c0692908df0aed6c61980e33afa498f250810df8739a7eeb0312508489",
+    "sleep_study_data.csv": "40529604bd145e76e5b963c2c28ab73900e29480e71063df9685da87a4c947b8"
+  },
+  "7129cd5a8d682a4c7340": {
+    "DATA_DESCRIPTION.md": "5cf186e5ad940fdf9feeb3a23bd78a7345bc1c7b20873d620aeb63822cf7cff2",
+    "adjusted_pvalues.csv": "adaf12ae778c4f8e80e08a8264953793e12db4587a8bdff70a1c6359a5d1a900",
+    "vanilla_curing_pods.csv": "b23310935c05bc988d0a7de651d3cfefe105cb488de81947413093f9ed8eb7f5"
+  },
+  "72a0a2e4cec8a7fc6450": {
+    "DATA_DESCRIPTION.md": "a6ce6aae733b3beec694af0f7fcd3ed211d4de52cc67cec32f0e718a876f11b0",
+    "levothyroxine_formulation_trial.csv": "cc328e1064af70b320b598f14704133055ab823e565f7f2f7b4216176c4c71a7"
+  },
+  "7f7aeea0409c82c71533": {
+    "DATA_DESCRIPTION.md": "f02478aa42d793ba94de5c43069726eb27c167bc81118f0de5fc7ef4cca22c91",
+    "damselfly_condition.csv": "b8ecbfec1848be1b99f2d06ce19f6b0eff3811617978444729b81ecee0a6c641"
+  },
+  "97d10fe68508b65dbbbe": {
+    "DATA_DESCRIPTION.md": "0caebbf2e7bbcf5962623f5bdb0d744dcbb7405986c62939cd62ad7e2e4c6ce3",
+    "mussel_rearing_data.csv": "71ed4ad79180bae2ad3cac47b49d0b0d1061f61ed62e8e494c9f9efc1b99fb24"
+  },
+  "a2e031f79e31c80fd900": {
+    "DATA_DESCRIPTION.md": "b7214a86750ee70a85df90a6f7a2a3278f4df994f75d6680caad9445e59eebd1",
+    "lichen_biomonitoring.csv": "5e12929a284274da75c3109f0958b47263e8c11d18d6d565409eeb326f2d66ea"
+  },
+  "b4e507c4b55954752f14": {
+    "DATA_DESCRIPTION.md": "c6a527d2c6841e1e039f381a8e79f6e8fc671f20bda836b209f08a9a88764aa4",
+    "workstation_evaluation.csv": "ecb780cfbe3155d2c9e1f8a522f742100edde21366613f33103d70609975ad15"
+  },
+  "bb51d22437d7c3562b62": {
+    "DATA_DESCRIPTION.md": "c56e588f511d6c7d839ae9595d155b82dd97c8eda8402d30d5af2e154d03c140",
+    "axolotl_feed_trial.csv": "8c3f224db0e7a38f756d1f29badadde2857ff1c66e6784f05b01f3b275336d47"
+  },
+  "d82542509694adf4716c": {
+    "DATA_DESCRIPTION.md": "119833b35aa60101e2fc7ef2635e6d3112a3b88a513b2799765e8a9dc0232833",
+    "parrot_diet_data.csv": "be97bab0573099ce490dca3e2e6bb8c498975f3b6c9ad1e15ea0dcd692f0d6e9"
+  },
+  "de2f4a189ac35b4e8bb1": {
+    "DATA_DESCRIPTION.md": "e176e43a03c5c187593d143544b789b0667b8ead82b75b6082b85a9cc2e72c71",
+    "exposure_data.csv": "16e8a4157034ab545c98b6ede72b99aabad94d4989c319d7a6f437ff7fee31bd"
+  },
+  "e2d8b1bdf4baa671a1b4": {
+    "DATA_DESCRIPTION.md": "4ff56fa2fdd2a86d61935d427ea2ffc3a11fc993836c0d8dc6f0e4033a75d7b2",
+    "daphnia_temperature.csv": "5507bec29a5856efb942544b76ffef122261ef2e1419c107de61ecda87be187a"
+  },
+  "f3217e701e0f2452afab": {
+    "DATA_DESCRIPTION.md": "3e8dff65b68da029e8d03baa6e87f517de1dd8feac5f8382ab93021654dc1ce4",
+    "yoghurt_cups.csv": "9e98b667acbd46b6433649b057bb71942cdb5f7d61f1675c258d20cf72b80244"
+  }
+}

@@ -35,6 +35,9 @@ ShadowPayloadType = Literal[
 _HERE = Path(__file__).resolve().parent
 _REPOSITORY_ROOT = _HERE.parents[2]
 _EXPERIMENT_PATH = "docs/implementation/EXPERIMENT-0058-DEPENDENCE-SEMANTIC-V1-SHADOW.md"
+_PACKAGED_EXPERIMENT_PATH = (
+    _HERE.parent / "resources" / "dependence-recognition" / Path(_EXPERIMENT_PATH).name
+)
 
 # Deliberately package-local.  The binding directive excludes founder files,
 # dependence_core.py, registry resources, and every production integration.
@@ -72,8 +75,19 @@ def dependence_recognition_dependency_closure() -> dict[str, str]:
     """Return exact hashes for only this package and its experiment record."""
 
     return {
-        relative_path: sha256_digest((_REPOSITORY_ROOT / relative_path).read_bytes())
-        for relative_path in DEPENDENCE_RECOGNITION_DEPENDENCY_FILES
+        **{
+            f"src/sc_referee/dependence_recognition/{name}": sha256_digest(
+                (_HERE / name).read_bytes()
+            )
+            for name in DEPENDENCE_RECOGNITION_PACKAGE_FILES
+        },
+        _EXPERIMENT_PATH: sha256_digest(
+            (
+                _REPOSITORY_ROOT / _EXPERIMENT_PATH
+                if (_REPOSITORY_ROOT / _EXPERIMENT_PATH).is_file()
+                else _PACKAGED_EXPERIMENT_PATH
+            ).read_bytes()
+        ),
     }
 
 

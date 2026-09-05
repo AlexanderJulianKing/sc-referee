@@ -1,0 +1,24 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "cucumber_grafting_trial.csv",
+      "group_contrast_column": "propagation_method",
+      "outcome_columns": [
+        "marketable_yield_kg",
+        "marketable_fruit_count",
+        "mean_fruit_mass_g",
+        "stem_diameter_mm",
+        "leaf_chlorophyll_index",
+        "root_dry_mass_g",
+        "soluble_solids_brix",
+        "days_to_first_harvest"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

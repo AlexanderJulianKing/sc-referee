@@ -1,0 +1,38 @@
+{
+  "adapter_version": "2.3.0",
+  "prototype": "D14-A-singleton-projection-generator",
+  "method": "real frozen 2.3 analyzer with adapter-equivalent frozen authority and CSV inputs; real-adapter ladder rungs separately pin the sealed P3 movement",
+  "none_flip": {
+    "corpus_correct": {"candidates": 0, "executed": 25},
+    "opened_negatives_E10_E14": {"candidates": 0, "executed": 45},
+    "historical_FA": {"candidates": 0, "executed": 22},
+    "D14_A_FA": {"candidates": 0, "executed": 6}
+  },
+  "historical_FA_census": {
+    "v2_2_normative": 6,
+    "v2_3_design_table_noncandidates": 15,
+    "v2_3_extra_escape_guard": 1
+  },
+  "D14_A_FA_outcomes": {
+    "D14-A-complete-correction": ["covered", "complete"],
+    "D14-A-call-component-refused": ["abstain", "test-battery-cardinality-unresolved"],
+    "D14-A-two-row-generator-refused": ["abstain", "test-battery-cardinality-unresolved"],
+    "D14-A-filtered-generator-refused": ["abstain", "test-battery-cardinality-unresolved"],
+    "D14-A-container-kind-mismatch-refused": ["abstain", "test-battery-cardinality-unresolved"],
+    "D14-A-arithmetic-component-refused": ["abstain", "test-battery-cardinality-unresolved"]
+  },
+  "opened_movements": {
+    "E14:P3:502687d9137dab93ff99": [
+      ["abstain", "test-battery-cardinality-unresolved"],
+      ["abstain", "unresolved-decision-threshold"]
+    ]
+  },
+  "corpus_movements": {},
+  "miss_projection": {
+    "P2": ["abstain", "pvalue-family-collection-unresolved"],
+    "P3": ["abstain", "unresolved-decision-threshold"],
+    "P4": ["abstain", "authorized-family-test-census-incomplete"],
+    "P5": ["abstain", "authorized-family-test-census-incomplete"],
+    "P6": ["abstain", "unresolved-manual-correction-present"]
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "envelope": "blind-envelope-12-2026-08-26",
+  "class": "multiple-testing",
+  "detector_under_test": "code_csv_multiple_testing 2.1.0 development lane at 8181add",
+  "briefing_sha256": "3e8b9dd8671cfb95f4d39f09b30b613fa476492c3df6708d847ed0aeb06d5b3e",
+  "positives": 6,
+  "negatives": 9,
+  "case_ids_sorted": [
+    "0ec89f70a9776d1a1931",
+    "190ca375ac7c481c3e08",
+    "45c4b9a19d0a630f1cb0",
+    "54667dd7c39067c8c2c8",
+    "6108263527580cd01608",
+    "62aa3748aa0c7c2607d3",
+    "678e94e79226936fd647",
+    "68d1a6f5b1ab70f2650a",
+    "7fd5f9dcd4097c1e5a03",
+    "c37c0fa6e462a22cb6d5",
+    "db193771248850b81b25",
+    "e07a6f2a895079b53b8c",
+    "e28a9537b07c74d21838",
+    "f256af2f5c5d98f37e65",
+    "f9ce4de5e21d9015ecd9"
+  ],
+  "role_map_sha256": "a277faf488c981ccaa4cbc85b8727e2ab5c79eb08995e2723630a145daeeb09c",
+  "custody": "external staging; no generator ships in any audited project",
+  "prompts_frozen_utc": "2026-08-26T10:25:03Z"
+}

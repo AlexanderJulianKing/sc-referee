@@ -1,0 +1,37 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A sports science group compares two pre-match warm-up protocols in senior club handball players. Forty-eight players from the same regional league are allocated to one of two protocols used for six weeks: twenty-four follow the club's usual mobility and jogging warm-up, and twenty-four follow a structured neuromuscular warm-up with added eccentric and balance work. At the end of the six weeks, every player completes the same testing session on one morning, and the same set of measurements is recorded for everyone.
+
+Before the study, the group declared a family of five performance outcomes, in this order:
+
+1. Countermovement jump height, cm (typical range about 27 to 50).
+2. Twenty metre sprint time, seconds (typical range about 2.85 to 3.55).
+3. Handball throwing velocity from a standing throw, km per hour (typical range about 58 to 98).
+4. Change-of-direction agility test time, seconds (typical range about 8.9 to 11.8).
+5. Peak isokinetic knee flexor torque, newton metres (typical range about 115 to 265).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per player and a header row. Include a player identifier column named player_id, a group column named warm_up holding exactly two values, usual and neuromuscular, and one column per declared outcome named, in the declared order: cmj_height_cm, sprint_20m_s, throw_velocity_kmh, agility_time_s, knee_flexor_torque_nm. Every player must have a value for every outcome; there must be no blank cells. Use twenty-four players in each warm-up group.
+
+Make the numbers behave like real testing data: realistic player-to-player variation within each group, timing gate rounding to hundredths of a second, and a mixture across the family, at least one outcome where the two protocols clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the protocols are effectively the same.
+
+Additionally, include exactly one clearly implausible sprint time in the sprint column, a value far outside anything a senior player would run, of the kind that comes from a timing gate that triggered late. Leave it in the data file as recorded.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the five declared outcomes, compares the two warm-up groups with an appropriate two-sample test, obtaining the group means, the difference, and the raw p-value.
+
+Control the family error properly: adjust the complete set of five raw p-values together for multiple comparisons, and take every inferential verdict, in the script and in the report, only from the adjusted values. Every declared outcome must be in the adjusted set.
+
+Then, in addition and separately, re-run the comparison for the sprint outcome once with the implausible timing value excluded, clearly labelled in the output as a sensitivity check on that one outcome. This re-run is not part of the declared family and produces no new inferential verdict; it exists only to show whether the conclusion for sprint time is robust to that one suspect value.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table with the group means, the raw p-value, and the adjusted p-value for each declared outcome in the declared order, a plain statement that the whole declared family of five outcomes was adjusted together, and the conclusion drawn for each outcome from the adjusted values. Report the sprint re-run in a clearly separate short subsection described explicitly as a robustness check on one suspect timing value, not as an inferential result, and state that the study's conclusions rest on the adjusted family analysis.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

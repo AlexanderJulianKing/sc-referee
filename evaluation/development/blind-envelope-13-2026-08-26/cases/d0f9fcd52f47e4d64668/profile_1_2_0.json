@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "ibs_dietary_advice.csv",
+      "group_contrast_column": "advice_group",
+      "outcome_columns": [
+        "symptom_severity_score_0_500",
+        "worst_abdominal_pain_0_10",
+        "bloating_days_per_week",
+        "stool_consistency_bristol_1_7",
+        "quality_of_life_score_0_100"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

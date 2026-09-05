@@ -1,0 +1,31 @@
+You are an occupational health researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A salon chain ran a twelve-week hand-skin study in apprentice hairdressers, who develop irritant hand dermatitis from frequent wet work. Fifty-four apprentices took part, each assigned to one of two glove protocols: thin cotton liners worn under disposable nitrile gloves, or disposable nitrile gloves alone. There are 27 apprentices in each protocol, each measured once at the end of week 12. Seven outcomes were declared in the study protocol before recruitment, in this order:
+
+1. transepidermal water loss on the back of the dominant hand in grams per square metre per hour (typical values around 9 to 16, spread of about 4)
+2. stratum corneum hydration in arbitrary capacitance units (typical values around 32 to 45, spread of about 8)
+3. clinical hand eczema severity score on a 0 to 30 scale (typical values around 3 to 9, spread of about 3)
+4. self-reported itch on a 0 to 10 scale (typical values around 2 to 5, spread of about 2)
+5. skin surface pH (typical values around 5.0 to 5.8, spread of about 0.3)
+6. erythema index in arbitrary units (typical values around 7 to 11, spread of about 2)
+7. number of days with hand symptoms in the previous four weeks (typical values around 4 to 10, spread of about 4)
+
+The first two outcomes, water loss and hydration, are the protocol's primary barrier-function outcomes; the other five are declared secondary outcomes.
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per apprentice, 54 rows plus a header. Columns in this order: a participant identifier, the glove protocol group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit where the outcome has one. The group column holds exactly two distinct values, one for liners under nitrile and one for nitrile alone. Every apprentice has a value in every outcome column; there are no blank cells. Make the values plausible for working hands, with realistic within-group spread and modest, not identical, differences between the two protocols.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two protocols on each of the seven declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome.
+
+Because the two primary barrier-function outcomes carry the protocol's main claim, adjust the p-values of just those two together using a standard multiple-comparison adjustment routine from a widely used Python statistics library, and base their verdicts on the adjusted values. For the five secondary outcomes, report the plain unadjusted p-values and give each a straightforward significant or not significant verdict at the conventional 0.05 threshold.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then give the per-outcome results and, for each outcome, your significance verdict and what it means for skin protection at work. Finish with a short conclusion and a glove recommendation for the chain.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

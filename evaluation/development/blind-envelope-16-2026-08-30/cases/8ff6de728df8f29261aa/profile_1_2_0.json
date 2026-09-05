@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "plantain_frying_batches.csv",
+      "group_contrast_column": "frying_method",
+      "outcome_columns": [
+        "oil_content_g100g",
+        "acrylamide_ug_kg",
+        "breaking_force_n",
+        "colour_b_cielab",
+        "crispness_score_pts"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

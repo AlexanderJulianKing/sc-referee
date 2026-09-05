@@ -1,0 +1,108 @@
+{
+  "298a1432b9b550031f5d": {
+    "DATA_DESCRIPTION.md": "31828da9536c8720648b9646e83025713361d097a963bc504c7066be80c1ed45",
+    "PROTOCOL.md": "5098b22c831c50bb3dbae518675eb67f6fe7e72b644bf8d7cd32f604cf0d509b",
+    "analysis.py": "356ee4ca1dab9a9ac32bf2ab56817401acec893c1e11d05600ba500c51a32b39",
+    "eel_catchment_survey.csv": "1aff9a8cdb65906dc68ac84a5ea34f0b3da3ab61e48c45abf6bfa33c0bf0b767",
+    "report.md": "0fa1379038b7f812115df30ccae1c90aefb21be59ac8a6ed5bca69d85092a1d3"
+  },
+  "5a9c5b4377c33916d672": {
+    "DATA_DESCRIPTION.md": "f30070d2aa64ab3b181e07d70484d317bcca515f45d4ca6b1fa31ff1c02b180a",
+    "PROTOCOL.md": "c59d6fdd7ccd7d1db9c724426298c1debaa79c78ee27b6a06b61e0b77c68f834",
+    "analysis.py": "c8b1d327807d5debee3daff9b7e8c25394382dca1c5227b79c78634629b29d74",
+    "green_roof_survey.csv": "0bf8006faa28e29d0b4b4ff84629f6eb9bb739c883533ac987a2ec80d38db6b2",
+    "report.md": "25a6625b983279563800db9fef428aaeb54def5d6ffab74a473d306d5eda31b2"
+  },
+  "6c45fce29073c572d8c0": {
+    "DATA_DESCRIPTION.md": "a8da9b250cc1aefba3e480f95f604c8e4cda95cc83f7b7dfca8434fa4ad26aaf",
+    "PROTOCOL.md": "00da8c2954703f668ae45d1c946e8e5bb0600047ca682a37ddef1d36a4b62bf2",
+    "analysis.py": "43c0a35957c935e6910ea6b82a4e7a1887a853afa9649ae9f76d5d753f3c66f8",
+    "lobster_shelter_trial.csv": "3e7ff3d734f337c118a9ad69d86a084c89bb51fca8382d8ade34d787f669bde6",
+    "report.md": "f58cae1ec810781cdb87a878ad640509ef16ef506b2a145ad586833a37a6a13a"
+  },
+  "6d5e78b815b73081865f": {
+    "DATA_DESCRIPTION.md": "b42367a08d5d97512e6e69e38b55a51426e122d1588ef4a1433c152f0f5a54e1",
+    "PROTOCOL.md": "735dd9f4b4886fbf3aa3821ddc9616f6b6241716533557f0e42f0456284b29d0",
+    "analysis.py": "a8ea64a8d44254d9fa7651fd388a41575b8a79435543301614a9b1196b273952",
+    "report.md": "32eea1111c618eaaf6775264c48ab50c58844d95a3329a696fc19d72e050d1a9",
+    "swimmers.csv": "d0a4a1f26d0db4815c2854dcf5611fdfd664f6477ae5ba9ee298d024a3cc915d"
+  },
+  "76f0e7831f3856df66d5": {
+    "DATA_DESCRIPTION.md": "f3cbbe89e30b5e098fd0cff86fb8c067924015ca181b4c71d7822222a2db4f76",
+    "PROTOCOL.md": "d0926ed11a6b5eee2d6c2080b632f8a6a6acbdf303e51571d7034a0e8185e3e1",
+    "analysis.py": "725c126e8d5d2358889dc68497e4cccf704866a1179b16e50f1ba3bc5598eca1",
+    "hedge_sections.csv": "783f69dfa757176e399bbaf01b57ed46e96a671f7315f1d1035f482e709e81cf",
+    "report.md": "4276ee2767b2b3af89ee7920c278e084144f9f645f01f085f3be04b5933dc1a2"
+  },
+  "7a43fa7b50f1b99e5034": {
+    "DATA_DESCRIPTION.md": "551530d2d494988b2e7b7e74ab80e933b865c8aad407f9e9f8646ff20879b2c6",
+    "PROTOCOL.md": "85442328b40131ac6f428d83ab1d15519c8bf605d6c0c312ab7ce21d2bdb2675",
+    "analysis.py": "e64ec6f3c35190b3a1fb49a6708ea064b209224b9523a473aa4439c869277f13",
+    "quail_flooring.csv": "5793931b5b3353f0158d5e98534510368199790f52d640b22a12ec64b01719e8",
+    "report.md": "fd46b29c5d24c17e695c4c55839671e4ed22e9d45c8947bc31f7bc8b19c9f956"
+  },
+  "7be23db36040f5be1df2": {
+    "DATA_DESCRIPTION.md": "3e45ec7d8ff08f64cd6dbd5cc639fbbcbb83516eb16d6e6e53036d62813941c5",
+    "PROTOCOL.md": "97570d6cdc1679cbd02c26ca1ab2e71b0ef8e9129edf13c9c7dce12f10976f8d",
+    "analysis.py": "f13a143e27e0ca47d013b6924c26452e38b530a41f22588b38457eada09a4fd6",
+    "molar_cold_therapy.csv": "0244fc7b8e0c5b1cbe2a7bf4d6e283abbb4f0b04d5ec064ca1e4efbbad6e9205",
+    "report.md": "f70b8a2c357c1b08801be1841a72fbab3fd44eed7e64554cfa21c04c80422ec7"
+  },
+  "8b9b2171434ddd20b63f": {
+    "DATA_DESCRIPTION.md": "a74854462280d62a8af97ce427fb26b1ac6f3ebaab59484cab887976652ef620",
+    "PROTOCOL.md": "76e9d8c83f72de84632a221fc155493fe1cb95b278ef95b13362f9985bed8ca4",
+    "analysis.py": "44ff68573e7e2cfd76b5395f0528b91c01d1d641d9edb7397dd4f1d669d3cd19",
+    "hares.csv": "5ccf6b3f60abbe457f78ab338be10e519b86c5f5b519d6f743d9d62fd6e55010",
+    "report.md": "9a09f6900245593e06de8a46ea91e3629c69d981ac4ed868a1c8339f93366489"
+  },
+  "8ff6de728df8f29261aa": {
+    "DATA_DESCRIPTION.md": "5fe73e1a600670557c895a0622ffe05bb1d0810462a6b508a3e4df05db4583ab",
+    "PROTOCOL.md": "e5bea0de92e6ead48bc2bef61e2e854d0aab65a8d26e1d1d77d12da9b0f18f1a",
+    "analysis.py": "3e7cddffc48c451fc50b069338f94db0d5ae8df6e7a882f37a38bc3e4a6450ff",
+    "plantain_frying_batches.csv": "0455d8c1e426e0239f1473938174a7163c567aac6bfe325a63739884c7919392",
+    "report.md": "1546ae39c25312ab182505360786b0467c84ed96c441b3f6b6935ec0f1a7440b"
+  },
+  "9155ca1dd76fa5c630b1": {
+    "DATA_DESCRIPTION.md": "a61f7aabf404360d4e3ac4c66146b4780af000fcd13a6d4403a27625c4a11cb2",
+    "PROTOCOL.md": "16cfe3d765e02d43df73046e340c10544eff40d0bc903faf459fef31db3b7e4b",
+    "analysis.py": "9ec0de8ce780dc575bb045ce810d022e6bf44f3749afea07d691cd9c83d7a09b",
+    "millet_irrigation.csv": "795f3d693e810d231cf6996f1f5d7c36f2999d4434a5fa76bbd6534d7e055e3f",
+    "report.md": "55cff23178d569b98f87a7f7ccb98594037ada1533c60f09679ec1622e95ed46",
+    "upstream_inference.csv": "3e27e6d7e630520f6c6a12cdddbd60cece0cd1fe4c9ec34192b1a87a952e6b89"
+  },
+  "9ced761b41ef93485acf": {
+    "DATA_DESCRIPTION.md": "f19b0c2f3bf5f89f5c13071482df83b82c02ee38ffa13b04ad201710b58e6d08",
+    "PROTOCOL.md": "fbfcdcafca1331d9091f87f3d5c9987d68b9f4489e5a33d45f936ebf594101e6",
+    "analysis.py": "c1a9f3f1270b1bc06ad95b84bca91b14475c8b89062beed256c3ee87ce6e3854",
+    "chickpea_inoculation.csv": "9ab5a0ffcc9c0fdbb36fc61e74845b35ede55671f9fec6b78e60de59f4f96f2b",
+    "report.md": "28ad15064a8e24a15bb33f23f2a577f0895e9a0302dd7632187038b74f91227b"
+  },
+  "a5a32dcc59d4f3acd943": {
+    "DATA_DESCRIPTION.md": "ca9ddf3ee2f0718d97003fe2427e24c6e858f641b2e35278670741c56bb5e3e7",
+    "PROTOCOL.md": "af86e1e07a2855eac088266b20eedd3e20edb057cfbc1f409921e05da2c0109a",
+    "analysis.py": "05bd172c9168ecd9d2f7b42cb47f4beec097e2220985f54c4129dd96a60e708f",
+    "report.md": "cefbbb3e0105cc6f665f3dbbb205b123152fb3912938f582e322de166c551859",
+    "tinnitus_sound_therapy.csv": "6928c3997d5e04d71fa45d9baedd02b21a460fb024d100247b41407de65597d5"
+  },
+  "b1b81b953f324b7e4f75": {
+    "DATA_DESCRIPTION.md": "f638c0b4f7f9dc366e7ffe5dc34d229c2bc594e6a74214036d40c85b7371ccb4",
+    "PROTOCOL.md": "23cea72117d6629ee40d6e1d095b073f66b36e8fb8dcec7b14f74deefd795105",
+    "analysis.py": "88db909d70eb7c3cb9fed55858b1474b447ecf68247af5f706798f6eecc8a1e5",
+    "eczema_trial.csv": "c22695b050380b9c48b595378a6aae320ac05285e9e985b5987690b7a9db23a4",
+    "report.md": "95c01c8666ced1a8d5dbb97cd8b4d54cfd9187698d379beac0c69cbf91c76bf7"
+  },
+  "c89a2a4259f96b413be8": {
+    "DATA_DESCRIPTION.md": "8f43c8caea380f7586294fcec625128962b7faac678f5e801313798a8c58a1d2",
+    "PROTOCOL.md": "d1e9e789a892bf4f8bcbb30924f5d4fccf2699a345cf9dcc2b6fe21990a73150",
+    "analysis.py": "4728e05ad6291804a692ac7587fa7fb520426d38f7133b33c75b57d9b32cff51",
+    "bakery_flour_dust.csv": "9bf993e6853749cbe3deef36e3727a35b00dac421dd005b02f62cb8c5af7d1dc",
+    "report.md": "37879883e4bcfa247be051d0aad358bf93dcb36dd1eaef2e263f7c4028f44ef9"
+  },
+  "f0214d4b77f589655ac3": {
+    "DATA_DESCRIPTION.md": "bdac2e0b7c55d22ad823d59c330c709bb2e5814dbfe860b1e1b0f83d7765fb0c",
+    "PROTOCOL.md": "997ebed013b113591433a3be068e6377a890c1ae3a8f994b60f02fa23d37eb9c",
+    "analysis.py": "406a6764ed779dfee1aa158f544f2112267e56d52ab61734ff2557923df4bd78",
+    "girth_pad_trial.csv": "9500a0352586d0662404972dc9604a85220a3e8cb0793753fc647a746ade5ab6",
+    "report.md": "2a4f22231c3457fbe8d1f41829d0b67844cadd26b9d7a65de6950290a7d8898e"
+  }
+}

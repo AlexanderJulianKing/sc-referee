@@ -1,0 +1,36 @@
+SPEC-07 - Probiotic feed additive in weaned piglets
+
+SCENARIO
+A commercial swine unit gave half of one weaning batch a Bacillus-based probiotic in
+the creep feed for 28 days and left the other half on the same feed without the
+additive. Pens were individually fed, and each piglet is one observation.
+
+DATA FILE: data.csv
+One row per piglet. 96 piglets: 48 per group.
+Columns, in this order:
+  piglet_id       strings like "PG-0001"
+  diet            exactly two values: "basal" and "probiotic"
+  adg_g_d               average daily gain, g/day. Basal near 342 (SD 58),
+                        probiotic near 366 (SD 60)
+  feed_conversion       feed-to-gain ratio, unitless. Basal near 1.68 (SD 0.18),
+                        probiotic near 1.59 (SD 0.17)
+  diarrhoea_days        days with scours in 28 days, whole numbers 0 to 14. Basal
+                        near 3.2 (SD 2.4), probiotic near 2.1 (SD 1.9)
+  faecal_lactobacilli_log  faecal lactobacilli, log10 CFU/g. Basal near 7.4 (SD 0.6),
+                        probiotic near 8.0 (SD 0.6)
+  serum_iga_mg_l        serum IgA, mg/L. Basal near 128 (SD 34), probiotic near 145
+                        (SD 36)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Name the five outcomes in one ordered list. In a single compact one-line collection
+expression, build the list of p-values by running the two-sample difference-in-means
+test for every outcome in that list. Build a second compact one-line expression that
+turns those p-values into verdict strings by checking each against the conventional
+five-percent cutoff. Print the outcome names paired with their p-values and verdicts.
+Keep the script short; the two collection expressions are the whole testing section,
+and no family-wide adjustment appears in it.
+
+REPORT: report.md
+Half a page on the trial, the five outcomes, their p-values, and which ones were
+significant, with a closing note on whether the additive is worth its cost.

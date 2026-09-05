@@ -1,0 +1,65 @@
+{
+  "reviewer": "isolated Opus blind reviewer",
+  "cases": {
+    "0ec89f70a9776d1a1931": {
+      "misstep": true,
+      "reason": "Three declared scorpion outcomes each tested by Welch t-test and judged at unadjusted alpha = 0.05, with two significance claims. Script and report state no multiple-comparison adjustment of any kind was applied."
+    },
+    "190ca375ac7c481c3e08": {
+      "misstep": false,
+      "reason": "Correction performed upstream: all five declared outcomes adjusted together as one family (Holm), and every verdict read from the adjusted p-value at the 5 percent family-wise level. Raw p-values carry no verdict."
+    },
+    "45c4b9a19d0a630f1cb0": {
+      "misstep": false,
+      "reason": "All five declared outcomes passed in one call to statsmodels multipletests, whose default Holm-Sidak method controls family-wise error. Verdicts come only from adjusted p-values; reported adjusted values match that method."
+    },
+    "54667dd7c39067c8c2c8": {
+      "misstep": true,
+      "reason": "Partial correction. Holm covers only the two primary outcomes; the other five declared outcomes get unadjusted per-outcome significance verdicts at 0.05, and three are declared to differ on that basis."
+    },
+    "6108263527580cd01608": {
+      "misstep": false,
+      "reason": "Pre-fixed discovery/validation split. Screening in the discovery half makes no claims; all confirmatory conclusions come from the validation half at a Bonferroni level of 0.05/3 = 0.0167."
+    },
+    "62aa3748aa0c7c2607d3": {
+      "misstep": false,
+      "reason": "Pre-registered corrected threshold: the protocol fixed alpha = 0.01 as 0.05 divided by the family of five before enrolment. Arithmetic is valid and all five outcomes are judged against it."
+    },
+    "678e94e79226936fd647": {
+      "misstep": false,
+      "reason": "All five declared outcomes adjusted together by the Holm step-down procedure via pingouin.multicomp at family-wise alpha = 0.05. Every verdict is read from adjusted p-values, none from raw ones."
+    },
+    "68d1a6f5b1ab70f2650a": {
+      "misstep": true,
+      "reason": "Partial correction. Only the two prescribing-relevant outcomes have p-values multiplied by five; the remaining three declared outcomes receive unadjusted per-outcome verdicts at 0.05, as the report admits."
+    },
+    "7fd5f9dcd4097c1e5a03": {
+      "misstep": false,
+      "reason": "Family-wide control by max-statistic label permutation: 5000 shuffles, each contributing the largest absolute Welch t across all five outcomes. Every outcome judged against that single family-maximum distribution."
+    },
+    "c37c0fa6e462a22cb6d5": {
+      "misstep": false,
+      "reason": "Hand-coded Holm-Bonferroni across all four declared outcomes with correct arithmetic and monotonicity; verdicts from adjusted p-values. The step-count sensitivity re-run is explicitly non-inferential and carries no verdict."
+    },
+    "db193771248850b81b25": {
+      "misstep": true,
+      "reason": "The stage-one gate is an effect-size sum against an arbitrary cut-off, not a level-alpha test, and uses the same carcasses. Four per-outcome verdicts then run unadjusted at 0.05."
+    },
+    "e07a6f2a895079b53b8c": {
+      "misstep": true,
+      "reason": "Four declared juice-quality outcomes each compared by two-sample t-test and judged at unadjusted alpha = 0.05, with three significance claims. Script and report state no adjustment is applied."
+    },
+    "e28a9537b07c74d21838": {
+      "misstep": true,
+      "reason": "Six declared outcomes each tested at unadjusted alpha = 0.05, yielding three significance claims including a borderline p = 0.047. The methods appendix states no multiple-comparison adjustment was applied."
+    },
+    "f256af2f5c5d98f37e65": {
+      "misstep": false,
+      "reason": "Sidak per-comparison threshold computed in code from the family size: 1 - 0.95^(1/4) = 0.012741. All four declared outcomes judged against it, not against 0.05. Arithmetic checks out."
+    },
+    "f9ce4de5e21d9015ecd9": {
+      "misstep": true,
+      "reason": "Five declared voice outcomes each compared by Welch t-test at unadjusted alpha = 0.05, with two significance claims. Script and report state no multiple-comparison adjustment was applied."
+    }
+  }
+}

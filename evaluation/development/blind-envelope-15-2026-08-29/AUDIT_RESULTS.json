@@ -1,0 +1,195 @@
+{
+  "envelope": "blind-envelope-15-2026-08-29",
+  "class": "multiple-testing",
+  "detector": "code_csv_multiple_testing 3.0.0 (development lane), repo a28cfde",
+  "design_lineage": "3.0 record model Rev 1b + audit fix rounds 1-3; corpus 19/25, E14-retro 4/6 before this envelope",
+  "hard_stops": {
+    "negative_candidates": "0/9 accusation candidates PASS (N1 resolved covered/complete positions [0,1,2,3]/4 - the safe-direction affirmation of a correct analysis, first blind covered/complete in the class)",
+    "findings_anywhere": "0 PASS (30 bundles)",
+    "replay": "15/15 identical PASS",
+    "class_fa_window": "0 FA in all 90 available class-specific blind cases PASS"
+  },
+  "first_contact_recall": "2/6 (caught: P1, P2)",
+  "positive_misses": {
+    "P3": "unresolved-manual-correction-present",
+    "P4": "test-battery-cardinality-unresolved",
+    "P5": "record-family-mutation-unresolved",
+    "P6": "unresolved-manual-correction-present"
+  },
+  "blind_review_summary": {
+    "misstep_true": 7,
+    "misstep_false": 8,
+    "mismatches_vs_design": 1,
+    "note": "N6 gated-screen realization dispute, fourth occurrence (E10/E12/E13/E15); detector abstained, no FA either way"
+  },
+  "class_tally": "window E13+E14+E15 = 3+1+2 = 6/18 NOT reached; next window E14+E15+E16 needs E16 = 6/6 (near-impossible); realistic path is E16+E17 >= 7/12 after the correction-recognition design",
+  "recall_note": "The record model engaged blind (P5 reached record-family-mutation-unresolved; N1 resolved covered/complete through the record path). Three of four misses (P3, P5, P6) are partial-hand-correction shapes that need the deferred AP(C,POS) correction-recognition branch to classify as strict_subset candidates; the conservative FA-hardening rounds deliberately traded this recall. That design, with the cumulative probe set the audit demands, is the next material step.",
+  "scored_utc": "2026-08-28T23:00:35Z",
+  "cases": [
+    {
+      "case_id": "e90debfca9efcf70e758",
+      "role": "P1",
+      "designed_class": "positive",
+      "dev_outcome": "candidate",
+      "dev_reason_or_classification": "none",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "All four declared outcomes are tested separately and each verdict is read from its own unadjusted p-value at 0.05, with three called significant. Thousand-seed weight at p = 0.0255 would not survive any correction over a family of four."
+    },
+    {
+      "case_id": "f616be91eaedbf23fad2",
+      "role": "P2",
+      "designed_class": "positive",
+      "dev_outcome": "candidate",
+      "dev_reason_or_classification": "none",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "All six declared outcomes are compared with Welch t-tests and each is judged on its own raw p-value at 0.05, with five reported as significant. No multiplicity adjustment is computed anywhere in the analysis."
+    },
+    {
+      "case_id": "afe47b2a7ea87ed21a69",
+      "role": "P3",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-manual-correction-present",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Each of the five declared outcomes is given its own verdict at the conventional 0.05 threshold from its own raw Welch p-value, with two called significant, and no family-wise adjustment appears anywhere in the code or report."
+    },
+    {
+      "case_id": "6e0ce2fc6d782f351d96",
+      "role": "P4",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "All three outcomes of the declared family are tested with Welch t-tests and each verdict is read straight from its own unadjusted p-value at 0.05, with two declared significant. There is no multiplicity adjustment of any kind in the code or report."
+    },
+    {
+      "case_id": "3d2f92807b8138de6463",
+      "role": "P5",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "record-family-mutation-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Only the two primary endpoints are Holm-adjusted; the five secondary outcomes of the same declared seven-outcome family are judged on raw p-values at 0.05, and two of them (resaturation half time p = 0.0399, finger soreness p = 0.0371) are reported as significant. Part of the family is controlled and the rest gets unadjusted conclusions."
+    },
+    {
+      "case_id": "81980e878c1bc8cc216b",
+      "role": "P6",
+      "designed_class": "positive",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-manual-correction-present",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "Only the three primary endpoints get the by-hand Bonferroni multiplication by the family size of 8; the other five declared outcomes are judged on raw p-values at 0.05 and four of them (pumping rate, body length, age at first egg, crawling speed) are reported as separating the groups. Partial family control with unadjusted conclusions for the rest."
+    },
+    {
+      "case_id": "f846b07b1d11131cec4d",
+      "role": "N1",
+      "designed_class": "negative",
+      "dev_outcome": "covered_complete",
+      "dev_reason_or_classification": "complete positions=[0, 1, 2, 3]",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four raw p-values are passed together in a single multipletests call; the statsmodels default method is 'hs' (Holm-Sidak step-down), which controls the family-wise error rate, and every verdict is read from the returned adjusted p-value. The reported adjusted values match Holm-Sidak over a family of four."
+    },
+    {
+      "case_id": "5fb661f1e846196aa832",
+      "role": "N2",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-operand-lineage-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "A hand-computed Sidak per-comparison level, 1 - 0.95^(1/5) = 0.010206, is derived from the declared family size and applied to all five outcomes. No outcome is judged against 0.05."
+    },
+    {
+      "case_id": "907f9057eb9fc1d88e99",
+      "role": "N3",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-manual-correction-present",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four raw p-values from the complete declared family are passed together in one pingouin.multicomp Holm call at a family-wise 0.05, and each verdict is read from the adjusted p-value. Raw values are printed for transparency only."
+    },
+    {
+      "case_id": "42f325bec89c5695ea51",
+      "role": "N4",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "family-test-api-dispatch-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All five declared p-values are passed together in one Holm-Bonferroni call and every verdict is read from the adjusted value. The single unadjusted intraocular-pressure sensitivity run is explicitly excluded from the family and carries no significance verdict."
+    },
+    {
+      "case_id": "3583dc8b101822cf15b9",
+      "role": "N5",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "extra-registered-test-outside-authorized-family",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "A pre-fixed discovery/validation split screens all six outcomes in the discovery half with no conclusions drawn there, and the five survivors are confirmed in the independent validation half at a Bonferroni level of 0.05/5 = 0.01. Every claimed finding rests on the adjusted validation test."
+    },
+    {
+      "case_id": "d29aecb0a61ab4ebc486",
+      "role": "N6",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "authorized-family-test-census-incomplete",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": true,
+      "blind_review_reason": "The 'gatekeeper' is an uncalibrated descriptive quantity (the mean absolute difference of group z-score means across the five columns) compared against an arbitrary 0.40 cutoff with no reference distribution or error rate, and once it opens all five outcomes get unadjusted Welch verdicts at 0.05. A single large effect such as furosine forces the gate open on its own, so the remaining outcomes are effectively tested at a free 5% each and family-wise error is not controlled."
+    },
+    {
+      "case_id": "9d5848e6aaba7586e0f1",
+      "role": "N7",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "authorized-family-test-census-incomplete",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "The site script runs no test of its own; every verdict comes from upstream Holm-Bonferroni adjusted p-values supplied for all four declared outcomes, and the script errors out if any declared outcome lacks one. The supplied adjusted values are arithmetically consistent with Holm over a family of four."
+    },
+    {
+      "case_id": "0aa1af228c91fde5f909",
+      "role": "N8",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "test-battery-cardinality-unresolved",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "All four declared outcomes are judged against a label-shuffling max-statistic reference distribution built from the largest absolute Welch t across the whole family, which is a valid permutation max-T family-wise control. The report states explicitly that no verdict comes from an unshuffled per-outcome p-value."
+    },
+    {
+      "case_id": "7992deeaaf441345c89e",
+      "role": "N9",
+      "designed_class": "negative",
+      "dev_outcome": "abstain",
+      "dev_reason_or_classification": "unresolved-decision-threshold",
+      "qualified_lane": "refused (check_id does not resolve)",
+      "replay_identical": true,
+      "blind_review_misstep": false,
+      "blind_review_reason": "The protocol fixed a per-outcome threshold of 0.01 in advance as 0.05/5 Bonferroni over the five-outcome family, and the code applies that single threshold to every declared outcome. The report states the derivation and holds back ionised calcium at p = 0.0122, which would have cleared an uncorrected 0.05."
+    }
+  ]
+}

@@ -1,0 +1,313 @@
+{
+  "corpus_movements": {
+    "D-combined": {},
+    "D-reader-static-local-binding": {},
+    "D-terminal-clone-position-closure": {}
+  },
+  "method": "real frozen 2.2 analyzer invoked through adapter-equivalent authority/CSV inputs; the adapter can only add an earlier source-envelope abstention",
+  "miss_projection": {
+    "P2": {
+      "D-combined": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "D-reader-static-local-binding": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "D-terminal-clone-position-closure": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ],
+      "baseline-2.2": [
+        "abstain",
+        "extra-registered-test-outside-authorized-family"
+      ]
+    },
+    "P5": {
+      "D-combined": [
+        "candidate",
+        "strict_subset"
+      ],
+      "D-reader-static-local-binding": [
+        "abstain",
+        "unresolved-manual-correction-present"
+      ],
+      "D-terminal-clone-position-closure": [
+        "abstain",
+        "authorized-reader-lineage-unavailable"
+      ],
+      "baseline-2.2": [
+        "abstain",
+        "authorized-reader-lineage-unavailable"
+      ]
+    },
+    "P6": {
+      "D-combined": [
+        "abstain",
+        "unresolved-manual-correction-present"
+      ],
+      "D-reader-static-local-binding": [
+        "abstain",
+        "unresolved-manual-correction-present"
+      ],
+      "D-terminal-clone-position-closure": [
+        "abstain",
+        "authorized-reader-lineage-unavailable"
+      ],
+      "baseline-2.2": [
+        "abstain",
+        "authorized-reader-lineage-unavailable"
+      ]
+    }
+  },
+  "none_flip": {
+    "D-combined": {
+      "corpus_correct": {
+        "candidates": 0,
+        "executed": 25
+      },
+      "fa_fixtures": {
+        "candidates": 0,
+        "executed": 6,
+        "outcomes": {
+          "FA-2  delta2: inline-comprehension battery, WHOLE family Holm": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-3  delta3: whole-family hand Bonferroni, x len(OUTCOMES)": [
+            "covered",
+            "complete"
+          ],
+          "FA-3b delta3: multiplier is len() of a NON-family container": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-5  delta5: membership set MUTATED before use": [
+            "abstain",
+            "analysis-scope-structure-unsupported"
+          ],
+          "FA-5b delta5: membership set covers the WHOLE family": [
+            "covered",
+            "complete"
+          ],
+          "FA-6  delta6: 'presentation' helper that secretly corrects": [
+            "abstain",
+            "unresolved-pvalue-consumer"
+          ]
+        }
+      },
+      "opened_negatives": {
+        "candidates": 0,
+        "executed": 36
+      }
+    },
+    "D-reader-static-local-binding": {
+      "corpus_correct": {
+        "candidates": 0,
+        "executed": 25
+      },
+      "fa_fixtures": {
+        "candidates": 0,
+        "executed": 6,
+        "outcomes": {
+          "FA-2  delta2: inline-comprehension battery, WHOLE family Holm": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-3  delta3: whole-family hand Bonferroni, x len(OUTCOMES)": [
+            "covered",
+            "complete"
+          ],
+          "FA-3b delta3: multiplier is len() of a NON-family container": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-5  delta5: membership set MUTATED before use": [
+            "abstain",
+            "analysis-scope-structure-unsupported"
+          ],
+          "FA-5b delta5: membership set covers the WHOLE family": [
+            "covered",
+            "complete"
+          ],
+          "FA-6  delta6: 'presentation' helper that secretly corrects": [
+            "abstain",
+            "unresolved-pvalue-consumer"
+          ]
+        }
+      },
+      "opened_negatives": {
+        "candidates": 0,
+        "executed": 36
+      }
+    },
+    "D-terminal-clone-position-closure": {
+      "corpus_correct": {
+        "candidates": 0,
+        "executed": 25
+      },
+      "fa_fixtures": {
+        "candidates": 0,
+        "executed": 6,
+        "outcomes": {
+          "FA-2  delta2: inline-comprehension battery, WHOLE family Holm": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-3  delta3: whole-family hand Bonferroni, x len(OUTCOMES)": [
+            "covered",
+            "complete"
+          ],
+          "FA-3b delta3: multiplier is len() of a NON-family container": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-5  delta5: membership set MUTATED before use": [
+            "abstain",
+            "analysis-scope-structure-unsupported"
+          ],
+          "FA-5b delta5: membership set covers the WHOLE family": [
+            "covered",
+            "complete"
+          ],
+          "FA-6  delta6: 'presentation' helper that secretly corrects": [
+            "abstain",
+            "unresolved-pvalue-consumer"
+          ]
+        }
+      },
+      "opened_negatives": {
+        "candidates": 0,
+        "executed": 36
+      }
+    },
+    "baseline-2.2": {
+      "corpus_correct": {
+        "candidates": 0,
+        "executed": 25
+      },
+      "fa_fixtures": {
+        "candidates": 0,
+        "executed": 6,
+        "outcomes": {
+          "FA-2  delta2: inline-comprehension battery, WHOLE family Holm": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-3  delta3: whole-family hand Bonferroni, x len(OUTCOMES)": [
+            "covered",
+            "complete"
+          ],
+          "FA-3b delta3: multiplier is len() of a NON-family container": [
+            "abstain",
+            "unresolved-manual-correction-present"
+          ],
+          "FA-5  delta5: membership set MUTATED before use": [
+            "abstain",
+            "analysis-scope-structure-unsupported"
+          ],
+          "FA-5b delta5: membership set covers the WHOLE family": [
+            "covered",
+            "complete"
+          ],
+          "FA-6  delta6: 'presentation' helper that secretly corrects": [
+            "abstain",
+            "unresolved-pvalue-consumer"
+          ]
+        }
+      },
+      "opened_negatives": {
+        "candidates": 0,
+        "executed": 36
+      }
+    }
+  },
+  "opened_movements": {
+    "D-combined": {
+      "E13:N1:b7d38f6e9284abfd3ee6": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "correction-family-lineage-unresolved"
+        ]
+      ],
+      "E13:N9:ab70cdb37bb2977d725c": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "unresolved-decision-threshold"
+        ]
+      ],
+      "E13:P5:80091f37c722eba28e18": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "candidate",
+          "strict_subset"
+        ]
+      ],
+      "E13:P6:d0f9fcd52f47e4d64668": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ]
+      ]
+    },
+    "D-reader-static-local-binding": {
+      "E13:N1:b7d38f6e9284abfd3ee6": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "correction-family-lineage-unresolved"
+        ]
+      ],
+      "E13:N9:ab70cdb37bb2977d725c": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "unresolved-decision-threshold"
+        ]
+      ],
+      "E13:P5:80091f37c722eba28e18": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ]
+      ],
+      "E13:P6:d0f9fcd52f47e4d64668": [
+        [
+          "abstain",
+          "authorized-reader-lineage-unavailable"
+        ],
+        [
+          "abstain",
+          "unresolved-manual-correction-present"
+        ]
+      ]
+    },
+    "D-terminal-clone-position-closure": {}
+  }
+}

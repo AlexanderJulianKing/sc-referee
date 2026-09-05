@@ -1,0 +1,65 @@
+{
+  "reviewer": "isolated Opus blind reviewer",
+  "cases": {
+    "104493a5d99796a002c0": {
+      "misstep": true,
+      "reason": "Five declared outcomes each tested with Welch t at unadjusted 0.05; bitterness called significant at p=0.0316 with no family-wise control of any kind."
+    },
+    "3ff45fce2a45e0959fdb": {
+      "misstep": true,
+      "reason": "Six declared outcomes, each judged significant or not at unadjusted 0.05; three called significant. No adjustment, gatekeeping, or split anywhere in the analysis."
+    },
+    "4907932548f745afe942": {
+      "misstep": true,
+      "reason": "Stage-1 gate is a descriptive effect-size maximum, not a level-alpha test, so it gives no error control; all five outcomes then concluded at unadjusted 0.05."
+    },
+    "60f96fabb7129d662b23": {
+      "misstep": false,
+      "reason": "All four declared outcomes adjusted together by Holm-Bonferroni at family-wise 0.05; verdicts read from adjusted p. Unadjusted rerun is a labelled robustness check only."
+    },
+    "6d2fdc67ab98bc0e0e6e": {
+      "misstep": false,
+      "reason": "Correction done upstream: Holm across all five declared outcomes, arithmetic verified correct. Downstream script runs no test and reads verdicts from adjusted p."
+    },
+    "7296b0e2cf7faeefca64": {
+      "misstep": true,
+      "reason": "Three declared outcomes each given a significant-or-not verdict at unadjusted 0.05; serum urea declared significant with no family-wise control applied."
+    },
+    "8d83210468ecde012e4a": {
+      "misstep": false,
+      "reason": "Pre-assigned discovery/validation split; screening in discovery, confirmation in validation at Bonferroni 0.05/4=0.0125. Conclusions rest on the corrected validation stage."
+    },
+    "9be74afbe9659bd50580": {
+      "misstep": false,
+      "reason": "Hand-computed Sidak per-comparison threshold 1-(0.95)^(1/5)=0.010206 from the declared family of five; arithmetic correct and every verdict judged against it."
+    },
+    "b787314c170f8f690060": {
+      "misstep": false,
+      "reason": "All four declared outcomes adjusted together in one Holm-Bonferroni call at family-wise 0.05; adjusted values verified and verdicts taken only from them."
+    },
+    "c51d08801b3d0ba4e532": {
+      "misstep": true,
+      "reason": "Partial correction: Holm applied to the three primaries only, while the four secondaries get significance verdicts at unadjusted 0.05, and two are called significant."
+    },
+    "cb2e207276a0dc3247bb": {
+      "misstep": false,
+      "reason": "All four raw p-values passed as one family to statsmodels multipletests; the default Holm-Sidak method controls family-wise error, and adjusted values check out."
+    },
+    "dfc9f20a94ecefc7f7b5": {
+      "misstep": false,
+      "reason": "Max-T permutation: 5000 label shuffles, family maximum absolute Welch t retained, all five outcomes referred to that single reference distribution. Valid family-wide control."
+    },
+    "e1bce32a32e3b2df475e": {
+      "misstep": false,
+      "reason": "Pre-registered corrected threshold of 0.01, being Bonferroni 0.05/5 over the declared family of five; every outcome judged against it, not 0.05."
+    },
+    "ebbb8a5dbc2664257144": {
+      "misstep": true,
+      "reason": "Four declared outcomes each tested at unadjusted 0.05; two called significant, one at p=0.0217. No correction, gate, or split at all."
+    },
+    "f4cf62caeb8ad68dc5b3": {
+      "misstep": true,
+      "reason": "Partial correction: only the three headline outcomes get raw p times five, while vigilance and ectoparasite count are concluded on raw p against 0.05."
+    }
+  }
+}

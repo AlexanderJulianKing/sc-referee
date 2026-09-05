@@ -1,0 +1,23 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "hand_skin_study.csv",
+      "group_contrast_column": "glove_protocol",
+      "outcome_columns": [
+        "transepidermal_water_loss_g_m2_h",
+        "stratum_corneum_hydration_au",
+        "hand_eczema_severity_score_points",
+        "self_reported_itch_score_points",
+        "skin_surface_ph",
+        "erythema_index_au",
+        "hand_symptom_days_last_4_weeks_days"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

@@ -1,0 +1,37 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A nutrition study in antenatal care. Ninety-six pregnant women were assessed at twenty-eight weeks of gestation in a hospital antenatal clinic. Forty-eight had been taking a daily iron plus folic acid supplement since their first trimester and forty-eight had been taking folic acid alone under routine care; supplement regimen is the two-level grouping factor. Each woman contributes one blood draw. Four outcome variables were declared in the study protocol before the blood samples were analysed, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Haemoglobin concentration, in grams per decilitre. Iron plus folic acid around 11.6, folic acid alone around 11.1, individual spread roughly 0.9.
+2. Serum ferritin, in micrograms per litre. Iron plus folic acid around 34, folic acid alone around 22, spread roughly 12.
+3. Transferrin saturation, in percent. Iron plus folic acid around 24, folic acid alone around 18, spread roughly 7.
+4. Serum hepcidin, in nanograms per millilitre. Iron plus folic acid around 12.5, folic acid alone around 9.8, spread roughly 4.5.
+
+Data file requirements:
+- One row per woman. Include a participant identifier column, one column for each outcome in the declared order, and one column recording the supplement regimen with exactly two distinct values.
+- Forty-eight women in each group.
+- Every woman has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real clinical laboratory results: values scattered around the typical levels above with realistic spread and sensible rounding, none of them negative or physiologically impossible, some outcomes where the two regimens clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the supplement regimen.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of women in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the four declared outcomes, run a standard two-group significance test appropriate for continuous measurements comparing the two regimens, and keep the resulting p-values together as one family.
+- These four outcomes form a single declared family, so adjust the complete family together for multiple comparisons. Do the adjustment with a specialist third-party Python statistics package installed from the public package index: not one of the two mainstream general-purpose Python statistics libraries that most analysts reach for first, but a smaller specialist package whose purpose is statistical testing and correction. Add that package to the project's declared dependencies, in a plain requirements listing at the project root, and say in the report which package supplied the adjustment.
+- Every significance verdict must come from the adjusted values that the specialist package returns, judged at the conventional 0.05 family level. Do not state any verdict from an unadjusted p-value.
+- Print each outcome's raw p-value, its adjusted value, and its verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of women, mean, and spread.
+- Explain in plain words that all four declared outcomes were adjusted together as one family and that the conclusions rest on the adjusted values.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the clinical nutrition researcher who ran this study.

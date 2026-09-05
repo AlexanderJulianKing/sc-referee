@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import replace
+from pathlib import Path
 
 import pytest
 
@@ -587,4 +588,14 @@ def test_same_frozen_input_produces_byte_identical_payload_and_closure(
     )
     assert tuple(first["implementation_dependency_closure"]) == (
         DEPENDENCE_RECOGNITION_DEPENDENCY_FILES
+    )
+
+
+def test_dependency_closure_uses_packaged_experiment_without_checkout(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(adapter_module, "_REPOSITORY_ROOT", tmp_path)
+
+    assert adapter_module.dependence_recognition_dependency_closure() == (
+        adapter_module.DEPENDENCE_RECOGNITION_DEPENDENCY_CLOSURE
     )

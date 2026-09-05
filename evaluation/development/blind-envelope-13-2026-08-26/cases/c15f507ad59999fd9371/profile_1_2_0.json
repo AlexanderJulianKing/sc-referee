@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "rearing_trays.csv",
+      "group_contrast_column": "cultivar",
+      "outcome_columns": [
+        "mean_cocoon_weight_g",
+        "cocoon_shell_ratio_pct",
+        "larval_duration_h",
+        "silk_filament_length_m",
+        "effective_rearing_rate_pct"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

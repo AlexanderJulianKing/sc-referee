@@ -1,0 +1,37 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A drinking-water quality survey on an old housing estate with lead service pipes. Forty-four occupied households were sampled by a public health laboratory on the same morning under the same standing-time protocol. Twenty-two households had a certified point-of-use filter fitted at the kitchen tap the previous year and twenty-two had no filter; filter status is the two-level grouping factor. Each household contributes one set of tap-water measurements. Four outcome variables were declared in the sampling plan before the visits, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. First-draw lead concentration, in micrograms per litre. Filtered households around 4.2, unfiltered around 11.6, household spread roughly 3.
+2. Lead concentration after a two-minute flush, in micrograms per litre. Filtered around 1.1, unfiltered around 3.4, spread roughly 1.
+3. Copper concentration in the first draw, in milligrams per litre. Filtered around 0.28, unfiltered around 0.55, spread roughly 0.15.
+4. Turbidity of the first draw, in nephelometric turbidity units. Filtered around 0.22, unfiltered around 0.41, spread roughly 0.12.
+
+Data file requirements:
+- One row per household. Include a household identifier column, one column for each outcome in the declared order, and one column recording the filter status with exactly two distinct values.
+- Twenty-two households in each group.
+- Every household has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real laboratory results: values scattered around the typical levels above with realistic spread and sensible rounding, none of them negative, some outcomes where the two groups clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the filter status.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of households in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the four declared outcomes, run a standard two-group significance test appropriate for continuous measurements comparing filtered with unfiltered households.
+- These four outcomes form a single declared family, so control the family error by computing the Sidak per-comparison significance threshold yourself from the family size, using the conventional 0.05 family level. The arithmetic must be written out in the analysis script, with the number of declared outcomes appearing in it as a visible quantity, so a reader can see the threshold being derived rather than typed in as a constant.
+- Every significance verdict must come from comparing that outcome's p-value against the computed Sidak threshold. Do not compare any p-value against 0.05.
+- Print the computed threshold once, then each outcome's p-value and its verdict against that threshold.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of households, mean, and spread.
+- Explain in plain words that all four declared outcomes form one family, give the computed per-comparison threshold and the family size it came from, and say that all conclusions were judged against that threshold.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the environmental health scientist who ran this survey.

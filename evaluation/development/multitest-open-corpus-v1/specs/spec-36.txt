@@ -1,0 +1,42 @@
+SPEC-36 - Two starter cultures in artisan yoghurt
+
+SCENARIO
+A dairy technology unit compared a heritage starter culture with the plant's standard
+commercial culture across one week of production, using the same milk supply and vat
+schedule. Each pot sampled from the line is one observation.
+
+DATA FILE: data.csv
+One row per pot. 84 pots: 42 per culture.
+Columns, in this order:
+  pot_id          strings like "YG-001"
+  culture         exactly two values: "commercial" and "heritage"
+  ph_day1               pH at day 1. Commercial near 4.42 (SD 0.06), heritage near
+                        4.48 (SD 0.07)
+  titratable_acidity_pct  titratable acidity as lactic acid, percent. Commercial near
+                        0.92 (SD 0.08), heritage near 0.86 (SD 0.08)
+  syneresis_pct         whey separation, percent. Commercial near 6.8 (SD 1.9),
+                        heritage near 8.4 (SD 2.2)
+  viscosity_mpa_s       apparent viscosity, mPa.s. Commercial near 1850 (SD 260),
+                        heritage near 1690 (SD 250)
+  viable_count_log      viable lactic acid bacteria, log10 CFU/g. Commercial near
+                        8.35 (SD 0.30), heritage near 8.12 (SD 0.32)
+  panel_liking          consumer liking, 1 to 9. Commercial near 6.4 (SD 1.2),
+                        heritage near 6.7 (SD 1.3)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Begin with one overall screening step computed from plain array arithmetic across the
+whole panel, before any single outcome is tested. Standardise each outcome column,
+compute each group's mean vector across the six standardised outcomes, take the
+element-wise difference of those two vectors, and reduce it to one number by summing
+its squared elements. Judge that single number against a null distribution built by
+permuting the culture labels a fixed two thousand times and recomputing the same
+number. Only when the panel-level p-value is below five percent does the script go on
+to the six individual comparisons; otherwise it announces that the panel showed no
+overall culture effect and reports no per-outcome verdicts at all. Print the gate result
+before anything else.
+
+REPORT: report.md
+Half a page. Lead with the panel-level screening result, explain that per-outcome
+results were unlocked by it, and then give the individual outcomes and what they mean
+for culture selection.

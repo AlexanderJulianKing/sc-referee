@@ -1,0 +1,34 @@
+SPEC-23 - Road salt runoff and roadside soil
+
+SCENARIO
+An environmental monitoring team sampled roadside soils along a heavily salted arterial
+route and along a comparable unsalted rural route in the same county, at the end of
+winter. Each sampling point is one composite core.
+
+DATA FILE: data.csv
+One row per sampling point. 64 points: 32 per route type.
+Columns, in this order:
+  point_id        strings like "SP-01"
+  route_type      exactly two values: "unsalted" and "salted"
+  soil_chloride_mg_kg   soil chloride, mg/kg. Unsalted near 42 (SD 18), salted near
+                        168 (SD 72)
+  electrical_conductivity_ds_m  conductivity, dS/m. Unsalted near 0.28 (SD 0.10),
+                        salted near 0.66 (SD 0.25)
+  sodium_adsorption_ratio  sodium adsorption ratio, unitless. Unsalted near 0.9
+                        (SD 0.4), salted near 2.6 (SD 1.1)
+  soil_ph               pH. Unsalted near 6.35 (SD 0.40), salted near 6.62 (SD 0.42)
+  earthworm_count       earthworms per core, whole numbers 0 to 30. Unsalted near
+                        11.5 (SD 4.5), salted near 7.2 (SD 3.8)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Compare the two route types on each of the five soil outcomes with a two-sample test
+for a difference in means. Before doing anything else with each p-value, round it to
+three decimal places and store only the rounded value; every later comparison,
+printout, and table entry uses the rounded number. Judge each rounded p-value against
+the conventional five-percent cutoff on its own and print a per-outcome verdict, then a
+formatted summary table of the rounded values. No family-wide adjustment is applied.
+
+REPORT: report.md
+Half a page. Give the rounded p-values and verdicts for the five outcomes and discuss
+what the significant ones mean for winter maintenance practice.

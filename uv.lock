@@ -1919,7 +1919,7 @@ wheels = [
 
 [[package]]
 name = "sc-referee"
-version = "0.3.0"
+version = "0.4.0"
 source = { editable = "." }
 dependencies = [
     { name = "h5py" },

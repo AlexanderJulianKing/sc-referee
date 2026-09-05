@@ -1,0 +1,23 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "chickpea_inoculation.csv",
+      "group_contrast_column": "inoculation",
+      "outcome_columns": [
+        "shoot_dw_g",
+        "root_dw_g",
+        "nodule_no",
+        "nodule_dw_mg",
+        "shoot_n_pct",
+        "pod_no",
+        "seed_yield_g"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

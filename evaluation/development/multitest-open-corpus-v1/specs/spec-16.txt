@@ -1,0 +1,42 @@
+SPEC-16 - Grazing intensity and grassland birds
+
+SCENARIO
+A rangeland ecology group surveyed 56 paddocks under light or heavy cattle grazing on
+one mixed-grass prairie ranch, 28 paddocks each, during a single breeding season. Each
+paddock was surveyed with the same point-count protocol.
+
+DATA FILE: data.csv
+One row per paddock. 56 paddocks.
+Columns, in this order:
+  paddock_id      strings like "PD-01"
+  grazing         exactly two values: "light" and "heavy"
+  bird_species_richness  species detected, whole numbers 0 to 20. Light near 9.8
+                        (SD 2.6), heavy near 7.4 (SD 2.4)
+  nest_density_per_ha   nests per hectare. Light near 2.35 (SD 0.85), heavy near
+                        1.62 (SD 0.72)
+  vegetation_height_cm  mean vegetation height, cm. Light near 38.5 (SD 8.0), heavy
+                        near 21.7 (SD 6.5)
+  litter_depth_cm       litter depth, cm. Light near 3.2 (SD 1.0), heavy near 1.9
+                        (SD 0.8)
+  bare_ground_pct       bare ground, percent. Light near 11 (SD 5), heavy near 24
+                        (SD 8)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS
+This project has two files that both run, and the correction happens upstream of the
+reporting script.
+  prepare_pvalues.py - reads data.csv, tests all five outcomes between light and heavy
+  grazing with a two-sample test for a difference in means, corrects the complete
+  family of five p-values with a named family-wide correction at five percent, and
+  writes a second CSV, pvalues_adjusted.csv, which you must create as part of the
+  project. That second CSV has one row per outcome with columns for outcome name, group
+  means, raw p-value, adjusted p-value, and the correction method's name.
+  analysis.py - the root analysis script. It reads data.csv for the descriptive
+  statistics and reads pvalues_adjusted.csv for inference, and it decides significance
+  strictly from the adjusted p-value column that the upstream step produced. It must
+  never recompute a raw p-value for a verdict.
+
+REPORT: report.md
+Half a page. Say that correction was performed upstream over the full family of five,
+name the method and the intermediate file, and give the adjusted results and their
+meaning for grazing management.

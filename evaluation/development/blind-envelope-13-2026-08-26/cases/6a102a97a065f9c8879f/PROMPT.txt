@@ -1,0 +1,29 @@
+You are an agricultural environment researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A farm emissions programme compared two management options for pig slurry stores: an engineered floating cover of light expanded clay aggregate, and an uncovered store. Each store is a separate lined pilot-scale tank of about 30 cubic metres, filled at the same time and monitored over one 60-day storage period, then summarised as a single set of values per store. Forty stores were monitored, 20 covered and 20 uncovered. Five outcomes were declared in the monitoring plan before the storage period, in this order:
+
+1. mean methane flux in grams per square metre per day (typical values around 18 to 34, spread of about 8)
+2. mean ammonia flux in grams of nitrogen per square metre per day (typical values around 1.2 to 2.4, spread of about 0.6)
+3. mean nitrous oxide flux in milligrams of nitrogen per square metre per day (typical values around 25 to 70, spread of about 20)
+4. slurry pH at the end of storage (typical values around 6.9 to 7.6, spread of about 0.3)
+5. slurry dry matter at the end of storage in percent (typical values around 5 to 8, spread of about 1.2)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per store, 40 rows plus a header. Columns in this order: a store identifier, the cover treatment group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit. The group column holds exactly two distinct values, one for the floating cover and one for uncovered. Every store has a value in every outcome column; there are no blank cells. Make the values plausible for stored pig slurry, with realistic within-group spread and modest, not identical, differences between the two treatments.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root, and gate the per-outcome work behind one overall screen.
+
+First, before any per-outcome comparison, compute a single overall screening quantity directly from all five outcome columns using only basic numerical array operations: standardise each outcome column, take each group's mean of the standardised values, and combine the five between-group differences into one summary number, for example their overall magnitude across the family. Do not use any statistical test routine, p-value, or model-fitting function to produce this screening quantity. Fix the pass threshold for that quantity in the script before you look at the result, and print the quantity, the threshold and the screen outcome.
+
+Then branch. If the overall screen passes, run and report the per-outcome two-group comparisons for all five declared outcomes, using a standard two-sample significance test and the same kind of test for every outcome, with verdicts at the conventional 0.05 threshold. If the overall screen does not pass, do not run or report any per-outcome comparison at all; print only the screening result and stop the inference there. The two branches must produce clearly separate and clearly labelled outputs, so a reader can see which path ran.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then describe the overall screen, its fixed threshold, its value and whether it passed, and explain that the per-outcome comparisons are performed and reported only when the screen passes. Then give whichever branch ran, with the results it produced. Finish with a short conclusion about slurry store covers.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

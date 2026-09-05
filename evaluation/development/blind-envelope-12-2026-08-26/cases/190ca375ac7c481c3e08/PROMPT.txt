@@ -1,0 +1,31 @@
+Build a small, self-contained analysis project for the study described below. Produce four things in one directory: two data files in CSV format as described below, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A transport and health research group compared two ways of getting to work in one city. Fifty-four adults who live at similar distances from the centre were recruited: twenty-seven who commute by bicycle every working day and twenty-seven who commute by bus every working day. Each participant wore a research-grade activity and heart-rate monitor for fourteen consecutive days and completed a questionnaire at the end. Each participant contributes one set of summary values covering that fortnight. A participant is the unit of the study.
+
+The analysis plan declared, in this fixed order, five outcomes measured on every participant:
+
+1. Mean daily moderate-to-vigorous physical activity, in minutes per day. Typical values run from about 12 to 95.
+2. Resting heart rate, in beats per minute, taken as the lowest sustained overnight value averaged across nights. Typical values run from about 48 to 82.
+3. Sleep efficiency, the percentage of time in bed spent asleep. Typical values run from about 72 to 96 percent.
+4. Mean daily step count. Typical values run from about 4000 to 17000.
+5. Perceived Stress Scale score, from 0 to 40, where higher means more stress. Typical values run from about 6 to 32.
+
+Data files
+----------
+Write both files yourself.
+
+The first file is the raw participant table: one row per participant and one column per outcome, with realistic, plausible values and realistic person-to-person variation. Include a first column holding the participant identifier, a column holding the commuting mode with exactly two possible entries, one for cycle commuters and one for bus commuters, and then the five outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example mvpa_min_day, resting_hr_bpm, sleep_efficiency_pct, steps_day and pss_score. Name the identifier column participant_id and the mode column group. Every participant has a value in every outcome column; there are no blanks.
+
+The second file is small and holds the statistical results that the group's shared upstream analysis pipeline already produced for this study, before this project was written. It has one row per declared outcome, in the declared order, with the outcome name, the raw p-value for the two-group comparison of that outcome, and the p-value after the pipeline adjusted the whole declared family of five together for multiplicity. Give it plausible values consistent with the raw data you wrote, and note in the report that the adjustment covered all five declared outcomes as one family.
+
+Analysis
+--------
+The script must not re-derive any inference from the raw file. Its job on the raw participant table is only to describe and check: group sizes, means and spreads for each declared outcome, confirmation that the mode column holds exactly two values, confirmation that no outcome value is missing, and simple range checks that each outcome sits inside its plausible bounds. No significance testing of any kind is performed on the raw file.
+
+The script then loads the second file and takes every significance verdict from the adjusted p-values it holds, judged at the conventional five percent family-wise level. Print the five outcomes in the declared order with the descriptive summary from the raw file alongside the loaded raw and adjusted p-values and the verdict that follows from the adjusted value.
+
+Report
+------
+The report must contain a short data description that lists every column of both CSV files, says what each holds and in what unit, and states plainly what one row of each table represents. It must state that the p-values were produced by the upstream pipeline stage with all five declared outcomes adjusted together as one family, that this project performs only descriptive summaries and data checks on the raw table, and that every conclusion rests on the adjusted values. Give the results in the declared order and finish with a short conclusion about how the two commuting modes differ. Write it as a public health researcher would write a short findings summary.

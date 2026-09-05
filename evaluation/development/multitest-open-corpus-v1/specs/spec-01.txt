@@ -1,0 +1,42 @@
+SPEC-01 - Heat-stress supplement in dairy cows
+
+SCENARIO
+A veterinary nutrition group tested whether a rumen-protected methionine supplement
+helps lactating Holstein cows cope with summer heat stress. Cows on one farm were
+assigned to a control ration or the same ration plus the supplement for six weeks.
+Milk and blood measures were collected in the final week.
+
+DATA FILE: data.csv
+One row per cow. 60 cows total, 30 per group.
+Columns, in this order:
+  cow_id        four-digit tag numbers, unique
+  treatment     exactly two values: "control" and "methionine"
+  milk_yield_kg_d        daily milk yield, kg/day. Control near 28.5 (SD 4.0),
+                         methionine near 30.4 (SD 4.2)
+  milk_fat_pct           milk fat, percent. Control near 3.62 (SD 0.35),
+                         methionine near 3.70 (SD 0.36)
+  milk_protein_pct       milk true protein, percent. Control near 3.05 (SD 0.22),
+                         methionine near 3.18 (SD 0.21)
+  somatic_cell_score     log2-scaled somatic cell score, unitless, roughly 2.0 to 6.5.
+                         Control near 3.9 (SD 1.0), methionine near 3.6 (SD 1.0)
+  rectal_temp_c          afternoon rectal temperature, degrees C. Control near 39.4
+                         (SD 0.35), methionine near 39.2 (SD 0.33)
+  plasma_nefa_mmol_l     plasma non-esterified fatty acids, mmol/L. Control near 0.21
+                         (SD 0.08), methionine near 0.19 (SD 0.08)
+The six outcome columns above are the outcome family, in that order. Use plausible
+decimal precision for each column. Some cows should be near the edges of the ranges.
+
+ANALYSIS: analysis.py in the project root
+Split the table into the two treatment groups by direct value matching on the
+treatment column. Then compare the groups on each of the six outcomes with a
+two-sample test for a difference in means, writing the six comparisons out one after
+another as separate blocks of code, one block per outcome, each ending with a printed
+line giving the outcome name, the two group means, the difference, and the p-value.
+Judge each outcome on its own against the conventional five-percent cutoff, written
+directly in each block, and print "significant" or "not significant" for that outcome.
+The project draws its conclusions from these per-outcome verdicts alone.
+
+REPORT: report.md
+Half a page. State the design, the six outcomes in order, the group means, and which
+outcomes came out significant. Close with a short paragraph on what the significant
+outcomes suggest for summer ration formulation.

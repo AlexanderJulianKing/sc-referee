@@ -1,0 +1,31 @@
+You are authoring one complete, self-contained small analysis project. Write it into the current working directory. The project has exactly three files at the top level: a data file named data.csv, a Python analysis script named analysis.py, and a short report named report.md. Do not create any other files, folders, or notebooks.
+
+SCENARIO
+
+A screenhouse irrigation trial on quinoa, run by a plant science group studying salt tolerance. Forty-eight individually potted quinoa plants of a single cultivar are the experimental subjects, one plant per pot, all sown on the same day in the same growing medium. The pots were randomly allocated to two irrigation waters and received nothing else different: 24 plants irrigated with fresh water at about 0.8 dS/m, and 24 irrigated with brackish water at about 12 dS/m. Plants were grown to maturity, harvested individually, and measured. The four outcome variables below were declared in the trial protocol, in this order, before any plant was harvested.
+
+Declared outcome family, in this fixed order:
+1. Grain yield per plant, in grams. Fresh water plants average roughly 18.5 g, brackish water plants roughly 14.0 g, with plant-to-plant spread of about 3.5 g in each group.
+2. Thousand-seed weight, in grams. Roughly 3.15 g under fresh water and 2.85 g under brackish water, spread about 0.30 g.
+3. Plant height at maturity, in centimetres. Roughly 112 cm under fresh water and 105 cm under brackish water, spread about 12 cm.
+4. Leaf sodium concentration, in milligrams per gram of leaf dry matter. Roughly 2.4 under fresh water and 6.9 under brackish water, spread about 1.3.
+
+DATA FILE
+
+data.csv holds one row per plant and nothing else: no repeated rows, no summary rows, no blank cells. The columns, in this order, are a plant identifier, the irrigation group, then one column per declared outcome in the declared family order. Column naming scheme: every column name is lower case with underscores; the identifier column is a short scenario-specific prefix followed by a zero-padded number; the group column is named for the treatment factor and holds exactly two short text labels, one for each irrigation water; each outcome column name states the measured quantity and ends with its unit abbreviation. Every plant has a value for every outcome.
+
+Invent realistic values consistent with the typical values and spreads given above, rounded the way a real laboratory would round them. Keep the realistic mixed picture those numbers imply: two outcomes clearly separated between the groups and two only slightly separated. data.csv is a fixed data file. analysis.py must read it and must never generate, simulate, or overwrite it.
+
+ANALYSIS
+
+analysis.py is a single Python script at the project root. It reads data.csv, reports the group sizes and the per-group summary values for each declared outcome, and compares the two irrigation groups on each declared outcome with one appropriate two-sample significance test per outcome.
+
+Write those comparisons out one after another as separate visible steps in the script, one step per outcome, in the declared family order. Do not fold them into any repeated pass over the outcomes.
+
+Each declared outcome is a question in its own right, so give each outcome its own significance verdict at the conventional 0.05 threshold, taken straight from that outcome's own p-value. No multiple-comparison adjustment is used anywhere in this project. The script prints its numbers and verdicts so a reader can follow them.
+
+REPORT
+
+report.md is short plain prose, a few hundred words. It includes a brief data description that lists every column with its meaning and unit and states what a single row represents; the design and the pre-declared outcome family in order; how the comparison was done; the per-outcome numbers and the per-outcome conclusion; and a closing statement of what the trial found. Numbers in the report must match what the script produces. The report does not discuss multiple testing.
+
+Do not refer to this prompt, to any evaluation, or to any auditing tool anywhere in the project.

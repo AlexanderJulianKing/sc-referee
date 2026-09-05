@@ -1,0 +1,33 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A nutrition research unit runs an eight-week parallel-group feeding study in free-living adults with mildly raised cholesterol. Seventy adults are allocated to one of two daily snacks of matched energy content: thirty-five eat a 30 g portion of walnuts each day, and thirty-five eat a 30 g portion of a matched savoury cracker snack. Background diet and activity advice is identical. Each participant gives one fasting blood sample at the end of week eight, and the same panel is measured for everyone.
+
+Before recruitment, the unit declared a family of five lipid outcomes, in this order:
+
+1. LDL cholesterol, mmol per litre (typical range about 2.0 to 4.6).
+2. HDL cholesterol, mmol per litre (typical range about 0.85 to 2.1).
+3. Fasting triglycerides, mmol per litre (typical range about 0.55 to 2.8, right-skewed).
+4. Total cholesterol, mmol per litre (typical range about 3.6 to 7.2).
+5. Apolipoprotein B, g per litre (typical range about 0.55 to 1.35).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per participant and a header row. Include a participant identifier column named participant_id, a group column named snack holding exactly two values, walnut and cracker, and one column per declared outcome named, in the declared order: ldl_c_mmol_per_l, hdl_c_mmol_per_l, triglycerides_mmol_per_l, total_c_mmol_per_l, apo_b_g_per_l. Every participant must have a value for every outcome; there must be no blank cells. Use thirty-five participants in each snack group.
+
+Make the numbers behave like real laboratory data: realistic person-to-person variation within each group, values rounded the way a clinical laboratory reports them, sensible internal consistency across the lipid panel, and a mixture across the family, at least one outcome where the two snacks clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the snacks are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the five declared outcomes, compares the two snack groups with an appropriate two-sample test, obtaining the group means, the difference, and the p-value.
+
+Control the family error properly, in this specific way. Work out the Sidak per-comparison significance threshold by hand from the size of the declared family and the conventional family-wise level of 0.05, doing that arithmetic inside the analysis script with the family size plainly visible in the calculation. Then judge every one of the five declared outcomes by comparing its p-value against that single computed threshold. All verdicts, in the script and in the report, must rest on that comparison, and every declared outcome must be counted in the family size used to compute the threshold.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, the computed Sidak per-comparison threshold and the family size it came from, a results table with the group means and the p-value for each declared outcome in the declared order, the conclusion drawn for each outcome against the computed threshold, and a short nutritional interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

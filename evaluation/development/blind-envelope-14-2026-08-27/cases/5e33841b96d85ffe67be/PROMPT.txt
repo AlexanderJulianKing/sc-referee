@@ -1,0 +1,36 @@
+Build one small, self-contained analysis project from scratch: a data file, an analysis script, and a short written report. Everything below is yours to implement; invent the data yourself so that it is realistic.
+
+SCENARIO
+
+A paediatric ward compares two oral rehydration solutions in young children admitted with acute watery gastroenteritis. Eighty-four children aged six to thirty-six months are allocated to one of two solutions: forty-two receive a standard glucose-based reduced-osmolarity solution and forty-two receive a rice-based solution. Care is otherwise identical. Each child is followed for the first forty-eight hours after admission and the same set of measurements is recorded for every child.
+
+Before recruitment, the protocol declared a family of six outcomes, in this order, and named the first two as primary:
+
+1. Duration of diarrhoea from admission, hours (typical range about 24 to 96) [primary].
+2. Total stool output in the first twenty-four hours, g per kg body weight (typical range about 25 to 150) [primary].
+3. Total rehydration solution taken in the first twenty-four hours, mL per kg body weight (typical range about 55 to 210).
+4. Number of vomiting episodes in the first twenty-four hours, whole numbers from 0 to 7.
+5. Body weight change at forty-eight hours, percent of admission weight (typical range about -2 to +5.5).
+6. Serum sodium at twenty-four hours, mmol per litre (typical range about 131 to 146).
+
+DATA FILE
+
+Write a single CSV at the project root with one row per child and a header row. Include a participant identifier column named child_id, a group column named solution holding exactly two values, glucose_based and rice_based, and one column per declared outcome named, in the declared order: diarrhoea_duration_h, stool_output_g_per_kg_24h, ors_intake_ml_per_kg_24h, vomiting_episodes_24h, weight_change_pct_48h, serum_sodium_mmol_per_l_24h. Every child must have a value for every outcome; there must be no blank cells. Use forty-two children in each group.
+
+Make the numbers behave like real ward data: realistic child-to-child variation within each group, clinically plausible rounding, and a mixture across the family, some outcomes where the two solutions clearly differ, at least one where the difference is marginal and lands close to the conventional significance threshold, and at least one where the solutions are effectively the same.
+
+ANALYSIS
+
+Write exactly one Python file, analysis.py, at the project root. It reads the CSV and, for each of the six declared outcomes, compares the two solutions with an appropriate two-sample test, reporting the group means, the difference, and the p-value.
+
+Handle the two primary outcomes and the four remaining declared outcomes differently, as this team does. For the two primary outcomes, pass their p-values through a standard multiple-comparisons adjustment routine from your statistics library and judge those two outcomes on the adjusted values. For the other four declared outcomes, report the raw p-values and call an outcome significant when its raw p-value is below 0.05.
+
+Treat the four non-primary outcomes as separate scientific questions, each standing on its own, and take each of their p-values at face value against the 0.05 threshold. Do not extend the adjustment beyond the two primary outcomes, and do not raise, discuss, or hedge about the number of comparisons anywhere in the code, its comments, or the report beyond what the primary-outcome adjustment itself requires.
+
+REPORT
+
+Write a short report at the project root as report.md. It should include a brief data description that lists each column of the CSV and says what a single row represents, the design and group sizes, a results table covering all six declared outcomes in the declared order with group means and the p-value used for each, the conclusion drawn for each outcome, and a short clinical interpretation.
+
+PROJECT LAYOUT
+
+The project root holds the CSV, analysis.py, and report.md, and nothing else. The script must run top to bottom and print its results. Do not add other Python modules, notebooks, or configuration files.

@@ -7,6 +7,35 @@ directories, or internal record layout.
 The earlier Git history remains in the repository so the replacement can be reviewed as a pull
 request. That history is provenance, not a compatibility requirement.
 
+## From 0.3.0 to 0.4.0
+
+Program `0.4.0` uses public record schema `0.21.0` and adds these user-visible release mechanics:
+
+- The program has reported public record schema `0.21.0` since before this release; the README
+  banner was stale at `0.19.0` and is corrected here. Schema `0.20.0` adds the exact dependence
+  detector `2.1.0` qualification identity and the materiality shape for reportless Findings.
+  Schema `0.21.0` adds the exact dependence detector `3.1.0` qualification identity. Schemas
+  `0.19.0` and `0.20.0` remain immutable migration baselines. See the changelogs under
+  `reference/schemas-v0.20.0/` and `reference/schemas-v0.21.0/`.
+- `sc-referee draft-profile` deterministically validates an agent's proposed ordered outcome
+  family and two-group contrast column against the selected protocol and CSV header. It writes the
+  validated profile plus a `.provenance.json` sidecar; validation gives the proposal no authority.
+- `sc-referee method-contract` accepts `--draft-provenance`. The method-contract skill now follows
+  propose, validate, present, correct if needed, and scientist-confirm. The final freeze binds the
+  scientist's `--actor-id`, the confirmed profile, and the validated provenance sidecar. See
+  [`ADR-0082`](implementation/ADR-0082-METHOD-CONTRACT-DRAFT-THEN-CONFIRM.md).
+- Development audits accept `--attestations` for the closed multiple-testing correction-scope
+  question flow. Author attestations remain separate from Findings, and this development lane
+  cannot emit a Finding. See
+  [`ADR-0080`](implementation/ADR-0080-MULTIPLE-TESTING-CORRECTION-SCOPE-QUESTIONS-AND-ATTESTATIONS.md).
+- The frozen multiple-testing 3.1-3.4 lanes remain byte-identical except for the performance-only
+  re-pin of the v3 and v3.3 dataflow implementation bytes. The recorded `624`-row snapshot and
+  `199`-project real-CLI comparison found zero output differences. See
+  [`ADR-0081`](implementation/ADR-0081-FROZEN-LANE-PERFORMANCE-REPIN.md).
+- `make test-parallel` is an opt-in development gate. It runs the eligible test lane in parallel
+  and the serial-only lane separately; the ordinary `pytest` gate remains supported.
+- Audit terminal output reports an Answer count when Answers are present.
+
 ## Before replacing an existing installation
 
 1. Keep the old environment or installed package until any reports you need have been exported.
@@ -57,7 +86,7 @@ It does not issue a global pass, risk score, publication approval, or correctnes
 The current release reports:
 
 ```text
-sc-referee 0.3.0 (schema 0.21.0; starter lineage 0.1.0)
+sc-referee 0.4.0 (schema 0.21.0; starter lineage 0.1.0)
 ```
 
 The program version, record-schema version, and historical starter lineage are deliberately
@@ -66,7 +95,7 @@ not an already published Python package version.
 
 ## Release identity and prior implementation
 
-The overhaul is released as program version `0.3.0`. Citation metadata names Alexander King as
+The overhaul is released as program version `0.4.0`. Citation metadata names Alexander King as
 the sole human author and separately acknowledges Codex and Claude as AI development
 collaborators. The prior implementation remains recoverable from Git history; no compatibility
 layer is claimed or added. A release tag and any W3ID deployment remain separate publication

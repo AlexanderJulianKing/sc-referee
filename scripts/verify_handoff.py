@@ -154,13 +154,13 @@ def verify_built_wheel() -> None:
                 "assert Path(sc_referee.__file__).resolve().is_relative_to(installed)",
                 "root = _default_schema_root()",
                 "assert root.resolve().is_relative_to(installed)",
-                "assert LocalSchemaRegistry(root).validate_example_directory() == 79",
+                "assert LocalSchemaRegistry(root).validate_example_directory() == 81",
                 "manifest_root = default_capability_manifest_root()",
                 "assert manifest_root.resolve().is_relative_to(installed)",
                 f"capability = Path({str(temp_root)!r}) / 'capability-matrix.json'",
                 "generated = write_capability_matrix(capability, manifest_root, root)",
                 "assert validate_capability_matrix(capability, manifest_root, root) == generated",
-                "assert len(generated['entries']) == 16",
+                "assert len(generated['entries']) == 17",
                 "obligation = next(entry for entry in generated['entries'] if entry['entry_id'] == 'capability:bounded-expected-count-unresolved-obligation-v1')",
                 "assert obligation['detectors'] == []",
                 "assert obligation['operation_scope'] == ['bounded_expected_count_unresolved_obligation_v1']",
@@ -183,6 +183,7 @@ def verify_built_wheel() -> None:
                 "detectors = [detector for entry in generated['entries'] for detector in entry['detectors']]",
                 "assert {item['detector_id'] for item in detectors} == {",
                 "    'detector:bounded-analysis-method-conflict',",
+                "    'detector:bounded-code-csv-dependence-conflict',",
                 "    'detector:bounded-feature-identifier-identity',",
                 "    'detector:bounded-report-mean-direction',",
                 "    'detector:bounded-reported-method-contract-conflict',",
@@ -839,7 +840,30 @@ def main() -> int:
         ]
         expected_capability_detectors = [
             {
+                "binding_grants": [
+                    {
+                        "binding_id": "method-conflict-binding:complete-domain-exposure-denominator-v1",
+                        "check_id": "check:complete-domain-exposure-denominator",
+                        "qualification_ref": "qualification:complete-domain-exposure-denominator-v207-round2",
+                        "strongest_output_type": "finding",
+                    }
+                ],
                 "detector_id": "detector:bounded-analysis-method-conflict",
+                "maturity": "experimental",
+                "qualification_ref": None,
+                "review_basis": "not_qualified",
+                "strongest_output_type": "disclosure",
+            },
+            {
+                "binding_grants": [
+                    {
+                        "binding_id": "method-conflict-binding:authorized-independent-unit-entry-into-row-independent-procedure-v1",
+                        "check_id": "check:authorized-independent-unit-entry-into-row-independent-procedure",
+                        "qualification_ref": "qualification:authorized-independent-unit-entry-v310-code-csv-envelope9",
+                        "strongest_output_type": "finding",
+                    }
+                ],
+                "detector_id": "detector:bounded-code-csv-dependence-conflict",
                 "maturity": "experimental",
                 "qualification_ref": None,
                 "review_basis": "not_qualified",
@@ -1717,7 +1741,7 @@ def main() -> int:
         "tool_version": __version__,
         "pytest": "passed",
         "compileall": "passed",
-        "public_schema_examples": 79,
+        "public_schema_examples": 81,
         "built_wheel_schema_resources": "passed",
         "isolated_answer_side_evaluation_wheel": "passed",
         "genebench_public_preflight": "passed_synthetic_package_only",
@@ -1765,7 +1789,7 @@ def main() -> int:
         "deterministic_ro_crate_1_3_export": "passed_bounded_offline_profile",
         "third_party_ro_crate_validation": "not_claimed",
         "generated_multidimensional_capability_matrix": "passed_fail_closed_manifest_profile",
-        "capability_matrix_detector_qualification": "none_declared",
+        "capability_matrix_detector_qualification": "two_live_exact_binding_grants",
         "capability_matrix_tested_versions": "none_declared",
         "project_cache_writer_coordination": "passed",
         "project_cache_external_key_authentication": "passed",
@@ -1791,7 +1815,7 @@ def main() -> int:
         "ruff": "passed",
         "ruff_format": "passed",
         "mypy": "passed",
-        "public_detector_qualification": "not_claimed",
+        "public_detector_qualification": "binding_scoped_only",
         "public_schema_release": "0.19.0",
         "public_v0.5_to_v0.6_migration": "passed",
         "public_v0.6_to_v0.7_migration": "passed",

@@ -1,0 +1,24 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "data.csv",
+      "group_contrast_column": "thinning_intensity",
+      "outcome_columns": [
+        "fruit_weight_g",
+        "fruit_length_mm",
+        "fruit_width_mm",
+        "yield_per_palm_kg",
+        "total_soluble_solids_brix",
+        "fruit_moisture_pct",
+        "flesh_to_seed_ratio",
+        "fruit_firmness_n"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

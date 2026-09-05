@@ -1,0 +1,39 @@
+SPEC-30 - Fermented versus fresh vegetable snack in adults
+
+SCENARIO
+A human nutrition crossover-free parallel study gave healthy adults a daily portion of
+lacto-fermented vegetables or the same vegetables fresh for four weeks, and measured
+gut and inflammatory markers at the end.
+
+DATA FILE: data.csv
+One row per participant. 76 participants: 38 per arm.
+Columns, in this order:
+  participant_id  strings like "FV-01"
+  arm             exactly two values: "fresh" and "fermented"
+  stool_frequency_per_wk  bowel movements per week. Fresh near 8.4 (SD 2.5),
+                        fermented near 9.8 (SD 2.7)
+  faecal_ph             faecal pH. Fresh near 6.85 (SD 0.35), fermented near 6.52
+                        (SD 0.38)
+  il6_pg_ml             interleukin-6, pg/mL. Fresh near 1.62 (SD 0.75), fermented
+                        near 1.28 (SD 0.65)
+  crp_mg_l              C-reactive protein, mg/L. Fresh near 1.45 (SD 1.10),
+                        fermented near 1.20 (SD 0.95)
+  lactobacillus_log     faecal lactobacilli, log10 CFU/g. Fresh near 6.9 (SD 0.8),
+                        fermented near 7.8 (SD 0.9)
+  bloating_score        self-reported bloating, 0 to 10. Fresh near 3.2 (SD 1.8),
+                        fermented near 3.6 (SD 2.0)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Test each of the six markers between the two arms with a two-sample test for a
+difference in means and hold the six raw p-values as one family. Do the multiplicity
+control with a specialist third-party multiple-comparison package obtained from the
+Python package index, not with a general statistics library, controlling the family-wise
+error rate across all six markers at five percent. Record the package and its version in
+a requirements file that ships with the project. Print each marker with its raw
+p-value, the package's adjusted value, and the package's decision, and treat only those
+decisions as findings.
+
+REPORT: report.md
+Half a page. Name the package and the error rate controlled, confirm the family is all
+six markers, present the adjusted results, and interpret them cautiously.

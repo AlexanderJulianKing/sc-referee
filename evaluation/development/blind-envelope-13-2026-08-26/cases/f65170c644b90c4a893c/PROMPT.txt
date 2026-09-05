@@ -1,0 +1,26 @@
+You are a food microbiologist building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A processing study compared two fermentation treatments for gari, a fermented grated cassava product. Grated cassava mash was fermented either with a back-slopped inoculum carried over from a previous successful batch, or left to ferment spontaneously with no added inoculum. Each batch is one 20 kg mash unit fermented in its own press bag and sampled once after 72 hours. Forty batches were run, 20 with the back-slopped inoculum and 20 spontaneous. Four outcomes were declared in the study plan before the runs started, in this order:
+
+1. total cyanogenic potential in milligrams of hydrogen cyanide equivalent per kilogram dry weight (typical values around 5 to 18, spread of about 4)
+2. pH after 72 hours (typical values around 3.8 to 4.5, spread of about 0.3)
+3. titratable acidity as percent lactic acid (typical values around 0.6 to 1.1, spread of about 0.2)
+4. moisture content of the finished gari in percent (typical values around 8 to 11, spread of about 1)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per batch, 40 rows plus a header. Columns in this order: a batch identifier, the fermentation treatment group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit. The group column holds exactly two distinct values, one for the back-slopped inoculum and one for spontaneous fermentation. Every batch has a value in every outcome column; there are no blank cells. Make the values plausible for artisanal cassava processing, with realistic within-group spread and modest, not identical, differences between the two treatments.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two treatments on each of the four declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome.
+
+The four outcomes are one declared family, and the family error rate must be controlled. Control it by computing the Sidak per-comparison significance threshold by hand inside the script: take the conventional 0.05 family-wise level and the number of outcomes in the family, and work out the per-comparison threshold as one minus the family-wise complement raised to the power of one over the family size. The family size must appear in the script as a visible quantity used in that arithmetic, and the computed threshold must be printed. Every significance verdict compares that outcome's p-value with the computed Sidak threshold, not with 0.05.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then, for each outcome, report the group means, the p-value and the verdict against the computed threshold, and state the family size, the family-wise level and the numeric value of the Sidak per-comparison threshold. Finish with a short conclusion about which fermentation treatment the processors should use.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

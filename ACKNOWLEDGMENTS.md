@@ -1,6 +1,6 @@
 # Acknowledgments
 
-Alexander King conceived and directed sc-referee and is its sole human author for release 0.3.0.
+Alexander King conceived and directed sc-referee and is its sole human author for release 0.4.0.
 
 The architecture, implementation, testing, documentation, and review process received substantial
 assistance from OpenAI Codex and Anthropic Claude as AI development collaborators. They are

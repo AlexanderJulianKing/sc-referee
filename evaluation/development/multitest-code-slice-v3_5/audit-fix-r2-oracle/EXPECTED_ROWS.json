@@ -1,0 +1,597 @@
+{
+  "profile": "multitest-v3.5-audit-fix-r2-flow-sensitive-position-exact-consumption-oracle-v1",
+  "provenance": {
+    "implementation_output_used": false,
+    "authored_from": [
+      "docs/adr/ADR-0079 3.5 fix-round-2 amendment (this round)",
+      "the round-1 Codex 3.5 verdict's five blocker digests and its inline-verdict digests",
+      "the round-1 oracle's rules A, B and C and the round-1 README",
+      "the merge-gate failure of tests/test_multiple_testing_code_slice_development.py",
+      "each row's own frozen 3.4 sibling, recomputed live by the test"
+    ]
+  },
+  "rows": [
+    {
+      "fixture_name": "sealed-e18-n1-unaltered",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:e9b7355f0aba7a5c4f8c230a8f64f422e84993d1c64bca50229b53e9626948ff",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "zip(results, adjusted_p_values, reject); verdict from adjusted_p < ALPHA",
+        "design_clause": "round-2 control",
+        "design_text": "The sealed E18 N1 source. Every position decides on its own adjusted value, the rendered record and the correction-output element agree at every position, and no return name is rebound. Round 2 changes nothing about it, and a round that moved it would have narrowed the clearance side past the claim rather than up to it."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "codex-r2-blocker-1-adjusted-rebound-to-raw-p",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:f8c58b1d8fef72e2926bb513b14251ea38f9a66259bdac06d04dc74200207e70",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`adjusted_p_values = raw_p_values` inserted after the correction call",
+        "design_clause": "fix round 2 rule A; audit blocker 1",
+        "design_text": "Rule A. The name the adjusted vector was bound to is rebound to the raw p-values before any verdict reads it, so every load after the rebinding reads the rebinding. The position is still concluded -- the program does publish five verdicts -- but none of them is proved to consume the correction and none is proved to be the raw p-value either, because the rebound name is multiply assigned and the engine cannot follow it. A clearance may not stand on that, and the row lands on the frozen consumption reason."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "codex-r2-blocker-2-reject-rebound-to-raw-decisions",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:d23bca1d3c769427090126f445aee5add7b68d944b3083083a71e98786a3527a",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`reject = [p < ALPHA for p in raw_p_values]` after the call; verdict from the zip-bound `rejected`",
+        "design_clause": "fix round 2 rule A; audit blocker 2",
+        "design_text": "Rule A, the other half. Here the decision vector rather than the value vector is overwritten, with a list of raw-p comparisons, and the presentation loop zips the overwritten name. The rebinding is the same flow-insensitivity, so the row is the same refusal."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "codex-r2-blocker-3-permuted-reject-vector",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:9e146287981c3906b6d3877dbf3d40aac6a81fb7f232130f83323e100ac91a31",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`wrong_reject = [reject[1], reject[0], reject[2], reject[3], reject[4]]` zipped into the presentation loop",
+        "design_clause": "fix round 2 rule B; audit blocker 3",
+        "design_text": "Rule B, position identity. Every verdict does read a corrected decision, but outcomes 0 and 1 read each other's. A clearance claims that each published verdict consumed *its own* corrected value, so the origin position and the rendered position have to be compared before the origin is reduced to the word `corrected`. Positions 0 and 1 are rendered from a decision belonging to the other, so both are misplaced and the row abstains."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "codex-r2-blocker-3-permuted-adjusted-vector",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:749a74fc0d46f53806f788f49864d2028923a4ba8273ab8b5cd20d6afd3b2655",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`wrong_adjusted = [adjusted_p_values[1], adjusted_p_values[0], ...]` zipped into the loop",
+        "design_clause": "fix round 2 rule B; audit blocker 3, adjusted twin",
+        "design_text": "The same permutation applied to the adjusted vector instead of the decision vector. The threshold comparison is unchanged and correct; the value it is applied to belongs to another outcome. Rule B reads it the same way."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "codex-r2-blocker-5-threshold-alpha-times-two",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:31709e3ce99c107ce5b9be4da596558f10f1c5d841c32cf0581bd1d784a5fc82",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`adjusted_p < ALPHA * 2` in place of `adjusted_p < ALPHA`",
+        "design_clause": "fix round 2, measured and excluded; audit blocker 5",
+        "design_text": "Measured and deliberately excluded. This check's clearance asserts complete family correction over the authorized family: that a correction was applied to the whole family and that each published verdict consumed its own corrected value. Whether the threshold the verdict compares against is the declared alpha is a different dimension with its own frozen guard and its own reason, and widening the consumption proof to cover it would make one reason carry two claims. The row is pinned here so that the exclusion is measured rather than assumed: the program does consume its own corrected value at every position, and it is cleared on that claim alone."
+      },
+      "expected_gate": "threshold-outside-the-clearance-claim",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-inline-verdict-fstring-enumerate",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:242a7f94b7756ebff630f4a57a99b24216ee80887ae07931de3866844dab4723",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "enumerate loop; `print(f\"{label}: {'DIFFERENT' if reject[i] else 'NO DIFFERENCE'}\")`",
+        "design_clause": "fix round 2 rule C; audit blocker 4",
+        "design_text": "Rule C. Round 1 called every load of a correction output under a registered sink payload a display, so this correct, complete correction was published as a catch: `reject[i]` sits inside a `print`, and the round-1 rule could not tell `print(reject[i])` from `print('SIG' if reject[i] else 'ns')`. The second is the verdict. A correction output read in a decisive position is a consumption wherever it stands, so this returns to covered/complete over the whole family."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-inline-verdict-plain-print-enumerate",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:5cc2ff12712a83ae0e059d1a0886c22e8d5eef9005ffdaeb116555abc02b1372",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "enumerate loop; `print(result[\"label\"], \"DIFFERENT\" if reject[i] else \"NO DIFFERENCE\")`",
+        "design_clause": "fix round 2 rule C; audit blocker 4",
+        "design_text": "The same shape without the f-string, which is how the audit showed the regression was not f-string-specific. The decisive position is what matters, not how the surrounding text is spelled."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-inline-verdict-format-enumerate",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:dbdc4104ad83f72bf17b1eea2d3e599db8be3eac3caeb3a2d788ac5d52ea9f0c",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "enumerate loop; `print(\"{}: {}\".format(label, \"DIFFERENT\" if reject[i] else ...))`",
+        "design_clause": "fix round 2 rule C; audit blocker 4",
+        "design_text": "The `.format()` spelling of the same shape."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-inline-verdict-unrolled-plain-print",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:e3c30c2a7cd43e3053299adf1c0a2421d005fa75dd83e45e14bf32bd6c5f6ff6",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "five unrolled prints, each `print(results[k][\"label\"], \"DIFFERENT\" if reject[k] else ...)`",
+        "design_clause": "fix round 2 rule C; audit blocker 4",
+        "design_text": "The hand-unrolled spelling: no loop at all, five statements, each publishing one outcome's verdict from that outcome's own decision element."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-inline-verdict-unrolled-fstring",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:0eb18811474f6130e6a1843d273bdd925d5d8c4f8f7e3525908a932b7127c83f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "five unrolled f-string prints over `reject[k]`",
+        "design_clause": "fix round 2 rule C; audit blocker 4",
+        "design_text": "The hand-unrolled f-string spelling."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-verdict-name-assigned-before-printing",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:838b30bd17ca64c4e51890a02e838ff18c20ead82b0a402e05a98d1a559934ed",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "enumerate loop; the f-string verdict is bound to a name and the name is printed",
+        "design_clause": "fix round 2 rule C; verdict probe table",
+        "design_text": "One of the correct forms the audit's probe table measured as unchanged. The decisive read is one name-binding away from the sink, which changes nothing about which value the verdict turned on."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-reject-helper-receiving-the-zip-bound-scalar",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:e7ca68352dd7bacbbf92278bcc62221efa0d9168a3f8faa566a3bd91cc46a0d3",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`verdict = _label(rejected)` where the module-level helper returns the two arms",
+        "design_clause": "fix round 2 rule C; verdict probe table",
+        "design_text": "The decisive read happens inside a helper that receives the zip-bound scalar. The correction output still reaches the verdict at its own position."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-float-adjusted-transport",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:5dc79164079a17a74d0002d4b22badb1701dbcc2fb0c7b9ba7ee84dc2ad88e3f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`float(adjusted_p) < ALPHA`",
+        "design_clause": "fix round 2 rule B; verdict probe table",
+        "design_text": "The `float()` transport the engine already models. The corrected value reaches the comparison at its own position and is not mistaken for the raw p-value."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-swapped-verdict-text-polarity",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:eb7f1a0175215aa5aa0f545250e24e9c797e6e299ad167d1d264b43b5e7df915",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`\"NO DIFFERENCE\" if adjusted_p >= ALPHA else \"DIFFERENT\"`",
+        "design_clause": "fix round 2 rule B; verdict probe table",
+        "design_text": "The arms are swapped and the comparison inverted, which is the same decision written the other way round. Consumption is about which value the verdict turned on, not which arm was written first."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "control-conservative-half-alpha-threshold",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:22683c97dbf1689017fd11f5e45f0f6e642f001108189feb4b659684d7d5fa29",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`adjusted_p < ALPHA / 2`",
+        "design_clause": "fix round 2, threshold exclusion; verdict probe table",
+        "design_text": "The conservative twin of blocker 5, byte-identical to the digest the verdict published for it. A stricter threshold and a looser one are the same fact about this check: the threshold is not part of the clearance claim, so both clear and blocker 5 is pinned as the measured exclusion rather than as a closed route."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "probe-three-corrected-two-raw-decisions",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:a90aa08c96d92d38341b2cd2fd1ac581a27b2318d24b92544c4a18fea4497be9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "three outcomes judged on the adjusted value and two on the raw p, selected by column name",
+        "design_clause": "fix round 2 rule B; verdict probe table",
+        "design_text": "Partial consumption. Two of the five published verdicts are read off the raw p-value, so the family is not completely corrected in the sense the clearance asserts, and the row abstains rather than clearing. This is the shape the audit's own probe table records as reaching rule B and being refused."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-rebound-inside-a-branch",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:afa244c0d949d298a249fdeaa58671bc5811d0eb7e5ff17a0d6f2da058bedef0",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`reject` rebound to raw decisions inside an `if` whose test is a length check",
+        "design_clause": "fix round 2 rule A, conservative branch reading",
+        "design_text": "A rebinding inside a branch is treated as reaching the loads after it. Deciding whether the branch is taken is a question about the data, not about the program, and a proof that cannot answer it must not assume the answer that clears the row."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-rebound-in-a-helper-that-returns-it",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:09c0a93780a64599214294bec36b4a759060589228501a6aa38b1c1428157533",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`reject = _raw_decisions(raw_p_values)` where the helper rebuilds the raw comparisons",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "A frozen gate in front of the consumption proof declines the source in both lanes: the helper makes the correction family's lineage unresolvable before any consumption question is asked. Recorded as a boundary, not as a closure, so a later round that moves it has to say so."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-permutation-via-sorted-zip",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:6b68db7dbb7b5f4661e608f17ef968930a094fffb591ed7f3ea94282d2f401e8",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`ordered = [item[1] for item in sorted(zip(adjusted_p_values, reject))]`",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "The permutation of blocker 3 written through `sorted`, which reorders by value rather than by an explicit index list. An earlier frozen gate declines it in both lanes, so no clearance stands on it and rule B is never reached."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-index-expression-rotated",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:f06dfecfa868db08195433a9351b8585b387e9416a3e040c2919cc0491920b1f",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`reject[(i + 1) % 5]` inside the enumerate loop's print",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "A rotation written as an index expression. The engine proves no literal member for it, so an earlier frozen gate declines the source in both lanes and no position is cleared."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-index-expression-i-plus-zero",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:d99f99515b2ba64dedb8f146619f32041c793a5aa2e5e33571a1ec2b0059ff01",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`reject[i + 0]` inside the enumerate loop's print",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "The correct twin of the rotation. `i + 0` is `i`, but the engine does not fold it, so the same earlier gate declines it. It is carried as a correct analysis that is unsupported rather than accused, which is the outcome the design asks for when a spelling cannot be followed."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-by-name-dict-lookup-with-the-correct-key",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:608b67b1d62469235f9cc17e1e240667c24c2267719a1ab736de803ea517f938",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "a dict from outcome column to decision, looked up by the rendered record's own column",
+        "design_clause": "fix round 2 rule B, measured cost",
+        "design_text": "The aligned by-name lookup. It is a correct analysis and it does not clear: the engine cannot prove that the key it looks up is the outcome being rendered, and its twin below shows why that matters. The two sources differ only in the key, and nothing in the engine's reading separates them, so refusing both is the only answer that does not clear the twin. Recorded as a measured coverage cost of closing the misplacement route."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-by-name-dict-lookup-with-a-rotated-key",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:1d7673f984fa7e92a86dabfa9f84ccb5615ef2a4d1c8447c9820f389319b8623",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the same dict, looked up through a module-level table that swaps two outcome names",
+        "design_clause": "fix round 2 rule B; the aligned row's twin",
+        "design_text": "The misaligned by-name lookup: outcomes 0 and 1 are judged by each other's decision, exactly as in blocker 3 but written through a key instead of an index. It is the reason the aligned twin above cannot be cleared."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-del-reject-then-a-new-reject",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:fdbe764f565fd589bc09e5ca81426c084bf5e0af402e2ca268fcae8bed5cf39d",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "`del reject` followed by a fresh raw-comparison `reject`",
+        "design_clause": "fix round 2 rule A, `del` as a binder",
+        "design_text": "A `del` unbinds and the following assignment rebinds, so the correction's binding is gone twice over. The rule enumerates every binder Python has, and this row is what keeps `del` among them."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": false,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-reassigned-to-a-slice",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:43677b13670a4b9a7b180d367061c1dc313e51dbe9a6956224d45862e9188783",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`reject = reject[:]`",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "A whole-slice copy. An earlier frozen gate declines the source in both lanes before the consumption proof is reached, so the round makes no claim about it."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-reject-reassigned-to-a-list-copy",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:b491103ded3db158c45ee81c40be3ad074d3721c86618c228e525735c55b4030",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`reject = list(reject)`",
+        "design_clause": "fix round 2 rule A, the identity-preserving copy",
+        "design_text": "Decided and pinned. `list(x)` is the copy the engine's own alias closure already treats as carrying the correction, and a self-copy is not a rebinding to something else: the values and their order are the same. Treating it as a foreign rebinding would have refused a correct analysis for writing a defensive copy, and would have contradicted the alias closure that clears `reject2 = list(reject)`. It cannot be used to launder a real rebinding, because the proof looks for a foreign binding after the *first* establishing one."
+      },
+      "expected_gate": "consumption-proved",
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "expected_authorized_count": 5,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    },
+    {
+      "fixture_name": "adversarial-adjusted-rebound-to-numpy-asarray-of-itself",
+      "case_key": "E18:N1:5c091f9052becdb5c3ea",
+      "fixture_source_sha256": "sha256:b621436c915f990169be17204e642d13f2f8046ffb9bdb9361caaa447f8d1d39",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "`import numpy as np` and `adjusted_p_values = np.asarray(adjusted_p_values)`",
+        "design_clause": "fix round 2 coverage boundary",
+        "design_text": "The numpy re-wrap of the adjusted vector. An earlier frozen gate declines the source in both lanes, so neither the rebinding rule nor the consumption proof is reached and the round makes no claim about it."
+      },
+      "expected_gate": "earlier-gate-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "correction-family-lineage-unresolved",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": null,
+      "expected_frozen_v34_identical": true,
+      "expected_admission_census": {}
+    }
+  ]
+}

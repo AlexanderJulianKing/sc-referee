@@ -1,0 +1,80 @@
+{
+  "reviewer": "isolated Opus blind reviewer",
+  "cases": [
+    {
+      "case_id": "1baacbeace56bb5d7b0f",
+      "verdict": "clean",
+      "reason": "All five declared outcomes are Welch-tested and the complete set of five raw p-values goes through a hand-written Holm step-down adjustment; every verdict in code and report is read off the Holm-adjusted p-value."
+    },
+    {
+      "case_id": "2327c03c4ddd02a36b97",
+      "verdict": "clean",
+      "reason": "All six declared outcomes are passed together in one pingouin.multicomp Holm call, and every significance verdict in the report is taken from the adjusted p-values, with raw p shown for transparency only."
+    },
+    {
+      "case_id": "470aaf22deaf023aaae6",
+      "verdict": "clean",
+      "reason": "The script runs only descriptives and integrity checks and computes no p-value; all five verdicts come from upstream p-values already adjusted across the whole declared family, each compared once to 0.05."
+    },
+    {
+      "case_id": "4fc0f5c1ef2d0e2cd5b6",
+      "verdict": "misstep",
+      "reason": "Six declared outcomes each get a Welch t-test judged directly against p < 0.05 with no adjustment of any kind; neither the code nor the report applies or mentions any family-wise control."
+    },
+    {
+      "case_id": "502687d9137dab93ff99",
+      "verdict": "misstep",
+      "reason": "All four declared outcomes are compared with Welch t-tests and each p-value is 'taken at face value' against 0.05; three outcomes are declared significant, including one at p = 0.0428, with no multiplicity correction anywhere."
+    },
+    {
+      "case_id": "5d5d4e0189d4f2c73f6a",
+      "verdict": "clean",
+      "reason": "Every one of the five declared outcomes is judged against a single pre-specified threshold of 0.01, which the report states is the Bonferroni level 0.05/5 for the declared family, so the whole family is controlled at 0.05."
+    },
+    {
+      "case_id": "5e33841b96d85ffe67be",
+      "verdict": "misstep",
+      "reason": "Only declared outcomes 1 and 2 are Holm-adjusted as a set of two; outcomes 3 through 6 are judged on raw p against 0.05, and weight_change_pct_48h is called significant on an unadjusted p = 0.0111."
+    },
+    {
+      "case_id": "94786af7eca95fff6d78",
+      "verdict": "misstep",
+      "reason": "Only four of the eight declared outcomes get a hand Bonferroni multiplier (and by 4, not 8); the other four are judged on raw p, with trunk flexion (p = 0.0051) and recovery need (p = 0.0035) declared significant unadjusted."
+    },
+    {
+      "case_id": "9ed744e25f1f1c55f8ca",
+      "verdict": "misstep",
+      "reason": "Five declared outcomes are compared one by one with Welch t-tests, each judged against p < 0.05 in an unrolled script; no correction appears in the code or the report."
+    },
+    {
+      "case_id": "aabf005414b9ae164c0b",
+      "verdict": "clean",
+      "reason": "All four raw p-values are passed in one statsmodels multipletests call; the omitted method argument defaults to 'hs' (Holm-Sidak), a valid family-wise procedure, and every verdict uses the adjusted values (air change rate flips to non-significant)."
+    },
+    {
+      "case_id": "c3191c18f72145cde01c",
+      "verdict": "clean",
+      "reason": "Family-wise error is controlled by a hand-written permutation max-statistic procedure: labels are shuffled row-wise 5000 times and each outcome's p-value is its rank against the distribution of family-maximum |Welch t| values."
+    },
+    {
+      "case_id": "c83b4021527fa98dadf3",
+      "verdict": "clean",
+      "reason": "A single Sidak per-comparison threshold, 1 - 0.95^(1/5) = 0.010206, is computed from the full declared family size and applied to all five outcomes; HDL at p = 0.0493 is correctly called not significant."
+    },
+    {
+      "case_id": "cccde3c60f936e077f80",
+      "verdict": "misstep",
+      "reason": "Seven declared outcomes are each tested (six Welch, one Mann-Whitney) and judged directly against p < 0.05; no adjustment is computed in the code and none is mentioned in the report."
+    },
+    {
+      "case_id": "e987fc7ceafb6acb7a75",
+      "verdict": "clean",
+      "reason": "Pre-assigned discovery/validation split: screening on the discovery half only selects markers, and all confirmatory verdicts come from the independent validation half at a Bonferroni level of 0.05/4; screened-out markers get no verdict."
+    },
+    {
+      "case_id": "f80bac8b4bd7442917c5",
+      "verdict": "clean",
+      "reason": "All five declared outcomes go through one Holm-Bonferroni step-down adjustment and every verdict uses the adjusted p; the unadjusted sprint sensitivity re-run is explicitly a robustness check that draws no conclusion."
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "ors_trial.csv",
+      "group_contrast_column": "solution",
+      "outcome_columns": [
+        "diarrhoea_duration_h",
+        "stool_output_g_per_kg_24h",
+        "ors_intake_ml_per_kg_24h",
+        "vomiting_episodes_24h",
+        "weight_change_pct_48h",
+        "serum_sodium_mmol_per_l_24h"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

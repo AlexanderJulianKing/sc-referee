@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "almond_plasma_lots.csv",
+      "group_contrast_column": "plasma_group",
+      "outcome_columns": [
+        "surrogate_log_reduction",
+        "peroxide_value_meq_kg",
+        "colour_l_star",
+        "moisture_pct",
+        "rancid_odour_score"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

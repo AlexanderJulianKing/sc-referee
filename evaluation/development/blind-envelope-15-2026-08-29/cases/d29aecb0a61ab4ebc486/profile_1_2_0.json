@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "data.csv",
+      "group_contrast_column": "drying_cycle",
+      "outcome_columns": [
+        "cooking_loss_pct",
+        "optimal_cooking_time_min",
+        "firmness_n",
+        "colour_b_star",
+        "furosine_mg_100g_protein"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

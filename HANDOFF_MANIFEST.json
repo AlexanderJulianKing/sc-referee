@@ -1,9 +1,9 @@
 {
   "starter_version": "0.1.0",
-  "program_version": "0.3.0",
+  "program_version": "0.4.0",
   "product": "sc-referee",
   "architecture_specification": "0.5.0-draft",
-  "schema_version": "0.19.0",
+  "schema_version": "0.21.0",
   "python_minimum": "3.11",
   "first_commands": [
     "python -m pip install -e '.[dev]'",
@@ -16,7 +16,7 @@
   ],
   "normative_reference_roots": [
     "reference/specification-v0.5.0-draft",
-    "reference/schemas-v0.19.0"
+    "reference/schemas-v0.21.0"
   ],
   "immutable_baseline_roots": [
     "reference/specification-v0.5.0-draft",
@@ -33,7 +33,9 @@
     "reference/schemas-v0.15.0",
     "reference/schemas-v0.16.0",
     "reference/schemas-v0.17.0",
-    "reference/schemas-v0.18.0"
+    "reference/schemas-v0.18.0",
+    "reference/schemas-v0.19.0",
+    "reference/schemas-v0.20.0"
   ],
   "implementation_entry_points": [
     "AGENTS.md",
@@ -42,7 +44,7 @@
     "docs/implementation/TASK_BOARD.md",
     "docs/implementation/SCHEMA_GAP_REGISTER.md"
   ],
-  "starter_scope": "evidence-first non-executing audit, deterministic replay, bounded parser and scientific-check adapters, typed scientist interaction, experimental detector evaluation, and isolated detector-specific static qualification proof mechanics; no detector qualification, promotion, or broad scientific correctness claim",
+  "starter_scope": "evidence-first non-executing audit, deterministic replay, bounded parser and scientific-check adapters, typed scientist interaction, experimental detector evaluation, and two exact binding-scoped Finding grants; the multiple-testing development lane has no Finding authority, and no broad scientific correctness claim is made",
   "legacy_provisional_schema_namespace": "urn:sc-referee:starter:v0.1.0",
   "legacy_provisional_schema_status": "migration-evidence-only",
   "verified_assessment_counts": {
@@ -85,5 +87,5 @@
     "static_qualification_profiles": 0,
     "static_qualification_proofs": 0
   },
-  "next_task": "Verify the installed skill from the merged 0.3.0 repository, then decide release-tag and W3ID publication timing. Independent detector qualification remains required before any experimental real-project detector gains Finding authority; project-code execution remains post-MPP."
+  "next_task": "Refresh the closed-tree manifest, verify the merged 0.4.0 repository and installed skills, then decide release-tag and W3ID publication timing. Independent qualification remains required before any additional experimental detector gains Finding authority; project-code execution remains post-MPP."
 }

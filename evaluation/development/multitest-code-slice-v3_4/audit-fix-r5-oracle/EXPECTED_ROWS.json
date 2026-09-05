@@ -1,0 +1,570 @@
+{
+  "profile": "multitest-v3.4-audit-fix-r5-helper-parameter-store-closure-oracle-v1",
+  "rows": [
+    {
+      "fixture_name": "correct-record-in-helper-distinct-parameter-name",
+      "fixture_source_sha256": "sha256:5d5806ae2403ad720ad9ec6269bbd3143e3952ea165a72fb8a42b85b6c1661ac",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name, record in results.items(): rescale(record, len(OUTCOMES)), where the helper writes entry[\"p\"] through a parameter named `entry`",
+        "design_clause": "audit round 5 confirmed BLOCKER; the round-4 named open residual",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  This is the row the round-4 oracle pinned as its named open residual and the shape the custodian reproduced through the real contract and audit pipeline.  The helper parameter is named `entry`, not `record`, so the round-4 module-wide name match does not reach it and the disposition turned on the parameter name alone.  The call site is now a mutation of the argument, because the callee is a project-local definition whose body stores through the parameter that argument binds."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-storing-through-a-local-alias",
+      "fixture_source_sha256": "sha256:9fdabc0b6c63a3eaf295ab728a8b281db53b59994a4d183f75af689e5ea4ad7d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper binds `row = entry` and stores through `row`",
+        "design_clause": "callee-body closure: the round-3 alias component of the parameter",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The parameter itself is never stored into.  The store is written through a second name for it, which is the round-3 alias edge read inside the callee body: the parameter's whole alias component is checked, not just its own name."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-storing-via-a-nested-helper",
+      "fixture_source_sha256": "sha256:27199645e9d982e3c97db452a1c8ce620f1f0efc9927d45408025292a2fdbb0f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper calls a second project-local helper that stores through its own parameter",
+        "design_clause": "callee-body closure: the interprocedural fixpoint, two levels",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  Neither helper is storing on its own reading.  `apply_factor` stores through `row`, which makes `rescale` store through `entry`, which makes the call site a mutation of `record`.  The storing set grows monotonically to a fixpoint, so a chain of any depth and a cyclic callee graph both converge."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-storing-conditionally",
+      "fixture_source_sha256": "sha256:c0652510a74df9b643f32532fe8b7ce2c07d3f0d5905663f45b84bd74495ac1d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper stores only inside an `if`",
+        "design_clause": "callee-body closure: a store anywhere in the body counts",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The recognizer never executes project code, so it cannot decide whether the branch is taken.  A store that appears anywhere in the callee body is a store the frozen engine cannot see, and the refusal direction is the safe one."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-mutating-via-update",
+      "fixture_source_sha256": "sha256:e261339f4787c0a106e4424c1ad9c636e3fa88c03031a1ba1e5b84306a516637",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper writes entry.update({...}) rather than a subscript store",
+        "design_clause": "callee-body closure: the frozen B1/B4 receiver-method census",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  An in-place mutation through a method call is what the frozen record-mutation census already counts on its tracked names, and round 5 reuses that census unchanged rather than enumerating method names."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-defined-after-its-use",
+      "fixture_source_sha256": "sha256:286acdad1d0c85d92cc04b99b448e5719ead6eda7e3f6872e6631f12a3204a1d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the helper is defined below the call that uses it",
+        "design_clause": "callee resolution: definitions are collected module-wide",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  Definition order is a property of the file, not of the program, so the resolver collects every definition in the module before any call is read."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-keyword-argument",
+      "fixture_source_sha256": "sha256:ea5bd2a2a5e1f06f1dff06f1d69712e8c0fc15c962f9ed52d1fc027a8629dd14",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "rescale(entry=record, family_size=len(OUTCOMES))",
+        "design_clause": "argument binding: keyword arguments bind by name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A keyword argument binds the parameter its name matches, or the `**kwargs` bucket when it matches none.  Positional and keyword spellings of the same call reach the same parameter and must reach the same disposition."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-through-star-args-forwarding",
+      "fixture_source_sha256": "sha256:e98abf611723059670dda038587c779b1c323736fcd6bca46407fedc6cd14ce5",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "forward(record, len(OUTCOMES)) into def forward(*args): rescale(*args)",
+        "design_clause": "argument binding: the star bucket and starred forwarding",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A positional argument past the declared slots binds the `*args` bucket, and a starred argument forwards an unknown position, so it is bound to every parameter of its callee at once and is captured when any of them stores.  That is the conservative reading, and it needs no rule of its own."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-through-double-star-forwarding",
+      "fixture_source_sha256": "sha256:7398c66ff9375d1fdb1a7d0816f0f46b490493099cea890630fc4291df28104c",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "forward(entry=record, ...) into def forward(**fields): rescale(**fields)",
+        "design_clause": "argument binding: the keyword bucket and double-starred forwarding",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A keyword argument matching no declared parameter binds the `**kwargs` bucket, and a double-starred argument is bound to every parameter of its callee at once, for the same reason a starred one is."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-lambda-bound-to-a-name",
+      "fixture_source_sha256": "sha256:9f3ba7706c644f9b57acc1d54313d9d24b275a6006ebdb8ffc4acbec87ba7f04",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "rescale = lambda entry, family_size: entry.update({...})",
+        "design_clause": "callee resolution: a lambda bound once to a name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A lambda is a definition like any other.  The name resolves only because this module binds it exactly once and binds it nowhere else, which is the same single-definition requirement every `def` name has to meet."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-lambda-applied-through-map",
+      "fixture_source_sha256": "sha256:850c1bd755ec140c7cd34bc918661e8bfb3a8c750949951729fd26d34482d2a7",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "list(map(lambda entry: entry.update({...}), results.values()))",
+        "design_clause": "callee resolution: the element-callback builtins",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  `map` and `filter` hand each element of the iterables beside them to their callable, so a callable that stores through its first parameter is a store into the records the iterable yields.  The callable here is an inline lambda and the iterable is the values view of the collection."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-static-method-of-a-project-local-class",
+      "fixture_source_sha256": "sha256:e0ade901e8b42bee7d73fcc7ff7395f1d2cfd97ee9b5e822d7b1cedca243f60f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "Bonferroni.rescale(record, len(OUTCOMES)) on a project-local class",
+        "design_clause": "callee resolution: a method reached through the class name",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  A method of a class defined in this module is a project-local definition.  Reached through the class name it takes no implicit receiver, and a `staticmethod` decorator takes none either way, so the record binds the first declared parameter."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-collection-in-helper-iterating-internally",
+      "fixture_source_sha256": "sha256:6c830543aa013e7cdbd4b4bc8c4c98879338afb44b9f185e35329b269d901133",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "rescale_all(results, len(OUTCOMES)), where the helper loops over the collection and stores",
+        "design_clause": "the collection itself handed to a storing helper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The argument is the collection, not one of its records, and the helper stores through the parameter by subscript.  The collection's own stores are excluded from the mutation census because the frozen engine already judges them, but a store written inside a helper through a differently named parameter is not one the frozen engine sees, so the capture is checked for the collection name too."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-values-view-in-helper-iterating-internally",
+      "fixture_source_sha256": "sha256:7a7f16ffc3734de74e5ff15c70e547670d5fbf4f2bc4d215ab9423b0a88ce876",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "rescale_all(results.values(), len(OUTCOMES)), where the helper iterates the parameter and stores through the element",
+        "design_clause": "the collection's values view handed to a storing helper",
+        "design_text": "Every one of the six declared outcomes is multiplied by the declared family size and capped before any verdict is read, so this is a complete and correct Bonferroni correction over the authorized family.  The frozen engine reconstructs family membership from the stores written through the collection's own name.  The store here is written inside a helper, through a parameter the frozen discipline binds to nothing, so the correction is invisible to the engine and the row was read as a family that was never corrected.  The call resolves nothing: the identical store written through `results` refuses because the member it names cannot be resolved.  The parameter is neither stored into nor mutated: its iteration target is.  Inside a callee body a parameter is seeded as a sequence of records as well as a mapping of them, because a parameter is seeded by whatever the call site hands it, so the module-level boundary that leaves a bare iteration target opaque does not apply."
+      },
+      "expected_gate": "helper-parameter-store",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-explicit-loop-record-store-through-name",
+      "fixture_source_sha256": "sha256:6bd19b48d9b54445d21007d81c0bada35c6599ca81081ee6b1be275bfc9b241f",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "for name in results: results[name][\"p\"] = min(results[name][\"p\"] * len(OUTCOMES), 1.0)",
+        "design_clause": "the reason authority, carried from the round-4 oracle",
+        "design_text": "The identical program with the same correction written through the collection's own name.  The frozen 3.3 pipeline refuses it at `pvalue-family-collection-unresolved` because the member each store names cannot be resolved, and that is the reason every refused row above lands on.  The test recomputes this row's frozen 3.3 result live and asserts the equality, so a wrong pin fails rather than passes."
+      },
+      "expected_gate": null,
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-helper-imported-from-a-sibling-module",
+      "fixture_source_sha256": "sha256:168b79723027fbaad20fa38c75ab9099d42a98f302a27a11ad1980d72eb78bb5",
+      "correct_analysis": true,
+      "expected_open_false_accusation": true,
+      "derivation": {
+        "audit_probe_shape": "from corrections import rescale, then rescale(record, len(OUTCOMES))",
+        "design_clause": "the round-5 named open residual: the single-file envelope",
+        "design_text": "The correction is the same complete, correct Bonferroni pass, and the helper that carries it lives in a sibling project module.  This recognizer reads one source file, so the callee resolves to no definition it can read, and refusing on an unresolvable callee would refuse `len(OUTCOMES)`, `', '.join(MUSCULOSKELETAL)`, and every other library call the pinned evidence rows depend on.  The row is therefore still classified candidate/none at the analyzer level, and it is pinned open there so the residual is a recorded row rather than a later discovery.  It is not a deployed accusation route: run through the real pipeline -- method-contract followed by audit with the development lane and the material input, custodian-measured 2026-09-02 -- the same project is refused before any 3.4 classification runs, at state `unsupported` with abstention reason `api-resolution-ambiguous`, because the api-resolution and helper-expansion counterevidence gate resolves nothing for a callee defined outside the file under analysis.  Closing it at the analyzer level would still mean widening what the recognizer reads, not widening what it infers from what it reads."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "correct-record-in-instance-method-of-a-project-local-class",
+      "fixture_source_sha256": "sha256:39a1bff616bfc7523a45fd26ab3ff95bc787abdfb093cd6efad7d320ee619a6d",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "adjuster = Bonferroni(len(OUTCOMES)); adjuster.rescale(record)",
+        "design_clause": "measured disposition: an instance method whose factor is an attribute",
+        "design_text": "The instance-method spelling was never a false accusation.  The frozen 3.3 pipeline abstains on it at `unresolved-manual-correction-present` before any classification is reached, and it abstains there for the same reason afterwards.  The row is carried so the pair with the static-method row records which half of the class-method shape the closure actually had to reach, and so a later change that turned this abstention into a classification would be caught here."
+      },
+      "expected_gate": null,
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "boundary-read-only-helper-calling-a-method-on-its-parameter",
+      "fixture_source_sha256": "sha256:c8603e18e02cc9583bf004f221031c20748331beb6e793f3a2894b7bcb456ade",
+      "correct_analysis": false,
+      "expected_conservative_refusal": true,
+      "derivation": {
+        "audit_probe_shape": "def formatted_p(entry): return \"{:.6f}\".format(entry.get(\"p\")), called from a read-only presentation loop over a genuinely uncorrected family",
+        "design_clause": "the measured cost of reusing the frozen receiver-method census",
+        "design_text": "The family is genuinely uncorrected and the helper stores nothing: it reads one collected p and formats it.  It reads it with a method call, and the frozen B1/B4 record-mutation census counts every method call whose receiver is a name as an in-place mutation, because a method may mutate its receiver and this recognizer never executes project code.  Round 5 reuses that census unchanged rather than enumerating which method names are safe, so this row is refused and one true accusation is traded for the closure.  The trade is recorded rather than hidden: no row in the 170 evidence sources, the 245 fixtures, or the 50 corpus adapter rows has this shape, so the cost is a pinned hypothetical and not a measured loss.  The sibling row `positive-read-only-helper-on-uncorrected-family` is the same helper reading the same field by subscript, and it keeps its accusation."
+      },
+      "expected_gate": "conservative-receiver-method-refusal",
+      "expected_outcome": "abstain",
+      "expected_reason": "pvalue-family-collection-unresolved",
+      "expected_reason_sibling": "correct-explicit-loop-record-store-through-name",
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-helper-on-uncorrected-family",
+      "fixture_source_sha256": "sha256:36c74d2d64c4d8461423b74e676a9360a8a4fa8d1eeced233dcf6395e10b9004",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "def significance_label(entry): return \"SIGNIFICANT\" if entry[\"p\"] < ALPHA else \"not significant\"",
+        "design_clause": "the read-only control the closure must not refuse",
+        "design_text": "The family is genuinely uncorrected and this is a true accusation.  A project-local helper receives the record and only reads it, so no parameter of it is stored through and the call site captures nothing.  A closure that refused on the call rather than on the store would lose this finding, which is what mutation kill C records.  The helper is named `significance_label` rather than `verdict` on purpose: P3's own presentation loop binds `verdict`, and a name this module binds twice is not a resolvable callee, so a control named that way would pass for the wrong reason."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-read-only-helper-on-the-whole-collection",
+      "fixture_source_sha256": "sha256:8600b991e7652d5f47eff3a5f7f2d36ae736046dce7d70a7082e1c2f5b209454",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "print(collection_summary(results)), where the helper only reads len(table)",
+        "design_clause": "the read-only control on the collection itself",
+        "design_text": "The collection is handed to a project-local helper that reads its length and returns a string.  Nothing is stored through the parameter, so the collection is not captured and the genuinely uncorrected family keeps its accusation."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-builtin-calls-over-record-derived-names",
+      "fixture_source_sha256": "sha256:369452c82936cc103c91bf50dfe9859f01e630201c65dcd6a6760305fbf259b7",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "sorted(results.items()), print(record), \", \".join(OUTCOMES), len(OUTCOMES)",
+        "design_clause": "the builtin non-capture discipline rounds 1 to 4 all preserve",
+        "design_text": "Every call here takes a record-derived name or the collection and every one of them is a builtin.  A builtin resolves to no project-local definition, so none of them is a capture, and the uncorrected family keeps its accusation.  This is the frozen `len(OUTCOMES)` and `', '.join(MUSCULOSKELETAL)` discipline the pinned 3.3 evidence rows depend on, and mutation kill B records what treating these as captures costs."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-explicit-loop-uncorrected-family",
+      "fixture_source_sha256": "sha256:d1e9a8b1dfa179436566db2eb4e7fc1d8623ef5ad05cfb1d4ee734a04a04fe08",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the explicit-loop P3 with no correction and no helper at all",
+        "design_clause": "the uncorrected baseline the read-only controls are measured against",
+        "design_text": "Each read-only control is this program plus one inserted read.  The baseline fixes what the controls have to keep, so a control that held for an unrelated reason would show up as a difference from this row rather than as a pass."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-covered-family-with-a-read-only-helper",
+      "fixture_source_sha256": "sha256:fdca986c822cf54746d820eff8c75d5834c0d722e0f278a0f8249dc86b6277a0",
+      "correct_analysis": true,
+      "derivation": {
+        "audit_probe_shape": "the complete correction carried out on the threshold, with a live read-only helper call",
+        "design_clause": "the coverage guard",
+        "design_text": "The closure guards coverage classifications as well as candidate ones, and this row is what shows guarding them costs nothing: a complete correction applied to the decision threshold keeps its covered/complete row with a live read-only helper call standing beside it."
+      },
+      "expected_gate": null,
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5
+      ],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": true,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 0,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-comprehension-e17-p3-unaltered",
+      "fixture_source_sha256": "sha256:615dacd03798acf1284ced57f46d6f9be05ac4aa010742e0b387b4651a8459d9",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P3 source, carried unaltered",
+        "design_clause": "pinned 3.4 movement",
+        "design_text": "The first pinned 3.4 movement lands on the classification path this closure sits directly on, and P3's own `result = results[outcome]` is a record-derived binding that is only read.  The sealed bytes are carried so the movement is re-demonstrated inside the round-5 block rather than only in the shipped movement test."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "none",
+      "expected_corrected_positions": [],
+      "expected_authorized_count": 6,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 0,
+        "comprehension": 1,
+        "enumerate": 0,
+        "terminal-ifexp": 0
+      }
+    },
+    {
+      "fixture_name": "positive-ap-e17-p6-unaltered",
+      "fixture_source_sha256": "sha256:779929231eaa6b56005f6ab37314890f8c876bc7d8b97ed7cabbd0f7b1e8f052",
+      "correct_analysis": false,
+      "derivation": {
+        "audit_probe_shape": "the sealed E17 P6 source, carried unaltered",
+        "design_clause": "pinned 3.4 movement",
+        "design_text": "The second pinned 3.4 movement.  P6 has no record collection at all, so this closure cannot reach it; what mutation kill B records is that a round-5 rule written as `any call argument is a capture` would have to feed the module mutation census, and `', '.join(MUSCULOSKELETAL)` would then make the AP selection sequence unstable and P6 would lose its strict_subset row."
+      },
+      "expected_gate": null,
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "expected_corrected_positions": [
+        0,
+        1,
+        2
+      ],
+      "expected_authorized_count": 7,
+      "expected_reason_sibling": null,
+      "expected_frozen_v33_identical": false,
+      "expected_admission_census": {
+        "cap": 1,
+        "comprehension": 0,
+        "enumerate": 1,
+        "terminal-ifexp": 0
+      }
+    }
+  ],
+  "provenance": {
+    "audit_date": "2026-09-01",
+    "audit_identity": "MT 3.4 adversarial audit round 5: a correct, complete Bonferroni correction written INSIDE A PROJECT-LOCAL HELPER -- `def bonferroni_adjust(entry, n_tests): entry[\"p\"] = min(entry[\"p\"] * n_tests, 1.0)` called as `bonferroni_adjust(record, len(OUTCOMES))` -- is classified candidate/none over the uncorrected family, because argument passing is a non-capture under the frozen discipline and nothing binds the helper's parameter to the record.  The round-4 oracle pinned this row by name as its open residual.",
+    "design_document": "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md",
+    "design_revision": "0",
+    "implementation_output_used": false,
+    "reason_authority": "Round 5 works on the classification side, so the byte-frozen 3.3 analyzer's reason for the row itself is not available: 3.3 classifies these rows, which is the defect.  The authority is instead the frozen 3.3 reason for the row's THROUGH-NAME SIBLING -- the identical program with the identical correction written through the collection's own name.  Each refused row names its sibling in `expected_reason_sibling`, and the test recomputes the sibling's frozen 3.3 row live and asserts the shipped 3.4 reason for the helper row equals it, so a wrong pin fails rather than passes.  No reason is added to the closed set of 61.",
+    "named_open_residual": "`correct-record-in-helper-imported-from-a-sibling-module` is the one correct-analysis row round 5 leaves classified.  The recognizer reads one source file, so a callee defined in a sibling project module resolves to no definition it can read, and refusing on an unresolvable callee would refuse every builtin and library call the pinned evidence rows depend on.  Measured through the analyzer alone, as every row in this oracle is, it is candidate/none over a family of six, and it is pinned with `expected_open_false_accusation` at that level so the residual is a recorded row rather than a later discovery.  It is not a deployed accusation route: run through the real pipeline -- method-contract followed by audit with the development lane and the material input, custodian-measured 2026-09-02 -- the same project is refused before any 3.4 classification runs, at state `unsupported` with abstention reason `api-resolution-ambiguous`.  Closing it at the analyzer level would still mean widening what the recognizer READS, which is a change to the analysis envelope rather than to this closure.",
+    "measured_cost": "`boundary-read-only-helper-calling-a-method-on-its-parameter` is a true accusation this closure trades away.  A helper that only reads its parameter, but reads it with a method call, is refused, because round 5 reuses the frozen B1/B4 receiver-method census unchanged rather than enumerating which method names are safe.  No row in the 170 evidence sources, the 245 fixtures, or the 50 corpus adapter rows has that shape, so the cost is a pinned hypothetical rather than a measured loss.",
+    "inherited_defect": "The defect is present in the byte-frozen v3 and v3.3 lanes and is narrowed only in v3.4, which supersedes them in the active development binding.  The frozen lanes are unchanged and stay byte-identical, and the round-5 tests assert their anchor bytes alongside the rest."
+  }
+}

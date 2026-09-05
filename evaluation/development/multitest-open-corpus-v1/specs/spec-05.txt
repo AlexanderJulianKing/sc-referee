@@ -1,0 +1,39 @@
+SPEC-05 - Riparian buffer width and stream condition
+
+SCENARIO
+A watershed monitoring programme compared 52 stream reaches in one catchment: 26 with
+a wide vegetated riparian buffer (over 20 m) and 26 with a narrow buffer (under 5 m).
+Each reach was sampled once in late summer.
+
+DATA FILE: data.csv
+One row per reach. 52 reaches.
+Columns, in this order:
+  reach_id        strings like "R-101"
+  buffer_class    exactly two values: "narrow" and "wide"
+  turbidity_ntu         turbidity, NTU. Narrow near 14.2 (SD 6.1), wide near 8.5
+                        (SD 4.4)
+  total_p_mg_l          total phosphorus, mg/L. Narrow near 0.112 (SD 0.045),
+                        wide near 0.071 (SD 0.033)
+  nitrate_mg_l          nitrate as N, mg/L. Narrow near 2.35 (SD 1.10), wide near
+                        1.62 (SD 0.95)
+  water_temp_c          midday water temperature, degrees C. Narrow near 19.8
+                        (SD 1.9), wide near 18.1 (SD 1.7)
+  macroinvert_ept_taxa  count of EPT taxa, whole numbers 0 to 25. Narrow near 8.4
+                        (SD 3.5), wide near 11.6 (SD 4.0)
+  canopy_cover_pct      canopy cover, percent. Narrow near 22 (SD 12), wide near
+                        61 (SD 16)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Hold the six outcome names in an ordered list. Step through the list with a counter
+that tracks each outcome's position, so the position number can be printed next to the
+outcome name and used to store the result in a fixed-length results array created up
+front. For each position, split the reaches by buffer class, run a two-sample test for
+a difference in means, and store the p-value at that position. Decide significance for
+each outcome by comparing its own p-value against five percent, written as a plain
+number in the comparison. Print a numbered line per outcome with its verdict. Nothing
+in the script accounts for the six outcomes being tested together.
+
+REPORT: report.md
+Half a page. List the six outcomes with their p-values and verdicts, and discuss what
+the significant ones say about buffer policy in the catchment.

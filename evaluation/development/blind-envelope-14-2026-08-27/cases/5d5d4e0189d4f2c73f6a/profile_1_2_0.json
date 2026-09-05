@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "carpal_tunnel_splint_trial.csv",
+      "group_contrast_column": "allocation",
+      "outcome_columns": [
+        "symptom_severity_score",
+        "functional_status_score",
+        "night_awakenings_per_week",
+        "two_point_discrimination_mm",
+        "distal_motor_latency_ms"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

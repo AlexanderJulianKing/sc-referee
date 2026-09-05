@@ -1,0 +1,25 @@
+{
+ "envelope": "blind-envelope-17-2026-08-30",
+ "class": "multiple-testing",
+ "detector": "code_csv_multiple_testing 3.3.0 (development lane), repo 73eb49b",
+ "design_lineage": "3.0 record model + 3.1 questions/attestations + 3.2 AP(C,POS) recognition + 3.3 terminal-presentation/helper-record proofs; E16-retro 4/6 going in",
+ "hard_stops": {
+  "negative_candidates": "0/9 accusation candidates PASS",
+  "findings_anywhere": "0 PASS (30 bundles)",
+  "replay": "15/15 identical module_evaluation_digest PASS",
+  "class_fa_window": "0 FA in all 120 available class-specific blind cases PASS"
+ },
+ "first_contact_recall": "4/6 - best blind envelope in class history (caught: P1 uncorrected 5-family, P2 uncorrected 3-family, P4 uncorrected 4-family, P5 strict_subset [2,3]/8 - the FIRST blind strict_subset, the 3.2 AP recognition scoring blind)",
+ "positive_misses": {
+  "P3": "hierarchical-gatekeeping-present",
+  "P6": "unresolved-manual-correction-present (ConditionalConcern + MaterialQuestion raised - designed deployment behavior)"
+ },
+ "question_layer": "material_questions on every case; 3 ConditionalConcerns (P6, N2, N3); none counted as catches per blind protocol",
+ "blind_review_summary": {
+  "reviewer_recall": "6/6 positives flagged MISSTEP",
+  "reviewer_fa": "1 (N6 pesticide-exposure flagged MISSTEP; role-map negative; detector abstained authorized-family-test-census-incomplete)",
+  "note": "third consecutive envelope with the asymmetry: reviewer full recall + 1 FA; detector partial recall + 0 FA; the recall gap narrowed from 5 to 2"
+ },
+ "class_tally": "window E17 = 4/6; promotion needs E17+E18 >= 7/12, so E18 needs >= 3/6",
+ "scoring_isolation": "scored from semantic.lock.json registry observations only; no attestations supplied in any blind run; blind review completed before any audit output existed"
+}

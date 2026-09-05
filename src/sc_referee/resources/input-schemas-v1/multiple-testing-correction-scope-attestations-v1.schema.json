@@ -1,0 +1,165 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://w3id.org/sc-referee/private-input/multiple-testing-correction-scope-attestations-v1.schema.json",
+  "title": "Multiple-testing correction-scope attestations v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "profile",
+    "profile_version",
+    "answers"
+  ],
+  "properties": {
+    "profile": {
+      "const": "multiple_testing_correction_scope_attestations_v1"
+    },
+    "profile_version": {
+      "const": "1.0.0"
+    },
+    "answers": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "items": {
+        "$ref": "#/$defs/attestation"
+      }
+    }
+  },
+  "$defs": {
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "span": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "start_line",
+        "start_column",
+        "end_line",
+        "end_column"
+      ],
+      "properties": {
+        "start_line": {"type": "integer", "minimum": 1},
+        "start_column": {"type": "integer", "minimum": 1},
+        "end_line": {"type": "integer", "minimum": 1},
+        "end_column": {"type": "integer", "minimum": 1}
+      }
+    },
+    "claimed_correction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "path",
+        "analysis_content_digest",
+        "source_span",
+        "factor"
+      ],
+      "properties": {
+        "path": {"const": "analysis.py"},
+        "analysis_content_digest": {"$ref": "#/$defs/digest"},
+        "source_span": {"$ref": "#/$defs/span"},
+        "factor": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value", "source_span"],
+          "properties": {
+            "kind": {
+              "enum": [
+                "literal_multiplier",
+                "contract_family_size",
+                "correction_input_count",
+                "resolved_constant_integer",
+                "threshold_divisor"
+              ]
+            },
+            "value": {"type": "integer", "minimum": 1},
+            "source_span": {"$ref": "#/$defs/span"}
+          }
+        }
+      }
+    },
+    "attestation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question_id",
+        "source_snapshot_digest",
+        "analysis_content_digest",
+        "question_evidence_digest",
+        "authority_binding_digest",
+        "answer",
+        "respondent",
+        "certainty",
+        "timestamp_status",
+        "supersedes_answer_digest",
+        "claimed_correction"
+      ],
+      "properties": {
+        "question_id": {
+          "type": "string",
+          "pattern": "^material-question:multiple-testing-correction-scope:[0-9a-f]{24}$"
+        },
+        "source_snapshot_digest": {"$ref": "#/$defs/digest"},
+        "analysis_content_digest": {"$ref": "#/$defs/digest"},
+        "question_evidence_digest": {"$ref": "#/$defs/digest"},
+        "authority_binding_digest": {"$ref": "#/$defs/digest"},
+        "answer": {
+          "enum": [
+            "correction-scope-incomplete",
+            "correction-scope-complete",
+            "correction-scope-unknown"
+          ]
+        },
+        "respondent": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["actor_kind", "actor_id"],
+          "properties": {
+            "actor_kind": {"const": "human"},
+            "actor_id": {"type": "string", "minLength": 1},
+            "display_name": {"type": "string", "minLength": 1}
+          }
+        },
+        "certainty": {
+          "const": {
+            "level": "explicit",
+            "basis": "The named human supplied this answer for the bound question."
+          }
+        },
+        "timestamp_status": {
+          "enum": ["available", "unavailable"]
+        },
+        "answered_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "supersedes_answer_digest": {"type": "null"},
+        "claimed_correction": {
+          "oneOf": [
+            {"type": "null"},
+            {"$ref": "#/$defs/claimed_correction"}
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {"timestamp_status": {"const": "available"}},
+            "required": ["timestamp_status"]
+          },
+          "then": {"required": ["answered_at"]},
+          "else": {"not": {"required": ["answered_at"]}}
+        },
+        {
+          "if": {
+            "properties": {"answer": {"const": "correction-scope-complete"}},
+            "required": ["answer"]
+          },
+          "then": {"properties": {"claimed_correction": {"$ref": "#/$defs/claimed_correction"}}},
+          "else": {"properties": {"claimed_correction": {"type": "null"}}}
+        }
+      ]
+    }
+  }
+}

@@ -135,6 +135,10 @@ def test_bundled_matrix_is_deterministic_and_publishes_only_live_binding_grants(
         },
         {
             "record_type": "detector_manifest",
+            "record_id": "detector:bounded-code-csv-multiple-testing-conflict",
+        },
+        {
+            "record_type": "detector_manifest",
             "record_id": "detector:bounded-feature-identifier-identity",
         },
         {

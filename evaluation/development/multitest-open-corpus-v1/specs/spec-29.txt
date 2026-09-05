@@ -1,0 +1,39 @@
+SPEC-29 - Silvopasture versus open pasture for sheep
+
+SCENARIO
+An agroforestry study grazed ewes and lambs either in a silvopasture system with poplar
+alleys or in adjacent open pasture through one summer, on the same farm. Each ewe-lamb
+pair is one record.
+
+DATA FILE: data.csv
+One row per ewe-lamb pair. 68 pairs: 34 per system.
+Columns, in this order:
+  pair_id         strings like "SP-01"
+  system          exactly two values: "open" and "silvopasture"
+  lamb_adg_g_d          lamb average daily gain, g/day. Open near 235 (SD 42),
+                        silvopasture near 258 (SD 45)
+  ewe_bcs_change        ewe body condition score change over summer, minus 1 to plus
+                        1. Open near minus 0.28 (SD 0.30), silvopasture near minus
+                        0.12 (SD 0.28)
+  panting_score         mean midday panting score, 0 to 4. Open near 2.15 (SD 0.70),
+                        silvopasture near 1.25 (SD 0.60)
+  faecal_egg_count      strongyle eggs per gram, whole numbers. Open near 480
+                        (SD 210), silvopasture near 615 (SD 260)
+  pasture_growth_kg_ha_d  pasture growth rate, kg DM/ha/day. Open near 42 (SD 11),
+                        silvopasture near 34 (SD 10)
+  wool_yield_kg         wool clip per ewe, kg. Open near 3.15 (SD 0.55),
+                        silvopasture near 3.28 (SD 0.56)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Lamb gain, ewe condition change, and panting score are the animal-performance group;
+the other three are the system group. Test all six outcomes with a two-sample test for
+a difference in means. Correct only the three animal-performance outcomes together,
+using a hand-computed Bonferroni threshold of five percent divided by three, and judge
+those three against it. Judge the three system outcomes against the plain five-percent
+level with no adjustment at all, and present all six in one table with identical
+significance wording.
+
+REPORT: report.md
+Half a page. Give the single six-row table, mention that the animal-performance group
+used a corrected threshold, and summarise the case for silvopasture.

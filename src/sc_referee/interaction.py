@@ -339,6 +339,7 @@ def create_candidate_answer(
 
     context = _load_session(session_root, schema_root, require_unlocked=True)
     question = _question(context["parent_bundle"], question_id)
+    _refuse_generic_multiple_testing_scope_answer(question)
     option = next(
         (
             candidate
@@ -417,6 +418,7 @@ def create_structured_answer(
 
     context = _load_session(session_root, schema_root, require_unlocked=True)
     question = _question(context["parent_bundle"], question_id)
+    _refuse_generic_multiple_testing_scope_answer(question)
     if question.get("unknown_semantic_dimension") != "scientific_contract":
         raise InteractionProtocolError("structured answers are limited to contract questions")
     work_item = _submitted_work_item(context, question_id)
@@ -495,6 +497,7 @@ def create_scope_selection_answer(
 
     context = _load_session(session_root, schema_root, require_unlocked=True)
     question = _question(context["parent_bundle"], question_id)
+    _refuse_generic_multiple_testing_scope_answer(question)
     try:
         contract = validate_scope_selection_question(
             context["parent_bundle"],
@@ -2257,6 +2260,16 @@ def _question(parent_bundle: dict[str, Any], question_id: str) -> dict[str, Any]
     if len(matches) != 1:
         raise InteractionProtocolError("Answer question is not uniquely open in the source audit")
     return cast(dict[str, Any], matches[0])
+
+
+def _refuse_generic_multiple_testing_scope_answer(question: dict[str, Any]) -> None:
+    if (
+        question.get("extensions", {}).get("x-question-purpose")
+        == "multiple_testing_correction_scope"
+    ):
+        raise InteractionProtocolError(
+            "multiple-testing correction-scope questions require the digest-bound attestations input"
+        )
 
 
 def _question_contract(parent_bundle: dict[str, Any], question: dict[str, Any]) -> dict[str, Any]:

@@ -1,0 +1,23 @@
+{
+  "schema": "multiple-testing-scope-attestation-oracle-v1",
+  "design_revision": "Revision 1a",
+  "implementation_output_used": false,
+  "derivation": "Design sections 7, 8, 9.2, and 12 prescribe these public-record transitions. Expected rows were authored independently of implementation output.",
+  "rows": [
+    {"name":"answer-a-partial-holm-e15-p5","route":"correction-scope-incomplete","question_status":"answered","concern":"author_attestation","disclosure":false,"proof_status":null},
+    {"name":"answer-a-partial-manual-e15-p6","route":"correction-scope-incomplete","question_status":"answered","concern":"author_attestation","disclosure":false,"proof_status":null},
+    {"name":"answer-a-mistaken-on-complete-correction","route":"correction-scope-incomplete","question_status":"answered","concern":"author_attestation","disclosure":false,"proof_status":null},
+    {"name":"answer-b-proves-e13-n1-default-multipletests","route":"correction-scope-complete","question_status":"answered","concern":null,"disclosure":false,"proof_status":"complete"},
+    {"name":"answer-b-proves-complete-manual-grammar-control","route":"correction-scope-complete","question_status":"answered","concern":null,"disclosure":false,"proof_status":"complete"},
+    {"name":"answer-b-fails-partial-holm-e15-p5","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-b-fails-partial-manual-e15-p6","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-b-fails-unused-complete-call","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-b-fails-off-registry-complete-call","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-b-fails-raw-adjusted-merge","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-b-fails-factor-n-but-subset-flow","route":"correction-scope-complete","question_status":"open","concern":"conflicted","disclosure":true,"proof_status":"unverified"},
+    {"name":"answer-unknown-retains-question","route":"correction-scope-unknown","question_status":"open","concern":"unknown","disclosure":false,"proof_status":null},
+    {"name":"omitted-answer-retains-question","route":null,"question_status":"open","concern":"unknown","disclosure":false,"proof_status":null},
+    {"name":"answer-a-identical-bytes-different-input-path","route":"correction-scope-incomplete","question_status":"answered","concern":"author_attestation","disclosure":false,"proof_status":null},
+    {"name":"answer-b-identical-bytes-different-input-path","route":"correction-scope-complete","question_status":"answered","concern":null,"disclosure":false,"proof_status":"complete"}
+  ]
+}

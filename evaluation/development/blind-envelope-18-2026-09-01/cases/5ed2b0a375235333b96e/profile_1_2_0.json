@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "data.csv",
+      "group_contrast_column": "disease_group",
+      "outcome_columns": [
+        "serum_ferritin_ug_l",
+        "serum_vitamin_b12_pmol_l",
+        "serum_folate_nmol_l",
+        "serum_zinc_umol_l",
+        "serum_25oh_vitamin_d_nmol_l",
+        "serum_magnesium_mmol_l"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "slurry_store_measurements.csv",
+      "group_contrast_column": "cover_treatment",
+      "outcome_columns": [
+        "methane_flux_g_per_m2_per_day",
+        "ammonia_flux_gn_per_m2_per_day",
+        "nitrous_oxide_flux_mgn_per_m2_per_day",
+        "slurry_ph_ph_units",
+        "slurry_dry_matter_percent"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

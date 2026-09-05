@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "ra_baseline_markers.csv",
+      "group_contrast_column": "group",
+      "outcome_columns": [
+        "crp_mg_l",
+        "esr_mm_h",
+        "anti_ccp_u_ml",
+        "rf_iu_ml",
+        "calprotectin_ng_ml",
+        "vitd_nmol_l"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

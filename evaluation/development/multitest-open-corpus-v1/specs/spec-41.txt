@@ -1,0 +1,35 @@
+SPEC-41 - Two wound dressings in diabetic foot ulcers
+
+SCENARIO
+A vascular clinic compared a silver-impregnated dressing against the standard foam
+dressing for neuropathic diabetic foot ulcers, with patients allocated at their first
+clinic visit and followed for twelve weeks.
+
+DATA FILE: data.csv
+One row per patient. 112 patients: 56 per dressing.
+Columns, in this order:
+  patient_id      strings like "DFU-001"
+  dressing        exactly two values: "foam" and "silver"
+  time_to_heal_days     days to complete healing, censored at 84 for unhealed ulcers,
+                        whole numbers. Foam near 58 (SD 20), silver near 51 (SD 19)
+  area_reduction_pct    ulcer area reduction at 12 weeks, percent. Foam near 62
+                        (SD 24), silver near 71 (SD 22)
+  infection_episodes    infection episodes in 12 weeks, whole numbers 0 to 4. Foam
+                        near 0.65 (SD 0.85), silver near 0.42 (SD 0.70)
+  pain_score            pain at dressing change, 0 to 10. Foam near 3.8 (SD 2.0),
+                        silver near 3.5 (SD 2.0)
+  dressing_changes      dressing changes over 12 weeks, whole numbers. Foam near 26
+                        (SD 7), silver near 21 (SD 6)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Declare one clearly named significance-level constant at the top of the file holding
+the conventional five percent, together with a short comment saying it is the study's
+alpha. Use that same constant, unchanged, for all five outcomes: run a two-sample test
+for a difference in means on each, compare its p-value with the constant, and print the
+outcome, both means, the p-value, and the resulting verdict. The constant is never
+divided by the number of outcomes and no adjustment routine is used.
+
+REPORT: report.md
+Half a page. State the alpha used, give the five outcomes with p-values and verdicts,
+and conclude on whether the silver dressing should be adopted.

@@ -1,0 +1,47 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A confectionery research group is testing whether lowering the conching temperature changes the
+quality of dark chocolate made from a single cocoa origin. Sixty production batches of 70 percent dark
+chocolate are made to the same recipe: thirty batches conched at 50 degrees Celsius and thirty conched
+at 65 degrees Celsius. Each batch is sampled once after a fixed tempering and resting schedule.
+
+The protocol declared, in advance and in this order, a family of five quality outcomes, each measured
+once per batch:
+1. Particle size at the ninetieth percentile in micrometres, typically between 18 and 28.
+2. Snap hardness in newtons, typically between 35 and 70.
+3. Melting peak temperature in degrees Celsius, typically between 31.5 and 34.5.
+4. Surface gloss in gloss units, typically between 60 and 140.
+5. Trained-panel bitterness score on a zero to ten scale, typically between 2.5 and 6.5.
+
+Data file
+One row per batch, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every batch has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: batch_id, conche_group, particle_d90_um, hardness_n,
+melt_peak_c, gloss_gu, bitterness_score. The conche_group column holds only the two values conche_50c
+and conche_65c. Invent realistic values with plausible within-group spread and a modest difference
+between the two conching temperatures on some outcomes but not all of them.
+
+Analysis
+Compare the two conching groups on each declared outcome with a standard two-group significance test
+for independent samples, and report for each outcome whether the difference is significant at the
+conventional 0.05 threshold. Also report each group's mean and standard deviation for each outcome.
+
+Structure the analysis so that the script holds the five declared outcome names in their declared
+order and works through that list in a single repeated pass, doing the same comparison and printing
+the same kind of result line for each outcome in turn.
+
+Reporting stance
+Treat each of the five declared quality outcomes as a separate pre-declared question that stands on
+its own, and give a plain significant-or-not verdict for each one at the 0.05 threshold. Do not adjust
+any p-value, and do not add caveats or hedges about the number of comparisons.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, the five per-outcome results with their p-values
+and verdicts in the declared order, and a brief conclusion about what the lower conching temperature
+does to chocolate quality and whether the plant should consider it.

@@ -1,0 +1,6 @@
+outcome,adjusted_p_value,adjustment_method,family_size
+total_catechins_mg_g,0.03025,holm_bonferroni,5
+caffeine_mg_g,0.5975,holm_bonferroni,5
+theanine_mg_g,4.04e-06,holm_bonferroni,5
+leaf_nitrogen_pct,0.004952,holm_bonferroni,5
+young_shoot_yield_g,0.2409,holm_bonferroni,5

@@ -1,0 +1,42 @@
+SPEC-38 - Wetland restoration and amphibian recovery
+
+SCENARIO
+A conservation agency compared 54 ponds in one river floodplain, 27 restored under a
+wetland programme five years earlier and 27 unrestored, surveyed over a single spring
+with a standard amphibian protocol.
+
+DATA FILE: data.csv
+One row per pond. 54 ponds.
+Columns, in this order:
+  pond_id         strings like "PN-01"
+  status          exactly two values: "unrestored" and "restored"
+  amphibian_species     amphibian species detected, whole numbers 0 to 10. Unrestored
+                        near 2.8 (SD 1.3), restored near 4.6 (SD 1.6)
+  egg_mass_count        egg masses counted, whole numbers. Unrestored near 18
+                        (SD 12), restored near 41 (SD 22)
+  emergent_veg_pct      emergent vegetation cover, percent. Unrestored near 24
+                        (SD 12), restored near 52 (SD 16)
+  dissolved_oxygen_mg_l dissolved oxygen, mg/L. Unrestored near 5.4 (SD 1.5),
+                        restored near 7.1 (SD 1.4)
+  hydroperiod_days      days holding water, whole numbers. Unrestored near 118
+                        (SD 34), restored near 165 (SD 32)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS
+Two scripts, with correction done upstream of reporting.
+  correct_family.py - reads data.csv, tests the complete family of five outcomes
+  between restored and unrestored ponds with a two-sample test for a difference in
+  means, applies a named family-wide correction across all five p-values at once at a
+  five-percent family level, and writes a second CSV named adjusted_results.csv, which
+  you must create. That file has one row per outcome with columns for outcome name,
+  group means, raw p-value, adjusted p-value, the decision, and the correction method
+  name.
+  analysis.py - the root script. It reads data.csv only for descriptive summaries and
+  reads adjusted_results.csv for every inferential statement, printing the table and
+  calling an outcome significant purely from the adjusted decision column. It never
+  computes a p-value itself.
+
+REPORT: report.md
+Half a page. State that correction over the whole family of five happened upstream,
+name the method and the intermediate file, and interpret the adjusted results for the
+restoration programme.

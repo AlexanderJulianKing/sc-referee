@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "turkey_bedding.csv",
+      "group_contrast_column": "bedding",
+      "outcome_columns": [
+        "body_weight_kg",
+        "breast_yield_pct",
+        "footpad_score",
+        "hock_burn_score",
+        "tibia_ash_pct",
+        "plasma_cort_ng_per_ml"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

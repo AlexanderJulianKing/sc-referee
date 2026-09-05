@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import stat
 from collections.abc import Callable
 from copy import deepcopy
@@ -100,6 +101,12 @@ from sc_referee.method_contracts import (
     EXPECTED_COUNT_PROFILE_ID,
     EXPECTED_COUNT_REQUIRED_DIMENSIONS,
 )
+from sc_referee.multiple_testing_scope_attestations_v3_5 import (
+    LoadedAttestation,
+    MultipleTestingAttestationError,
+    apply_attestation,
+    load_attestation_file,
+)
 from sc_referee.nextflow_trace import NEXTFLOW_TRACE_PARSER_ID, inspect_nextflow_trace
 from sc_referee.parsers.cell_language_bridge import (
     inspect_embedded_cell_sources,
@@ -146,8 +153,17 @@ from sc_referee.scientific_checks.integration import (
     build_frozen_inspection_context,
     compile_scientific_check_records,
 )
+from sc_referee.scientific_checks.integration_multiple_testing_v3_5 import (
+    MultipleTestingScopeQuestionCompilation,
+    compile_multiple_testing_development_records,
+    compile_multiple_testing_scope_question,
+)
 from sc_referee.scientific_checks.profiles import default_scientific_check_registry
-from sc_referee.scientific_checks.registry import ScientificCheckLane, ScientificCheckRegistry
+from sc_referee.scientific_checks.registry import (
+    RegistryEvaluation,
+    ScientificCheckLane,
+    ScientificCheckRegistry,
+)
 from sc_referee.scope_selection import build_scope_selection_contracts
 from sc_referee.snapshot.identity import build_asset_identity, full_digest_evidence
 from sc_referee.snapshot.repository import (
@@ -687,6 +703,7 @@ def run_audit(
     dependence_authorization_case_id: str | None = None,
     evaluation_inspection_observer: Callable[[FrozenInspectionContext], None] | None = None,
     scientific_check_lane: ScientificCheckLane = "qualified",
+    attestations: Path | None = None,
 ) -> dict[str, Any]:
     """Run a conservative static audit over an arbitrary repository.
 
@@ -699,16 +716,27 @@ def run_audit(
         raise ValueError(
             "a dependence authorization lock and its expected case id must be supplied together"
         )
+    repository = repository.resolve()
+    loaded_attestation: LoadedAttestation | None = None
+    if attestations is not None:
+        if scientific_check_lane != "development":
+            raise ValueError("attestations-qualified-lane")
+        loaded_attestation = load_attestation_file(attestations, project_root=repository)
     if output.exists() or output.is_symlink():
         raise FileExistsError(f"audit output already exists: {output}")
     report = _normalize_optional_relative_path(report)
     active_deadline = deadline or AuditDeadline.for_mode(mode)
     active_control = run_control or RunControl()
-    repository = repository.resolve()
     created_at = _timestamp_now()
     run_id = f"audit:{uuid4().hex}"
     layout = AuditLayout(output)
     layout.create()
+    if loaded_attestation is not None:
+        attestation_inputs = layout.observed / "inputs"
+        attestation_inputs.mkdir(parents=True, exist_ok=False)
+        (attestation_inputs / "multiple-testing-attestations.json").write_bytes(
+            loaded_attestation.raw_bytes
+        )
     validator = LocalSchemaRegistry(schema_root)
     observed_store = JsonlRecordStore(layout.observed)
     journal = _RunJournal(
@@ -987,6 +1015,10 @@ def run_audit(
             explicit_report=report,
         )
         answers: list[dict[str, Any]] = []
+        conditional_concerns: list[dict[str, Any]] = []
+        additive_detector_results: list[dict[str, Any]] = []
+        scope_question_compilation: MultipleTestingScopeQuestionCompilation | None = None
+        attestation_lock_receipt: dict[str, Any] | None = None
         scope_selection_build = build_scope_selection_contracts(
             run_id=run_id,
             created_at=created_at,
@@ -1050,6 +1082,7 @@ def run_audit(
         scientific_check_disclosures: list[dict[str, Any]] = []
         calculation_observations: list[dict[str, Any]] = []
         calculation_disclosures: list[dict[str, Any]] = []
+        scientific_evaluation: RegistryEvaluation | None = None
         calculation_check_lock: dict[str, Any] = {
             "profile_id": active_calculation_checks.profile_id,
             "registry_digest": active_calculation_checks.registry_digest,
@@ -1160,7 +1193,12 @@ def run_audit(
             scientific_evaluation = active_scientific_checks.evaluate(
                 scientific_context, lane=scientific_check_lane
             )
-            scientific_compilation = compile_scientific_check_records(
+            compile_records = (
+                compile_multiple_testing_development_records
+                if scientific_check_lane == "development"
+                else compile_scientific_check_records
+            )
+            scientific_compilation = compile_records(
                 registry=active_scientific_checks,
                 evaluation=scientific_evaluation,
                 context=scientific_context,
@@ -1265,6 +1303,66 @@ def run_audit(
                     scientific_context.material_inputs if scientific_context is not None else ()
                 ),
             )
+        if (
+            scientific_check_lane == "development"
+            and scientific_context is not None
+            and scientific_evaluation is not None
+        ):
+            multiple_testing_contracts = [
+                item
+                for item in scientific_contracts
+                if item.get("extensions", {}).get("x-scientific-check-id")
+                == "check:authorized-complete-family-correction-over-code-test-battery"
+            ]
+            multiple_testing_bindings = [
+                item
+                for item in selected_method_conflict_bindings
+                if item.check_id
+                == "check:authorized-complete-family-correction-over-code-test-battery"
+            ]
+            if len(multiple_testing_contracts) == 1 and len(multiple_testing_bindings) == 1:
+                scope_question_compilation = compile_multiple_testing_scope_question(
+                    registry=active_scientific_checks,
+                    evaluation=scientific_evaluation,
+                    context=scientific_context,
+                    run_id=run_id,
+                    created_at=created_at,
+                    source_snapshot_digest=str(snapshot.snapshot_record["snapshot_digest"]),
+                    contract_ref=typed_ref(
+                        "scientific_contract",
+                        str(multiple_testing_contracts[0]["contract_id"]),
+                    ),
+                    detector_manifest_digest=multiple_testing_bindings[0].detector_manifest_digest,
+                )
+        if scope_question_compilation is not None:
+            scope_records = scope_question_compilation.records
+            additive_detector_results.append(scope_records.detector_result)
+            if loaded_attestation is None:
+                questions.append(scope_records.question)
+                conditional_concerns.append(scope_records.concern)
+            else:
+                application = apply_attestation(
+                    loaded_attestation,
+                    question=scope_records.question,
+                    initial_concern=scope_records.concern,
+                    analysis_content=scope_question_compilation.analysis_content,
+                    outcome_columns=scope_question_compilation.outcome_columns,
+                    created_at=created_at,
+                    ap_context=scope_question_compilation.ap_recheck_context,
+                )
+                questions.append(application.question)
+                answers.append(application.answer)
+                if application.concern is not None:
+                    conditional_concerns.append(application.concern)
+                if application.disclosure is not None:
+                    scientific_check_disclosures.append(application.disclosure)
+                attestation_lock_receipt = application.lock_receipt
+        elif loaded_attestation is not None:
+            raise MultipleTestingAttestationError(
+                "attestations-question-not-open",
+                pointer="/answers/0/question_id",
+                input_digest=loaded_attestation.raw_digest,
+            )
         claims = bind_bounded_claim_lineage(
             claims,
             bounded_lineage.observed_results,
@@ -1297,6 +1395,8 @@ def run_audit(
             *semantic_assertions,
             *questions,
             *answers,
+            *conditional_concerns,
+            *additive_detector_results,
             *calculation_observations,
         ]:
             validator.validate(record)
@@ -1409,6 +1509,12 @@ def run_audit(
             "publication_surfaces": [publication_surface],
             "material_questions": questions,
             "answers": answers,
+            **({"conditional_concerns": conditional_concerns} if conditional_concerns else {}),
+            **(
+                {"additive_detector_results": additive_detector_results}
+                if additive_detector_results
+                else {}
+            ),
             "disclosures": disclosures,
             "cache_entries": cache_entries,
             "cache_policies": [parser_cache.cache_policy],
@@ -1423,6 +1529,17 @@ def run_audit(
             **(
                 {"parent_method_contract_binding": method_contract_binding}
                 if method_contract_binding is not None
+                else {}
+            ),
+            **(
+                {
+                    "multiple_testing_attestation": {
+                        "raw_input_digest": loaded_attestation.raw_digest,
+                        "semantic_input_digest": loaded_attestation.semantic_digest,
+                        "application": attestation_lock_receipt,
+                    }
+                }
+                if loaded_attestation is not None and attestation_lock_receipt is not None
                 else {}
             ),
         }
@@ -1513,7 +1630,7 @@ def run_audit(
             validator,
             JsonlRecordStore(layout.derived),
         )
-    except Exception:
+    except Exception as error:
         if journal.state not in {
             AuditState.COMPLETE,
             AuditState.PARTIAL_DEADLINE,
@@ -1528,6 +1645,8 @@ def run_audit(
                 ErrorCode.CONTROLLER_INTEGRITY_FAILURE,
             )
             journal.transition_to(AuditState.FAILED_CONTROLLER)
+        if isinstance(error, MultipleTestingAttestationError) and output.exists():
+            shutil.rmtree(output)
         raise
     finally:
         if parser_cache is not None:
@@ -3255,8 +3374,18 @@ def replay(lock_path: Path, output: Path, schema_root: Path) -> dict[str, Any]:
         if locked_case.get("lock_kind") == "general_static_v1"
         else None
     )
+    attested_replay_files = (
+        _bound_attested_replay_files(lock_path, locked_case)
+        if locked_case.get("lock_kind") == "general_static_v1"
+        else None
+    )
     layout = AuditLayout(output)
     layout.create()
+    if attested_replay_files is not None:
+        for relative, payload in attested_replay_files.items():
+            target = layout.root / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(payload)
     if locked_case.get("lock_kind") == "general_static_v1":
         return _replay_general_lock(
             locked_case,
@@ -3292,6 +3421,39 @@ def replay(lock_path: Path, output: Path, schema_root: Path) -> dict[str, Any]:
         validator.validate(record)
         observed_store.append(record)
     return _derive_from_lock(locked_case, output, schema_root, None, [])
+
+
+def _bound_attested_replay_files(
+    lock_path: Path, locked_case: dict[str, Any]
+) -> dict[Path, bytes] | None:
+    """Recover bound input and pre-lock journals for 3.1 scope-question replay."""
+
+    receipt = locked_case.get("multiple_testing_attestation")
+    scope_question_present = any(
+        isinstance(question, dict)
+        and question.get("extensions", {}).get("x-question-purpose")
+        == "multiple_testing_correction_scope"
+        for question in locked_case.get("material_questions", [])
+    )
+    if receipt is None and not scope_question_present:
+        return None
+    values: dict[Path, bytes] = {}
+    if receipt is not None:
+        if not isinstance(receipt, dict) or not isinstance(receipt.get("raw_input_digest"), str):
+            raise ValueError("attested replay lock is malformed")
+        source = lock_path.parent / "observed" / "inputs" / "multiple-testing-attestations.json"
+        if not source.is_file() or source.is_symlink():
+            raise ValueError("attested replay input is unavailable")
+        payload = source.read_bytes()
+        if sha256_digest(payload) != receipt["raw_input_digest"]:
+            raise ValueError("attested replay input digest mismatch")
+        values[Path("observed/inputs/multiple-testing-attestations.json")] = payload
+    for name in ("audit-run.jsonl", "stage-result.jsonl"):
+        journal = lock_path.parent / "observed" / name
+        if not journal.is_file() or journal.is_symlink():
+            raise ValueError("attested replay journal is unavailable")
+        values[Path("observed") / name] = journal.read_bytes()
+    return values
 
 
 def _replay_general_lock(
@@ -3402,6 +3564,7 @@ def _derive_general_from_lock(
         "material_questions",
         "work_items",
         "answers",
+        "conditional_concerns",
         "disclosures",
         "cache_entries",
         "cache_policies",
@@ -3454,6 +3617,7 @@ def _derive_general_from_lock(
         *bundle["material_questions"],
         *bundle["work_items"],
         *bundle["answers"],
+        *bundle["conditional_concerns"],
         *bundle["disclosures"],
         *bundle["cache_entries"],
         *bundle["cache_policies"],
@@ -3473,6 +3637,7 @@ def _derive_general_from_lock(
         "material_questions",
         "work_items",
         "answers",
+        "conditional_concerns",
         "disclosures",
         "reproduction_requests",
         "performance_records",
@@ -3518,6 +3683,13 @@ def _evaluate_general_detectors(locked_case: dict[str, Any]) -> _GeneralDetector
         results.append(result)
         if finding is not None:
             findings.append(finding)
+    results.extend(
+        deepcopy(item)
+        for item in sorted(
+            locked_case.get("additive_detector_results", []),
+            key=lambda item: str(item.get("result_id", "")),
+        )
+    )
     direction_manifests = [
         item
         for item in locked_case.get("detector_manifests", [])

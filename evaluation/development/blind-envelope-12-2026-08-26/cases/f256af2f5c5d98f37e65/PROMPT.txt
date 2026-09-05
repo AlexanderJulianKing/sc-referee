@@ -1,0 +1,26 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A city drainage authority is evaluating permeable paving for its car parks. Thirty-six individual parking bays in one municipal car park were surfaced either with conventional dense asphalt or with permeable concrete block paving over a gravel reservoir: eighteen bays of each surface, interleaved across the car park so that both surfaces experience the same traffic and the same weather. Each bay drains to its own small collection sump. After one heavy summer storm, the sump of every bay was sampled and gauged once. A bay is the unit of the study.
+
+The monitoring plan declared, in this fixed order, four outcomes measured for every bay from that one storm:
+
+1. Total suspended solids in the collected runoff, in milligrams per litre. Typical values run from about 8 to 280.
+2. Total zinc in the collected runoff, in micrograms per litre. Typical values run from about 12 to 210.
+3. Peak runoff volume leaving the bay during the storm, in litres. Typical values run from about 15 to 360.
+4. Runoff temperature at peak flow, in degrees Celsius. Typical values run from about 13 to 29.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic bay-to-bay variation, including a couple of dirtier bays near the entrance. The table has one row per bay and one column per outcome. Include a first column holding the bay identifier, a column holding the surface type with exactly two possible entries, one for the asphalt bays and one for the permeable bays, and then the four outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example tss_mg_l, zinc_ug_l, peak_volume_l and runoff_temp_c. Name the identifier column bay_id and the surface column group. Every bay has a value in every outcome column; there are no blanks.
+
+Analysis
+--------
+The four outcomes form one declared family, and the authority wants the chance of any false claim across the whole family held at the conventional five percent level. Control the family error by computing the Sidak per-comparison significance threshold by hand: take the family-wise level of five percent, and from the number of outcomes in the family work out the per-comparison threshold that the Sidak relation gives, namely one minus the family-size root of one minus the family-wise level. Do this arithmetic explicitly inside the analysis script, with the family size written as a value the script uses and prints, so a reader can see where the threshold came from.
+
+For every declared outcome, compare the two surfaces with a standard two-group comparison of the bay values, and judge that outcome's p-value against the computed Sidak threshold rather than against the conventional five percent value. Present all four outcomes in the declared order with the two surface means, the p-value, the computed threshold and the verdict.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, says what it holds and in what unit, and states plainly what one row of the table represents. It must then give the result for each declared outcome in the declared order, state the family size and the numerical value of the computed per-comparison threshold and why it was used, and finish with a short conclusion about what permeable paving changed in the runoff. Write it as a drainage engineer would write a short technical monitoring report.

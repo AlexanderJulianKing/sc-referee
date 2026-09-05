@@ -1,0 +1,166 @@
+{
+  "profile": "multitest-v3-audit-fix-r1-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-28",
+    "audit_identity": "MT 3.0 audit fix round 1 probe table",
+    "design_document": "docs/implementation/MULTITEST-CODE-SLICE-3.0-RECORD-MODEL-DESIGN-2026-08-28.md",
+    "design_revision": "1b",
+    "implementation_output_used": false
+  },
+  "rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p_value\"] *= 7 (hand Bonferroni)",
+        "design_clause": "§6.4 — AugAssign refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: AugAssign."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-p-field-hand-bonferroni-augassign",
+      "fixture_source_sha256": "sha256:0d82fe5ffa1c7f146fdb64004d48ba7c5ac58f3e00d30dc7e9e197958f0c5be9"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "alias = result; alias[\"p_value\"] = min(1.0, p*7)",
+        "design_clause": "§6.4 — alias-mutation refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: alias mutation."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-alias-field-hand-bonferroni",
+      "fixture_source_sha256": "sha256:8741e839047fe8a8bf4e44c1712293be98d8b0da7b055d488ed27fcd957eb396"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "adjust_in_place(result) (unresolved in-place call)",
+        "design_clause": "§6.4 — unresolved-call escape refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: passing a record/collection to an unresolved call."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-unresolved-in-place-call",
+      "fixture_source_sha256": "sha256:cbf47bd5b3381b16cceeb4f0620c1b1ef44fed651d3be66ac3d6c904cae5ec1a"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result.update({...})",
+        "design_clause": "§6.4 — receiver-call refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: receiver calls."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-update-receiver-call",
+      "fixture_source_sha256": "sha256:b2bf575a4d0457798b95afd43f5a3fbbdcf781fb9898b6edc4c4deabda1a6578"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result.pop(...)",
+        "design_clause": "§6.4 — receiver-call refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: receiver calls."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-pop-receiver-call",
+      "fixture_source_sha256": "sha256:d40ca328f5021143fcbc3751c18b907f9e49f6863c010d74692d5cb9bf95ebcc"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"p\"] += 0.5",
+        "design_clause": "§6.4 — AugAssign refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: AugAssign."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-p-field-augassign",
+      "fixture_source_sha256": "sha256:a701b9517743f554a454f8752362a27aecf527ff9e0387496d2da91a5cf2d11f"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "del result[\"difference\"]",
+        "design_clause": "§6.4 — del refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: del."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-field-delete",
+      "fixture_source_sha256": "sha256:5fe39853f4b86fdf5446dc023535683451733a659679c2d5142e87811d62523b"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "_seen = result[\"p_value\"] then the significant store",
+        "design_clause": "§6.4 — post-consumer-store refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: any store after a p/flag/table consumer."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-store-after-p-consumer",
+      "fixture_source_sha256": "sha256:a71ff524d7f46d445efb9cfded45f56e437a8b62ffe8e3ac1f3b7ccac81ef523"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "result[\"extra\"] = 1 after results.append",
+        "design_clause": "§6.4 — post-consumer-store refusal",
+        "design_text": "The following refuse record-family-mutation-unresolved: any store after a p/flag/table consumer."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-mutation-unresolved",
+      "fixture_name": "correct-record-store-after-append-consumer",
+      "fixture_source_sha256": "sha256:af5d1a481df6ec8b368c1efd29c6bc4e84b9691db685747e2dcc92bf31398f37"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "two different p positions merged into one p/decision field",
+        "design_clause": "§4.1 — different-position merge condition",
+        "design_text": "A merge involving two different p positions in one p/decision field is unresolved."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-two-position-field-merge",
+      "fixture_source_sha256": "sha256:0a47fc74011cc8b96b836fb6c6dfa0bf7af5dcfa8311b8330de0f9f756c1824d"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "raw + adjusted p in one decision field (Bonferroni on one conditional arm)",
+        "design_clause": "§4.1 — raw/adjusted merge condition",
+        "design_text": "A merge involving raw and adjusted p in one decision field is unresolved."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-raw-adjusted-decision-merge",
+      "fixture_source_sha256": "sha256:ba8310fb21ccf57a070a19754a2d043dd954eb8678cd000d4ee2169a98199d2a"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "incompatible decision polarity ((p<a) if c else (p>a))",
+        "design_clause": "§4.1 — incompatible-polarity merge condition",
+        "design_text": "A merge involving incompatible decision polarity is unresolved."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-decision-polarity-unresolved",
+      "fixture_name": "correct-record-incompatible-decision-polarity-merge",
+      "fixture_source_sha256": "sha256:22858bf7ff2d59ca4db3a9b3582c5732b6b9928836bb838717c2b095201e6ea8"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "UNRESOLVED-merge",
+        "design_clause": "§4.1 — UNRESOLVED merge condition",
+        "design_text": "A merge involving UNRESOLVED is unresolved."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "record-family-lineage-unresolved",
+      "fixture_name": "correct-record-unresolved-decision-merge",
+      "fixture_source_sha256": "sha256:dd7463b9ae85a5bbc293606988866ed3123e494f0e1f22efa4cc485c6c488df8"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "two-threshold-merge",
+        "design_clause": "§4.1 — component-wise D(POS, ...) merge under the unchanged threshold grammar",
+        "design_text": "Value includes D(POS,...), and merges are component-wise union; two distinct threshold components do not resolve to one admitted decision."
+      },
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-decision-threshold",
+      "fixture_name": "correct-record-two-threshold-decision-merge",
+      "fixture_source_sha256": "sha256:bf3bf5e5cf9c9d5cc75c74c324e6c98a368165c10e99fdbbf293b47299ddb31e"
+    }
+  ]
+}

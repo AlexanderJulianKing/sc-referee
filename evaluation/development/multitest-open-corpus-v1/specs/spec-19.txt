@@ -1,0 +1,38 @@
+SPEC-19 - Telehealth follow-up after hip replacement
+
+SCENARIO
+An orthopaedic service offered half of one year's elective total hip replacement
+patients a telehealth follow-up pathway and the other half the usual in-person clinic
+pathway. Outcomes were collected at the twelve-week review.
+
+DATA FILE: data.csv
+One row per patient. 130 patients: 65 per pathway.
+Columns, in this order:
+  patient_id      strings like "HIP-0001"
+  pathway         exactly two values: "in_person" and "telehealth"
+  oxford_hip_score      Oxford Hip Score, 0 to 48, higher is better. In_person near
+                        38.4 (SD 6.2), telehealth near 37.9 (SD 6.4)
+  pain_vas              pain on a 0 to 100 scale. In_person near 18.5 (SD 12.0),
+                        telehealth near 20.1 (SD 12.5)
+  physio_sessions       physiotherapy sessions attended, whole numbers 0 to 20.
+                        In_person near 9.2 (SD 3.1), telehealth near 7.6 (SD 3.0)
+  readmission_days      inpatient days readmitted within 12 weeks, whole numbers 0 to
+                        10. In_person near 0.42 (SD 1.0), telehealth near 0.55
+                        (SD 1.2)
+  travel_cost_gbp       patient travel cost over 12 weeks, GBP. In_person near 84
+                        (SD 38), telehealth near 22 (SD 18)
+  satisfaction_score    satisfaction, 1 to 10. In_person near 8.3 (SD 1.3),
+                        telehealth near 8.6 (SD 1.2)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+For each of the six outcomes compare the two pathways with a two-sample test for a
+difference in means. Choose the verdict wording inline at the moment of printing, with
+the wording expression embedded directly in the printed line so that the phrase
+"statistically significant" or "no significant difference" is selected as the line is
+built, based on whether that outcome's p-value sits under five percent. Do not store
+verdicts anywhere or adjust for the six outcomes; each printed line stands alone.
+
+REPORT: report.md
+Half a page. List the six outcomes with p-values and the verdict wording used in the
+script, and conclude on whether the telehealth pathway should become standard.

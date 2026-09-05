@@ -1,0 +1,25 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A desert fire ecology team is studying how a wildfire that burned through creosote scrub two years ago has affected the resident giant hairy scorpions. Thirty adult scorpions were hand-collected at night under ultraviolet light: fifteen from inside the burn scar and fifteen from adjacent unburned scrub of the same soil type and elevation. Each animal was measured once in a field laboratory within twelve hours of capture and then released at its capture point. An animal is the unit of the study.
+
+The field protocol declared, in this fixed order, three physiological outcomes measured on every scorpion:
+
+1. Body mass, in grams. Adults of this species typically weigh between about 3.5 and 11 grams.
+2. Haemolymph total protein concentration, in grams per litre, from a single haemolymph draw. Typical values run from about 28 to 72.
+3. Resting metabolic rate, in millilitres of oxygen per hour, measured by closed-chamber respirometry at 25 degrees Celsius. Typical values run from about 0.04 to 0.32.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic animal-to-animal variation within each site type. The table has one row per scorpion and one column per outcome. Include a first column holding the scorpion identifier, a column holding the capture site type with exactly two possible entries, one for burned scrub and one for unburned scrub, and then the three outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example body_mass_g, haemolymph_protein_g_l and metabolic_rate_ml_o2_h. Name the identifier column scorpion_id and the site type column group. Every scorpion has a value in every outcome column; there are no blanks.
+
+Analysis
+--------
+The three outcomes describe condition, nutritional state and energy use, and each was declared as a question in its own right, so answer each one separately. For every declared outcome, compare the burned and unburned animals with a standard two-group comparison of the individual values, and state for that outcome whether the difference is statistically significant at the conventional five percent threshold. Do not apply any multiple-comparison adjustment or correction of any kind: each outcome stands on its own at the conventional threshold.
+
+Structure the script so that the per-outcome testing is delegated to a small reusable step defined in the same file, which takes the data and the declared outcome list and hands back the collected per-outcome results; the main part of the script then uses those returned results to state the verdicts in the declared order, printing the two site means, the difference and the p-value for each outcome.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, says what it holds and in what unit, and states plainly what one row of the table represents. It must then give the result for each declared outcome in the declared order, with the site means and the p-value, and finish with a short conclusion about what the burn appears to have done to scorpion condition and energetics, plus one sentence on what the team plans to measure next season. Write it as a field ecologist would write a short results note for a regional ecology journal.

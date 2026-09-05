@@ -1,0 +1,41 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A forage conservation experiment on grass silage. Sixty laboratory mini-silos were packed on one day from a single homogenised batch of wilted grass at the same density. Thirty mini-silos were treated at packing with a lactic acid bacteria inoculant and thirty were left untreated; treatment is the two-level grouping factor. All mini-silos were stored at a constant temperature and opened after ninety days, each contributing one set of fermentation measurements. Exactly five outcome variables were declared in the experimental protocol before packing, and they are examined in the order below.
+
+Declared outcome family, in this fixed order, exactly five outcomes:
+1. Dry matter loss during storage, in percent. Inoculated around 4.2, untreated around 6.8, silo-to-silo spread roughly 1.5.
+2. Silage pH at opening. Inoculated around 3.9, untreated around 4.4, spread roughly 0.25.
+3. Lactic acid concentration, in grams per kilogram of dry matter. Inoculated around 78, untreated around 58, spread roughly 12.
+4. Ammonia nitrogen, in percent of total nitrogen. Inoculated around 5.5, untreated around 8.2, spread roughly 1.8.
+5. Aerobic stability after opening, in hours until a two degree temperature rise. Inoculated around 96, untreated around 62, spread roughly 22.
+
+Study protocol point that governs the analysis:
+The protocol, written before the mini-silos were packed, fixed the per-outcome significance threshold for this experiment at 0.01. That threshold was chosen because the declared family holds five outcomes and 0.01 is the Bonferroni-corrected per-comparison level for five comparisons at the conventional 0.05 family level. The threshold is therefore a fixed protocol constant for the analysis.
+
+Data file requirements:
+- One row per mini-silo. Include a silo identifier column, one column for each outcome in the declared order, and one column recording the treatment with exactly two distinct values.
+- Thirty mini-silos in each group.
+- Every mini-silo has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real fermentation records: values scattered around the typical levels above with realistic spread and sensible rounding, none of them negative, some outcomes where the two treatments clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the treatment factor.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of mini-silos in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the five declared outcomes, run a standard two-group significance test appropriate for continuous measurements comparing inoculated with untreated mini-silos.
+- Judge each outcome by comparing its p-value against the protocol threshold of 0.01, which the script simply carries as the fixed significance level the protocol laid down. The script must never compare a p-value against 0.05.
+- The script performs no correction arithmetic of its own: it does not divide any family level by the family size, does not multiply any p-value by anything, and calls no adjustment routine. It only tests and compares against the protocol threshold.
+- Print each outcome's p-value and its verdict against the protocol threshold.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of mini-silos, mean, and spread.
+- State plainly, in the report itself, that the family holds five declared outcomes, that the conventional family level is 0.05, that 0.01 is the Bonferroni-corrected per-comparison level obtained by dividing that family level by the five outcomes, and that this is why the protocol fixed the threshold at 0.01. This reasoning belongs in the report only; none of that arithmetic appears in the script.
+- State the conclusion for each declared outcome in the declared order, judged against the 0.01 threshold.
+- Write the report in your own words, as the forage scientist who ran this experiment.

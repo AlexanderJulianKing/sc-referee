@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "mango_coating_shelf_life.csv",
+      "group_contrast_column": "coating",
+      "outcome_columns": [
+        "firmness_n",
+        "browning_index",
+        "tss_brix",
+        "weight_loss_pct",
+        "aerobic_count_log10_cfu_per_g"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

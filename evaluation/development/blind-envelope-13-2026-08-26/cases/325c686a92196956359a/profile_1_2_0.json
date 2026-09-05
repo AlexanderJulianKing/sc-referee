@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "elephant_enrichment_welfare.csv",
+      "group_contrast_column": "enrichment_group",
+      "outcome_columns": [
+        "stereotypic_behaviour_pct",
+        "daily_walking_distance_km",
+        "night_recumbent_rest_min",
+        "faecal_glucocorticoid_metabolites_ng_per_g",
+        "feeding_bout_duration_min",
+        "social_proximity_pct"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

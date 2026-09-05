@@ -1,0 +1,39 @@
+SPEC-43 - Zinc oxide alternative in weaner diets
+
+SCENARIO
+A pig nutrition unit replaced pharmacological zinc oxide in weaner diets with a blend of
+organic acids and essential oils and compared it against the zinc oxide control diet in
+one weaning batch over 35 days.
+
+DATA FILE: data.csv
+One row per pig. 100 pigs: 50 per diet.
+Columns, in this order:
+  pig_id          strings like "PIG-0001"
+  diet            exactly two values: "zinc_oxide" and "acid_blend"
+  final_weight_kg       weight at day 35, kg. Zinc_oxide near 21.4 (SD 3.0),
+                        acid_blend near 20.6 (SD 3.1)
+  adg_g_d               average daily gain, g/day. Zinc_oxide near 385 (SD 62),
+                        acid_blend near 362 (SD 64)
+  feed_conversion       feed-to-gain ratio. Zinc_oxide near 1.52 (SD 0.15),
+                        acid_blend near 1.60 (SD 0.16)
+  diarrhoea_score       mean faecal consistency score, 0 to 3. Zinc_oxide near 0.85
+                        (SD 0.45), acid_blend near 1.12 (SD 0.52)
+  faecal_zinc_mg_kg     faecal zinc, mg/kg dry matter. Zinc_oxide near 2450 (SD 480),
+                        acid_blend near 285 (SD 75)
+  villus_height_um      jejunal villus height, micrometres. Zinc_oxide near 412
+                        (SD 68), acid_blend near 428 (SD 70)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Final weight, daily gain, and feed conversion were pre-specified as the performance
+family; diarrhoea score, faecal zinc, and villus height are supporting measures. Test
+all six with a two-sample test for a difference in means. Correct the three performance
+outcomes together through a packaged family-wide correction routine at a five-percent
+family level and use its adjusted values for those three. Judge the three supporting
+measures against the plain five-percent level with no adjustment, and print all six
+together in one table using identical significance wording for corrected and
+uncorrected rows.
+
+REPORT: report.md
+Half a page. Give the single table of six outcomes, state which three were corrected,
+and conclude on whether the acid blend can replace zinc oxide.

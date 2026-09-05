@@ -1,0 +1,36 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+An animal welfare study in a research ferret colony. Forty adult ferrets were housed for eight weeks under two housing conditions. Twenty animals lived in enriched pens with tunnels, digging substrate, raised platforms and rotating novel objects, and twenty lived in standard pens with bedding and a nest box only; housing condition is the two-level grouping factor. Each ferret contributes one summary value per outcome for the eight-week period. Four outcome variables were declared in the welfare assessment plan before the animals were moved, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Daily active time from accelerometer collars, in minutes. Enriched around 210, standard around 175, individual spread roughly 35.
+2. Faecal corticosterone metabolite concentration, in nanograms per gram. Enriched around 90, standard around 118, spread roughly 25.
+3. Body mass change over the eight weeks, in grams. Enriched around 65, standard around 40, spread roughly 30.
+4. Stereotypic behaviour bouts observed per hour. Enriched around 0.8, standard around 1.7, spread roughly 0.7.
+
+Data file requirements:
+- One row per ferret. Include an animal identifier column, one column for each outcome in the declared order, and one column recording the housing condition with exactly two distinct values.
+- Twenty ferrets in each group.
+- Every ferret has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real colony records: values scattered around the typical levels above with realistic spread and sensible rounding, some outcomes where the two housing conditions clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the housing condition.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of ferrets in each group, and gives the mean and spread of each outcome within each group.
+- Before any per-outcome comparison is run, the script must first compute one single overall screening quantity that summarises how far apart the two housing groups are across all four outcome columns taken together. Compute it directly from the outcome columns with ordinary numerical array arithmetic only, for example by putting each outcome on a common scale using its own spread and then combining the standardised group separations of all four outcomes into one number. Use no statistical testing routine, no p-value and no significance machinery anywhere in this screening step. Fix the cutoff that this overall quantity must clear in advance, state it in the script, and choose it so that this data set passes.
+- The analysis then has two clearly separate branches. If the overall screen does not clear the cutoff, the script prints that the study stops at the overall screen, reports no per-outcome comparison and states no per-outcome verdict. Only if the overall screen clears the cutoff does the script go on to run the standard two-group significance test for each declared outcome and print those results. The two branches must produce visibly distinct output, so a reader can see which one ran.
+- Print the overall screening quantity and its cutoff first, then, in the branch that runs, each outcome's p-value and its verdict at the conventional 0.05 threshold.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of ferrets, mean, and spread.
+- Explain in plain words what the overall screening quantity measures, that its cutoff was fixed in advance, that it was computed from the raw measurements without any statistical test, and that the per-outcome comparisons were only performed and reported because the overall screen cleared its cutoff.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the laboratory animal welfare scientist who ran this study.

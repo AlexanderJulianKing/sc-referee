@@ -1,0 +1,17 @@
+{
+ "provenance": "E12 recon executed artifacts (isolated Opus recon, 2026-08-26), preserved from the session scratchpad by the custodian per design 2.2 section 13.5 / acceptance condition 9",
+ "note": "h.py = analyzer harness; lad.py = ladder driver; fa.py = the six FA fixtures; mt_patched_*.py = the executed prototype variants; sweep.py = the none-flip sweep across corpus + opened cases; trace/where/dump = wall tracers",
+ "frozen_utc": "2026-08-26T17:19:14Z",
+ "files": {
+  "dump.py": "eff23394a54f11b63e81fe27a83320fca82d8a3c2e9c2c47f7af78f40a5e3de7",
+  "fa.py": "012f92932f8511eccf53dcb053f861dcdd326c3791eed7f6dfb645efa820228b",
+  "h.py": "2556066d4afa80219e71f1c02c96ab84dfeaaf92c6b0b135887ba236d3a74b86",
+  "lad.py": "765f74d2fac839c9ea7b60b6fc673247de46fb9148d5aac2b411d2b94c57a9d6",
+  "mt_patched_2356.py": "44eb8a76a731006c3d5450071495b3cf75ecb8fb8d62579f3711c16844f89f29",
+  "mt_patched_none.py": "19036239ff85ed725d82de2d447bf214bda075101e7574935f6c3465c8dc960a",
+  "patched.py": "b3bb2532b49e70ba5909e0ef47af3edd4955654d37d4c41faecb055c2b442365",
+  "sweep.py": "4b872c06d22e8b526c72108f62aef7d72f7dec14e870ee714ac4a5518992d2b6",
+  "trace.py": "1794331ce7e2fb791e4c8881c982450ba3ad3a6e1eb65bbf0f9b8ff8da3cdee7",
+  "where.py": "fb7c935784ce535d9996286fb64a4984fa9fc21d5165ad95b605b55542b1875a"
+ }
+}

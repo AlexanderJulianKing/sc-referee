@@ -1,0 +1,21 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "donor_biomarkers.csv",
+      "group_contrast_column": "smoking_status",
+      "outcome_columns": [
+        "crp_mg_l",
+        "wbc_count_10e9_per_l",
+        "fibrinogen_g_l",
+        "hdl_cholesterol_mmol_l",
+        "vitamin_c_umol_l"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

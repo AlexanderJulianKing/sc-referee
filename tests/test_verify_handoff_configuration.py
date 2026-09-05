@@ -31,7 +31,7 @@ def test_evaluation_wheel_smoke_installs_production_dependency_first(
         calls.append((command, cwd, check))
 
     monkeypatch.setattr(verify_handoff.subprocess, "run", capture)
-    core_wheel = tmp_path / "sc_referee-0.3.0-py3-none-any.whl"
+    core_wheel = tmp_path / "sc_referee-0.4.0-py3-none-any.whl"
     evaluation_wheel = tmp_path / "sc_referee_evaluation-0.1.0.dev0-py3-none-any.whl"
     install_root = tmp_path / "install"
 

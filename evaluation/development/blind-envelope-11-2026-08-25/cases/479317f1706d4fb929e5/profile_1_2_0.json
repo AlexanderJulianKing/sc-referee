@@ -1,0 +1,20 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "antenatal_iron_study.csv",
+      "group_contrast_column": "supplement_regimen",
+      "outcome_columns": [
+        "haemoglobin_g_dl",
+        "ferritin_ug_l",
+        "transferrin_saturation_pct",
+        "hepcidin_ng_ml"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

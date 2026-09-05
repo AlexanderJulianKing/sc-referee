@@ -1,0 +1,34 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A food-processing comparison in a fruit-pulp plant. Thirty-six sealed retail pouches of avocado pulp were produced from one homogenised batch on a single day. Eighteen pouches were stabilised by high-pressure processing and eighteen by conventional mild thermal pasteurisation; processing method is the two-level grouping factor. All pouches were held at four degrees Celsius and opened for measurement after twenty-one days of chilled storage. Three outcome variables were declared in the shelf-life protocol before the pouches were opened, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Greenness of the pulp, as the a* coordinate of instrumental colour, unitless and negative for green. High-pressure processed around -8.5, thermally pasteurised around -5.2, pouch-to-pouch spread roughly 1.0.
+2. Residual polyphenol oxidase activity, in percent of the activity of the unprocessed raw pulp. High-pressure processed around 22, thermally pasteurised around 9, spread roughly 6.
+3. Total aerobic plate count, in log ten colony forming units per gram. High-pressure processed around 1.9, thermally pasteurised around 1.4, spread roughly 0.5.
+
+Data file requirements:
+- One row per pouch. Include a pouch identifier column, one column for each outcome in the declared order, and one column recording the processing method with exactly two distinct values.
+- Eighteen pouches in each group.
+- Every pouch has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real laboratory records: values scattered around the typical levels above with realistic spread and sensible rounding, at least one outcome where the two methods clearly separate and at least one where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the processing method.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of pouches in each group, and gives the mean and spread of each outcome within each group.
+- Treat each declared outcome as its own separate quality question about the two processing methods. For each outcome, run a standard two-group significance test appropriate for continuous measurements comparing the two methods, and decide the outcome against the conventional 0.05 threshold.
+- Produce the per-outcome results as a single compact collection that is built in one go by running over the declared outcome list, so that the whole set of per-outcome results comes into existence in one construction step. The script then reads the verdicts off that collection.
+- Print each outcome's p-value and its significance verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of pouches, mean, and spread.
+- State the conclusion for each declared outcome, in the declared order, saying for each whether the two processing methods differ significantly.
+- Write the report in your own words, as the food scientist who ran this shelf-life study and is confident that each declared outcome is a separate quality question standing on its own. Do not describe the analysis approach as a limitation and do not add caveats about the number of comparisons performed.

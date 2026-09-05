@@ -1,0 +1,28 @@
+{
+ "envelope": "blind-envelope-16-2026-08-30",
+ "class": "multiple-testing",
+ "detector": "code_csv_multiple_testing 3.2.0 (development lane), repo 0676ea2",
+ "design_lineage": "3.0 record model + 3.1 scope questions/attestations + 3.2 AP(C,POS) recognition; corpus 19/25 + spec-28 covered/complete, E15-retro 3/6 before this envelope",
+ "hard_stops": {
+  "negative_candidates": "0/9 accusation candidates PASS (N1 resolved covered/complete positions [0,1,2,3,4]/5 - second blind covered/complete in the class, and it landed on a role-map negative: the clearance is TRUE)",
+  "findings_anywhere": "0 PASS (30 bundles)",
+  "replay": "15/15 identical module_evaluation_digest PASS",
+  "class_fa_window": "0 FA in all 105 available class-specific blind cases PASS"
+ },
+ "first_contact_recall": "1/6 (caught: P1 uncorrected complete family, 4 tests, conclusions consume raw p at all 4 positions)",
+ "positive_misses": {
+  "P2": "hierarchical-gatekeeping-present",
+  "P3": "unresolved-pvalue-consumer",
+  "P4": "hierarchical-gatekeeping-present",
+  "P5": "test-battery-cardinality-unresolved",
+  "P6": "unresolved-manual-correction-present (ConditionalConcern raised)"
+ },
+ "question_layer": "material_questions raised on every case (1-2 each); 3 ConditionalConcerns (P6, N2, N3); blind protocol counts none of these as catches",
+ "blind_review_summary": {
+  "reviewer_recall": "6/6 positives flagged MISSTEP",
+  "reviewer_fa": "1 (N6 swimmers flagged MISSTEP; role-map negative; detector abstained authorized-reader-lineage-unavailable)",
+  "note": "same asymmetry as E10/E12/E13/E15: full-recall human-style review pays with a false accusation; the tool pays with recall"
+ },
+ "class_tally": "window restarted at E16: E16 = 1/6; promotion needs E16+E17 >= 7/12, so E17 requires 6/6 - promotion via this window is effectively closed; next window E17+E18",
+ "scoring_isolation": "scored from semantic.lock.json registry observations only; no attestations supplied in any blind run"
+}

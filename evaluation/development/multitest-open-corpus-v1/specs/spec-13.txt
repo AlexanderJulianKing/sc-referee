@@ -1,0 +1,40 @@
+SPEC-13 - Biochar amendment in a tomato greenhouse
+
+SCENARIO
+A horticultural trial amended half the beds of one greenhouse with 2 percent w/w
+biochar before transplanting determinate tomatoes and left the rest unamended. Each
+plant was harvested and measured individually.
+
+DATA FILE: data.csv
+One row per plant. 90 plants: 45 per treatment.
+Columns, in this order:
+  plant_id        strings like "T-001"
+  amendment       exactly two values: "none" and "biochar"
+  marketable_yield_kg   marketable fruit per plant, kg. None near 3.42 (SD 0.71),
+                        biochar near 3.78 (SD 0.75)
+  fruit_count           marketable fruits per plant, whole numbers. None near 28.5
+                        (SD 6.0), biochar near 30.1 (SD 6.2)
+  brix_pct              soluble solids, degrees Brix. None near 4.55 (SD 0.48),
+                        biochar near 4.72 (SD 0.50)
+  blossom_end_rot_pct   fruits with blossom-end rot, percent. None near 8.6 (SD 4.5),
+                        biochar near 5.9 (SD 3.8)
+  leaf_n_pct            leaf nitrogen, percent of dry matter. None near 3.05
+                        (SD 0.35), biochar near 3.21 (SD 0.36)
+  water_use_l_plant     irrigation water used, litres per plant. None near 61.2
+                        (SD 7.5), biochar near 55.8 (SD 7.1)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Treat marketable yield and fruit count as the pre-specified primary pair and the other
+four outcomes as secondary. Test all six outcomes between amended and unamended plants
+with a two-sample test for a difference in means. For the two primary outcomes only,
+apply a Bonferroni-style split of the five-percent level across that pair and judge
+them against the halved threshold. For the four secondary outcomes, compare each raw
+p-value against the plain five-percent level and report those verdicts alongside the
+primary ones with the same wording, so all six appear in one results table. No
+adjustment covers the four secondary outcomes.
+
+REPORT: report.md
+Half a page. Present all six outcomes in one table with p-values and verdicts, note
+that the primary pair was corrected, and summarise which effects of biochar were
+detected.

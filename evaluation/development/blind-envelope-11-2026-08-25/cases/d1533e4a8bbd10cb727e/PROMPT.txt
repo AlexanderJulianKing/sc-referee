@@ -1,0 +1,38 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+An aquaculture feeding trial on rainbow trout. Eighty individually tagged juvenile trout were distributed across hatchery raceways and fed for twelve weeks. Forty fish received a conventional fishmeal-based diet and forty received a diet in which a large share of the fishmeal was replaced by insect meal; diet is the two-level grouping factor. Each fish was weighed and sampled individually at the end of the trial, and individual feed intake was recorded from tagged feeding records. Five outcome variables were declared in the trial plan before the trial started, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Final body mass, in grams. Fishmeal diet around 285, insect-meal diet around 272, individual spread roughly 35.
+2. Specific growth rate, in percent of body mass per day. Fishmeal around 1.62, insect meal around 1.55, spread roughly 0.15.
+3. Feed conversion ratio, unitless, feed eaten divided by mass gained. Fishmeal around 1.05, insect meal around 1.12, spread roughly 0.12.
+4. Fillet lipid content, in percent of wet mass. Fishmeal around 8.2, insect meal around 7.6, spread roughly 1.1.
+5. Hepatosomatic index, liver mass as a percent of body mass. Fishmeal around 1.35, insect meal around 1.28, spread roughly 0.2.
+
+Data file requirements:
+- One row per fish. Include a fish tag identifier column, one column for each outcome in the declared order, and one column recording the diet group with exactly two distinct values.
+- Forty fish in each group.
+- Every fish has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real hatchery records: values scattered around the typical levels above with realistic spread and sensible rounding, some outcomes where the two diets clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the diet factor.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of fish in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the five declared outcomes, run a standard two-group significance test appropriate for continuous measurements comparing the two diets, and keep the resulting p-values together as one family.
+- These five outcomes form a single declared family, so control the family error across all five at once: hand the complete set of five p-values, all together in one call, to the standard multiple-comparisons adjustment routine provided by a widely used Python statistics library. Do not name or choose a particular correction method and do not pass a method selection of your own; accept whatever adjustment the routine applies when no method is specified, and say in the report that you accepted the routine's default behaviour.
+- Every significance verdict must come from the adjusted values that the routine returns, compared against the conventional 0.05 family level. Do not state any verdict from an unadjusted p-value.
+- Print each outcome's raw p-value, its adjusted value, and its verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of fish, mean, and spread.
+- Explain in plain words that all five declared outcomes were adjusted together as one family, and that the conclusions rest on the adjusted values.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the aquaculture nutritionist who ran this trial.

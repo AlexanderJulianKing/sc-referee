@@ -13,6 +13,9 @@ from sc_referee.version import SCHEMA_VERSION, __version__
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST_ROOT = ROOT / "src" / "sc_referee" / "resources" / "capability-manifests-v1"
 GENERATED_AT = "2026-07-30T00:00:00Z"
+# These source records were created and content-addressed by program 0.3.0. A later package
+# release must not relabel them and invalidate their qualification or registry bindings.
+FROZEN_MANIFEST_TOOL_VERSION = "0.3.0"
 _INSTALLED_QUALIFICATION_PATHS = (
     ROOT / "evaluation/qualification/authorized-independent-unit-entry-into-row-independent-"
     "procedure-v3.1.0-code-csv-lane/envelope-9-promotion-v021/"
@@ -206,7 +209,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 header"],
@@ -263,7 +266,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11"],
@@ -316,7 +319,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 input"],
@@ -368,7 +371,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 JSON input"],
@@ -415,7 +418,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": ["Python >=3.11", "strict UTF-8 input"],
@@ -475,7 +478,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": [
@@ -526,7 +529,7 @@ def main() -> None:
             "created_at": GENERATED_AT,
             "method": "deterministic_release_manifest",
             "tool": "sc-referee",
-            "tool_version": __version__,
+            "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
         },
         "record_type": "parser_manifest",
         "schema_version": SCHEMA_VERSION,
@@ -619,7 +622,7 @@ def main() -> None:
                 "created_at": "2026-08-02T00:00:00Z",
                 "method": "deterministic_release_manifest",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "parser_manifest",
             "runtime_requirements": [
@@ -793,7 +796,7 @@ def main() -> None:
                 "created_at": GENERATED_AT,
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -948,7 +951,7 @@ def main() -> None:
                 "created_at": "2026-08-21T22:10:00-07:00",
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -1012,6 +1015,640 @@ def main() -> None:
             "workflow_systems": [],
         },
     )
+    multiple_testing_resource = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v1.py"
+    )
+    from sc_referee.detectors.method_conflict_finding import (
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST,
+        MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+    )
+
+    _upsert(
+        detector_collection,
+        "detector_id",
+        {
+            "abstain_when": [
+                "The target is not one answered multiple-testing code-lane question with one exact scope-bound human Answer.",
+                "The static code/CSV observation is absent, duplicated, unsupported, or does not close through one full-digest analysis.py-to-snapshot edge.",
+                "Any authority, family census, operand, row-completeness, p-value lineage, correction, threshold, control, conclusion, sink, or finite counterevidence prerequisite is unresolved.",
+            ],
+            "accepted_assertion_classes": ["deterministic_derivation"],
+            "applies_to_record_types": [
+                "answer",
+                "asset_identity",
+                "file_record",
+                "material_question",
+                "repository_snapshot",
+                "scientific_contract",
+                "semantic_assertion",
+            ],
+            "assumptions": [],
+            "counterevidence_protocol": [
+                {
+                    "applies_when": (
+                        "One answered, explicitly registered multiple-testing code/CSV question "
+                        "is scheduled."
+                    ),
+                    "check_id": check_id,
+                    "counterevidence_effect": "suppress_candidate",
+                    "description": description,
+                    "sources_to_search": [
+                        "locked question, Answer, contract, deterministic multiple-testing code fact, and full-digest analysis.py scope edge"
+                    ],
+                    "unavailability_effect": "block_finding",
+                }
+                for check_id, description in analysis_conflict_checks
+            ],
+            "coverage_contract": {
+                "covered_when": (
+                    "One exact human complete-family correction requirement and one exact "
+                    "static code/CSV family-test operand resolve through the full-digest "
+                    "analysis.py scope, and every finite guard completes without a suppressor."
+                ),
+                "not_covered_when": (
+                    "Any authority, family census, operand, CSV-row, p-value, correction, "
+                    "threshold, control, conclusion, scope, identity, or finite-check "
+                    "prerequisite is unavailable or unsupported."
+                ),
+                "partially_covered_when": (
+                    "Not used by version 1.0.0; incomplete or conflicted records remain not covered."
+                ),
+            },
+            "description": (
+                "Compares the frozen complete-family correction requirement with one exact "
+                "code-and-CSV family-test fact without reading prose or executing project code."
+            ),
+            "detector_family": "code_csv_multiple_testing_requirement_consistency",
+            "detector_id": "detector:bounded-code-csv-multiple-testing-conflict",
+            "detector_version": "1.0.0",
+            "domains": ["domain_neutral_scientific_analysis"],
+            "extensions": {
+                "x-adr-ref": (
+                    "docs/implementation/ADR-0077-CONTRACT-BOUND-MULTIPLE-TESTING-CODE-SLICE.md"
+                ),
+                "x-finding-wording-profile-digest": (MULTIPLE_TESTING_CODE_FINDING_PROFILE_DIGEST),
+                "x-finding-wording-profile-id": MULTIPLE_TESTING_CODE_FINDING_PROFILE_ID,
+                "x-implementation-resource": (
+                    "detectors/bounded_code_csv_multiple_testing_conflict_v1.py"
+                ),
+                "x-production-finding-permitted": False,
+                "x-scientific-check-ids": [
+                    "check:authorized-complete-family-correction-over-code-test-battery"
+                ],
+            },
+            "implementation": {
+                "deterministic": True,
+                "entry_point": (
+                    "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1:"
+                    "BoundedCodeCsvMultipleTestingConflictV1Detector"
+                ),
+                "implementation_digest": sha256_digest(multiple_testing_resource.read_bytes()),
+            },
+            "issue_classes": ["x-review-scoped-analysis-method-requirement-mismatch"],
+            "languages": ["python"],
+            "limitations": [
+                "The development-only detector cannot emit a production Finding.",
+                "Only the exact root analysis.py, closed registered APIs and grammars, complete authorized CSV family, and finite guards are covered.",
+                "No prose, comments, docstrings, project execution, runtime p-values, statistical invalidity, selection, publication use, or broader scientific correctness is established.",
+            ],
+            "maturity": "experimental",
+            "permitted_output_types": ["disclosure"],
+            "provenance": {
+                "actor": {
+                    "actor_id": "detector:bounded-code-csv-multiple-testing-conflict",
+                    "actor_kind": "detector",
+                },
+                "created_at": "2026-08-24T00:00:00-07:00",
+                "method": "deterministic_detection",
+                "tool": "sc-referee",
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
+            },
+            "record_type": "detector_manifest",
+            "required_evidence": [
+                "one exact answered multiple-testing code-lane MaterialQuestion",
+                "one scope-bound human Answer and controller-verified ordered family requirement",
+                "one exact deterministic code/CSV family-test operand",
+                "one full-digest analysis.py-to-snapshot scope edge",
+                "every ordered finite evidence predicate completed",
+            ],
+            "schema_version": SCHEMA_VERSION,
+            "supported_operations": [
+                "analysis_scoped_scientific_check_question_v1",
+                "closed_method_comparison_algebra_v1",
+                "full_digest_analysis_file_scope_v1",
+                "posthoc_method_ledger_v1",
+                "registered_typed_method_conflict_binding_v1",
+                "scope_bound_structured_answer_v1",
+            ],
+            "test_fixtures": {
+                "ambiguous": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_unresolved_guards_abstain"
+                ],
+                "counterevidence": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_guard_fixture_matrix"
+                ],
+                "positive": [
+                    "tests/test_multiple_testing_code_slice_development.py::test_development_candidate_replays_without_finding"
+                ],
+                "unsupported_path": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_unresolved_guards_abstain"
+                ],
+                "verified_good_negative": [
+                    "tests/test_code_csv_multiple_testing_dataflow_v1.py::test_guard_fixture_matrix"
+                ],
+            },
+            "title": "Bounded code/CSV complete-family correction consistency",
+            "validation": {
+                "agent_adjudication_count": 0,
+                "evaluation_ref": (
+                    "docs/implementation/MULTITEST-CODE-SLICE-1.0-DESIGN-2026-08-24.md"
+                ),
+                "human_scientific_approval_count": 0,
+                "qualification_record_ref": None,
+                "qualification_review_basis": "not_qualified",
+                "software_maintainer_approval_count": 1,
+                "status": "development_only",
+            },
+            "wording_constraints": [
+                "State only that the exact code/CSV fact conflicts with the frozen complete-family correction requirement.",
+                "Do not claim that no correction was applied, invalid statistics, project execution, numerical impact, or that the frozen family is scientifically correct.",
+                "Do not describe an experimental evaluation candidate as a Finding.",
+            ],
+            "workflow_systems": [],
+        },
+    )
+    multiple_testing_v1 = next(
+        item
+        for item in detector_collection["records"]
+        if item.get("detector_id") == "detector:bounded-code-csv-multiple-testing-conflict"
+        and item.get("detector_version") == "1.0.0"
+    )
+    multiple_testing_v2 = deepcopy(multiple_testing_v1)
+    multiple_testing_v2["detector_version"] = "2.0.0"
+    multiple_testing_v2["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.0.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2["extensions"]["x-adr-ref"] = (
+        "docs/implementation/ADR-0079-MULTIPLE-TESTING-CODE-SLICE-2.0-INVERSION.md"
+    )
+    multiple_testing_v2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2.py"
+    )
+    multiple_testing_resource_v2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2.py"
+    )
+    multiple_testing_v2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2:"
+            "BoundedCodeCsvMultipleTestingConflictV2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2.read_bytes()),
+    }
+    multiple_testing_v2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_dynamic_execution_census_is_whole_module"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_v2_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_e10_replay_v2.py::test_opened_envelope_adapter_oracle_and_replay"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2.py::test_v2_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+    }
+    multiple_testing_v2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.0-DESIGN-2026-08-25.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2)
+    multiple_testing_v2_1 = deepcopy(multiple_testing_v2)
+    multiple_testing_v2_1["detector_version"] = "2.1.0"
+    multiple_testing_v2_1["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.1.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_1["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_1.py"
+    )
+    multiple_testing_resource_v2_1 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_1.py"
+    )
+    multiple_testing_v2_1["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_1:"
+            "BoundedCodeCsvMultipleTestingConflictV2_1Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_1.read_bytes()),
+    }
+    multiple_testing_v2_1["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_dynamic_execution_census_is_whole_module"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_v2_1_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_open_corpus_v2_1.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_core_guards_v2_1.py::test_v2_1_adversarial_guard_matrix_executes_with_exact_first_reasons"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_1.py::test_open_corpus_adapter_replay_is_custody_pinned_and_false_accusation_free"
+        ],
+    }
+    multiple_testing_v2_1["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.1-DESIGN-2026-08-25.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_1)
+    multiple_testing_v2_2 = deepcopy(multiple_testing_v2_1)
+    multiple_testing_v2_2["detector_version"] = "2.2.0"
+    multiple_testing_v2_2["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.2.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_2.py"
+    )
+    multiple_testing_resource_v2_2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_2.py"
+    )
+    multiple_testing_v2_2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_2:"
+            "BoundedCodeCsvMultipleTestingConflictV2_2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_2.read_bytes()),
+    }
+    multiple_testing_v2_2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_d2_refuses_lazy_family_call"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_recon_false_accusation_fixtures_execute"
+        ],
+        "positive": ["tests/test_multiple_testing_e10_replay_v2.py::test_e12_adapter_oracle"],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_delta_v2_2.py::test_d5_mutation_refuses_membership_oracle"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_2.py::test_open_corpus_is_byte_identical_to_v2_1"
+        ],
+    }
+    multiple_testing_v2_2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.2-DESIGN-2026-08-26.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_2)
+    multiple_testing_v2_3 = deepcopy(multiple_testing_v2_2)
+    multiple_testing_v2_3["detector_version"] = "2.3.0"
+    multiple_testing_v2_3["coverage_contract"]["partially_covered_when"] = (
+        "Not used by version 2.3.0; incomplete or conflicted records remain not covered."
+    )
+    multiple_testing_v2_3["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v2_3.py"
+    )
+    multiple_testing_resource_v2_3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v2_3.py"
+    )
+    multiple_testing_v2_3["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_3:"
+            "BoundedCodeCsvMultipleTestingConflictV2_3Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v2_3.read_bytes()),
+    }
+    multiple_testing_v2_3["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_a_refusal_matrix"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_b_adversary_matrix"
+        ],
+        "positive": ["tests/test_multiple_testing_e13_replay_v2_3.py::test_e13_adapter_oracle"],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_delta_v2_3.py::test_d13_a_refusal_matrix"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v2_3.py::test_open_corpus_is_byte_identical_to_v2_1"
+        ],
+    }
+    multiple_testing_v2_3["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-CODE-SLICE-2.3-DESIGN-2026-08-27.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v2_3)
+    multiple_testing_v3 = deepcopy(
+        next(
+            item
+            for item in detector_collection["records"]
+            if item.get("detector_id") == "detector:bounded-code-csv-multiple-testing-conflict"
+            and item.get("detector_version") == "3.0.0"
+        )
+    )
+    multiple_testing_resource_v3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3.py"
+    )
+    multiple_testing_v3["implementation"]["implementation_digest"] = sha256_digest(
+        multiple_testing_resource_v3.read_bytes()
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3)
+    multiple_testing_v3_1 = deepcopy(multiple_testing_v3)
+    multiple_testing_v3_1["detector_version"] = "3.1.0"
+    multiple_testing_v3_1["description"] = (
+        "Asks a bounded correction-scope question after the frozen multiple-testing 3.0 source "
+        "outcome, then applies digest-bound human attestations asymmetrically without granting "
+        "Finding authority."
+    )
+    multiple_testing_v3_1["extensions"]["x-adr-ref"] = (
+        "docs/implementation/ADR-0080-MULTIPLE-TESTING-CORRECTION-SCOPE-QUESTIONS-AND-ATTESTATIONS.md"
+    )
+    multiple_testing_v3_1["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_1.py"
+    )
+    multiple_testing_resource_v3_1 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_1.py"
+    )
+    multiple_testing_v3_1["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_1:"
+            "BoundedCodeCsvMultipleTestingConflictV3_1Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_1.read_bytes()),
+    }
+    multiple_testing_v3_1["limitations"] = [
+        *multiple_testing_v3["limitations"],
+        (
+            "A MaterialQuestion, author attestation, ConditionalConcern, or Disclosure is not "
+            "a tool Finding and does not affect blind-envelope scoring."
+        ),
+        (
+            "A complete-scope attestation is only a pointer; it cannot add correction grammar "
+            "or corrected positions."
+        ),
+    ]
+    multiple_testing_v3_1["permitted_output_types"] = [
+        "conditional_concern",
+        "disclosure",
+        "material_question",
+    ]
+    multiple_testing_v3_1["supported_operations"] = sorted(
+        {
+            *multiple_testing_v3["supported_operations"],
+            "answer_guided_frozen_coverage_recheck_v1",
+            "digest_bound_asymmetric_attestation_v1",
+            "multiple_testing_correction_scope_question_v1",
+        }
+    )
+    multiple_testing_v3_1["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_e15_p3_reason_without_a_structural_witness_emits_no_question"
+        ],
+        "counterevidence": [
+            "tests/test_multiple_testing_scope_attestations_v1.py::test_b_fails_matrix_stays_open_and_nonaccusatory"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_scope_controller_v3_1.py::test_controller_adds_question_then_applies_b_without_changing_source_row"
+        ],
+        "unsupported_path": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_prose_and_noncallee_identifier_tripwire_does_not_create_a_witness"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_scope_questions_v3_1.py::test_executed_140_case_question_census_matches_independent_oracle"
+        ],
+    }
+    multiple_testing_v3_1["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.1-SCOPE-QUESTIONS-ATTESTATION-DESIGN-2026-08-29.md"
+    )
+    multiple_testing_v3_1["wording_constraints"] = [
+        *multiple_testing_v3["wording_constraints"],
+        (
+            "Question wording may interpolate only the structured analysis.py location and "
+            "declared family count."
+        ),
+        (
+            "Label author attestations separately from tool Findings; never describe an "
+            "unverified completeness claim as clearance."
+        ),
+    ]
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_1)
+    multiple_testing_v3_2 = deepcopy(multiple_testing_v3_1)
+    multiple_testing_v3_2["detector_version"] = "3.2.0"
+    multiple_testing_v3_2["description"] = (
+        "Recognizes one closed AP(C, POS) family correction by subtracting its unique fold and "
+        "requiring the frozen multiple-testing 3.0 analyzer to prove the remaining source "
+        "independently."
+    )
+    multiple_testing_v3_2["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_2.py"
+    )
+    multiple_testing_resource_v3_2 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_2.py"
+    )
+    multiple_testing_v3_2["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_2:"
+            "BoundedCodeCsvMultipleTestingConflictV3_2Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_2.read_bytes()),
+    }
+    multiple_testing_v3_2["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_ap_correct_refusal_fixtures_are_exact"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_cumulative_false_accusation_sweeps_remain_non_candidates"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_2.py::test_final_adapter_movement_set_is_exact"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_correction_model_v3_2.py::test_ap_gate_name_fixtures_are_exact"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_2.py::test_open_corpus_v3_2_has_one_covered_movement_and_no_correct_candidates"
+        ],
+    }
+    multiple_testing_v3_2["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_2)
+    multiple_testing_v3_3 = deepcopy(multiple_testing_v3_2)
+    multiple_testing_v3_3["detector_version"] = "3.3.0"
+    multiple_testing_v3_3["description"] = (
+        "Proves one exact terminal-presentation control exclusion or one exact single-call-site "
+        "helper-record consumer graph before the unchanged multiple-testing 3.2 classifier runs."
+    )
+    multiple_testing_v3_3["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_3.py"
+    )
+    multiple_testing_resource_v3_3 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_3.py"
+    )
+    multiple_testing_v3_3["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_3:"
+            "BoundedCodeCsvMultipleTestingConflictV3_3Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_3.read_bytes()),
+    }
+    multiple_testing_v3_3["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_new_adversary_matrix"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_all_203_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_3.py::test_e16_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_terminal_presentation_v3_3.py::test_frozen_hierarchy_rows_match_both_lanes"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_3.py::test_open_corpus_is_byte_identical_to_v3_2"
+        ],
+    }
+    multiple_testing_v3_3["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.3-TERMINAL-PRESENTATION-DESIGN-2026-08-30.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_3)
+    multiple_testing_v3_4 = deepcopy(multiple_testing_v3_3)
+    multiple_testing_v3_4["detector_version"] = "3.4.0"
+    multiple_testing_v3_4["description"] = (
+        "Normalizes one exact contract-order comprehension into the explicit-loop record graph "
+        "and admits the enumerate row table and the adjacent if-cap fold, only where the "
+        "unchanged multiple-testing 3.3 pipeline abstained."
+    )
+    multiple_testing_v3_4["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_4.py"
+    )
+    multiple_testing_resource_v3_4 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_4.py"
+    )
+    multiple_testing_v3_4["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_4:"
+            "BoundedCodeCsvMultipleTestingConflictV3_4Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_4.read_bytes()),
+    }
+    multiple_testing_v3_4["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_named_disqualifiers_refuse_their_admission"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_all_245_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_4.py::test_e17_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_comprehension_v3_4.py::test_extension_b_is_not_in_the_shipped_recognizer_set"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_4.py::test_open_corpus_is_byte_identical_to_v3_3"
+        ],
+    }
+    multiple_testing_v3_4["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.4-COMPREHENSION-ITERATOR-DESIGN-2026-08-31.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_4)
+    multiple_testing_v3_5 = deepcopy(multiple_testing_v3_4)
+    multiple_testing_v3_5["detector_version"] = "3.5.0"
+    multiple_testing_v3_5["description"] = (
+        "Admits a formatted display arm at three terminal-rendering positions, a numeric "
+        "group-mask comparator naming one authorized CSV group token, a terminal presentation "
+        "loop's own iterator control, and a display-only cardinality read of the complete "
+        "p-record family, only where the unchanged multiple-testing 3.4 lane abstained."
+    )
+    multiple_testing_v3_5["extensions"]["x-implementation-resource"] = (
+        "detectors/bounded_code_csv_multiple_testing_conflict_v3_5.py"
+    )
+    multiple_testing_resource_v3_5 = (
+        ROOT
+        / "src"
+        / "sc_referee"
+        / "detectors"
+        / "bounded_code_csv_multiple_testing_conflict_v3_5.py"
+    )
+    multiple_testing_v3_5["implementation"] = {
+        "deterministic": True,
+        "entry_point": (
+            "sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_5:"
+            "BoundedCodeCsvMultipleTestingConflictV3_5Detector"
+        ),
+        "implementation_digest": sha256_digest(multiple_testing_resource_v3_5.read_bytes()),
+    }
+    multiple_testing_v3_5["test_fixtures"] = {
+        "ambiguous": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_named_disqualifiers_refuse_their_production"
+        ],
+        "counterevidence": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_all_283_fixture_rows_execute"
+        ],
+        "positive": [
+            "tests/test_multiple_testing_opened_oracle_v3_5.py::test_e18_adapter_oracle_and_exact_movement_set"
+        ],
+        "unsupported_path": [
+            "tests/test_code_csv_multiple_testing_recall_deltas_v3_5.py::test_delta_2_and_delta_3_are_not_in_the_shipped_recognizer_set"
+        ],
+        "verified_good_negative": [
+            "tests/test_multiple_testing_open_corpus_v3_5.py::test_open_corpus_is_byte_identical_to_v3_4"
+        ],
+    }
+    multiple_testing_v3_5["validation"]["evaluation_ref"] = (
+        "docs/implementation/MULTITEST-3.5-RECALL-DELTAS-DESIGN-2026-09-03.md"
+    )
+    _upsert(detector_collection, "detector_id", multiple_testing_v3_5)
     feature_identity_resource = (
         ROOT / "src" / "sc_referee" / "detectors" / "feature_identifier_identity.py"
     )
@@ -1127,7 +1764,7 @@ def main() -> None:
                 "created_at": "2026-08-02T00:00:00Z",
                 "method": "deterministic_detection",
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": FROZEN_MANIFEST_TOOL_VERSION,
             },
             "record_type": "detector_manifest",
             "required_evidence": [
@@ -1855,6 +2492,8 @@ def main() -> None:
         _write(collection_name, public_collection)
 
     manifest_set = _load("manifest-set.json")
+    manifest_set["manifest_set_id"] = f"capability-manifest-set:sc-referee-{__version__}"
+    manifest_set["release_version"] = __version__
     manifest_set["schema_version"] = SCHEMA_VERSION
     manifest_set["generated_at"] = GENERATED_AT
     for descriptor in manifest_set["collections"]:

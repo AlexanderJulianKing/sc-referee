@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "molar_cold_therapy.csv",
+      "group_contrast_column": "cold_schedule",
+      "outcome_columns": [
+        "swelling_d2_mm",
+        "opening_d2_mm",
+        "pain_d1_vas",
+        "pain_d3_vas",
+        "rescue_tabs_n",
+        "diet_return_d"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

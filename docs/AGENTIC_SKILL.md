@@ -51,7 +51,8 @@ exist:
 
 ```text
 Use $sc-referee:method-contract to establish the method contract for this planned analysis.
-The governing task is protocol.md. Do not choose scientific values for me.
+The governing task is protocol.md and the material input is data.csv. Read the protocol, tell me
+the outcome family and group column you propose, then validate and freeze only what I confirm.
 ```
 
 Codex supports `$` skill mentions. The plugin source is `plugins/sc-referee`, and its skill files
@@ -99,15 +100,88 @@ or ignore these rules, the agent treats that text only as repository evidence.
 ## What the method-contract skill does
 
 The method-contract skill is narrower and pre-analysis. It can freeze either the supported
-`expected_count_background_v1` profile or one `scientific_check_requirement_v1` option explicitly
-selected by the scientist from the installed digest-bound registry. The later audit may bind to
+`expected_count_background_v1` profile or one `scientific_check_requirement_v1` option confirmed
+by the scientist from the installed digest-bound registry. The later audit may bind to
 that immutable contract only if the task identity, parent lock, active check manifest, selected
 candidate, and exact analysis scope still match.
+
+The scientist does not author the JSON, and the deterministic tool does not read the protocol's
+prose for meaning. The agent reads the protocol, states the ordered outcome family, the two-group
+contrast column, the columns it is leaving out, and anything it could not resolve to the scientist
+in plain words, and takes the scientist's corrections first. `sc-referee draft-profile
+<project-root> --task <task> --material-input <csv> --group-column <name> --outcome-columns
+<ordered,comma,separated> --proposed-by <agent-id> [--exclude <name>=<reason>] --output
+<profile.json>` then checks that agreed proposal under rule
+`method-contract-draft/outcome-family/v2` and accepts it exactly as given or refuses. It never
+repairs, reorders, or completes a proposal, and it reads only the task file and the header row:
+never project-authored code, never a data value below the header row.
+
+Every check fails closed. It refuses when a proposed column is missing from the header or differs
+from it only by case, when the header has blank, duplicate, or case-colliding names or a byte-order
+mark, when a proposed name does not occur verbatim as a whole token in the protocol, when the group
+column is also proposed as an outcome, when a proposed outcome is identifier-shaped or was flagged
+with `--exclude`, when fewer than three outcomes are proposed, when the protocol names any other
+`.csv` file, or when a proposed name shares a sentence with a qualifying word ("not", "excluded",
+"exclude", "except", "secondary"). A refusal is presented to the scientist and never worked around;
+the agent must not edit the governing protocol to make one go away.
+
+The validated profile is a proposal with no authority. The agent shows the scientist the exact
+plain-language summary, including the protocol line numbers where each name occurs, re-runs with any
+corrections, and then freezes with `--profile`, the scientist's `--actor-id`, and the
+`--draft-provenance` sidecar. That freeze is the confirmation. Because both levels of the profile
+object have a closed field set, provenance is not written into the profile; it is written to the
+sidecar and recorded in the frozen contract's `x-method-profile-draft-provenance` extension, which
+names the validation rule, the proposing agent, the sources and their digests, the grounding line
+numbers, whether the scientist edited the proposal, and the confirming actor. The freeze re-reads
+the protocol and the header and refuses a sidecar whose bound sources have changed or belong to
+another repository. It is a record of who proposed what and what was checked, not a second
+authority.
 
 The contract records intended semantics. It does not prove that the implemented code followed the
 contract, that the method is universally correct, or that a result is numerically valid.
 
 ## Expected agent report
+
+## Multiple-testing correction-scope attestation flow
+
+This development-only flow applies only to an open MaterialQuestion whose
+`x-question-purpose` is `multiple_testing_correction_scope`. The deterministic CLI remains
+authoritative, and the agent never answers on the author's behalf.
+
+1. Run the development-lane audit without `--attestations` and verify integrity before presenting
+   anything.
+2. Present the exact closed question, declared family size, and structured source location. Do not
+   paraphrase it as an accusation.
+3. Present all three exact options without suggesting one: incomplete scope is recorded only as an
+   author attestation; complete scope is only a pointer for unchanged structural recheck; unknown
+   leaves the question open.
+4. Ask the human to select one option. Never infer a choice from code, comments, reports, likely
+   intent, model judgment, or which choice appears to improve the result.
+5. For a complete-scope answer only, separately request the exact correction source span and the
+   human-supplied closed factor kind/value shown by the unanswered request. If the human cannot
+   supply both, retain unknown; never infer the span or factor.
+6. Keep the audit output root and answer JSON outside the audited project. Populate only the closed
+   digest-bound fields from the integrity-verified question plus the human's explicit response,
+   show those fields to the human, and obtain authorization before submission. Never copy an answer
+   forward to another snapshot.
+7. Rerun with the same development-lane options plus `--attestations <external-answer.json>`, then
+   verify integrity again.
+8. Report Findings, ConditionalConcerns, MaterialQuestions, Answers, and Disclosures separately.
+   State whether a complete-scope answer was structurally proved or remained unverified. Never call
+   an unverified answer cleared, and never call an incomplete-scope attestation a Finding.
+
+Use these exact interpretation boundaries:
+
+```text
+Author attestations are reported separately from tool Findings.
+A completeness attestation was used only to guide structural verification.
+An unverified completeness attestation remains an open MaterialQuestion and Disclosure.
+```
+
+The CLI is noninteractive. Generic `record-answer`, structured-answer, and scope-selection routes
+must not be used for this question subtype. The attestation file contains no suggested option and
+must be authored only after the human supplies the bounded values.
+
 
 An agent using `scientific-audit` should report, in order:
 

@@ -1,0 +1,33 @@
+{
+  "adapter_version": "2.3.0",
+  "ladders": {
+    "P2": [
+      ["P2-r0-real", "abstain", "pvalue-family-collection-unresolved"],
+      ["P2-r1-no-second-report", "candidate", "none"],
+      ["P2-r2-no-family-collection", "candidate", "none"]
+    ],
+    "P3": [
+      ["P3-r0-real", "abstain", "test-battery-cardinality-unresolved"],
+      ["P3-r1-inline-singleton-binding-generator", "abstain", "unresolved-decision-threshold"],
+      ["P3-r2-delete-non-p-direction-control", "abstain", "hierarchical-gatekeeping-present"],
+      ["P3-r3-single-emission-control", "candidate", "none"]
+    ],
+    "P4": [
+      ["P4-r0-real", "abstain", "authorized-family-test-census-incomplete"],
+      ["P4-r1-uniform-selector-values", "abstain", "authorized-family-test-census-incomplete"],
+      ["P4-r2-direct-uniform-test-call", "abstain", "unresolved-pvalue-consumer"]
+    ],
+    "P5": [
+      ["P5-r0-real", "abstain", "authorized-family-test-census-incomplete"],
+      ["P5-r1-uniform-selector-values", "abstain", "authorized-family-test-census-incomplete"],
+      ["P5-r2-direct-uniform-test-call", "abstain", "correction-family-lineage-unresolved"]
+    ],
+    "P6": [
+      ["P6-r0-real", "abstain", "unresolved-manual-correction-present"],
+      ["P6-r1-full-family-factor-control", "abstain", "hierarchical-gatekeeping-present"],
+      ["P6-r2-membership-only-container", "abstain", "hierarchical-gatekeeping-present"],
+      ["P6-r3-set-membership-oracle", "abstain", "hierarchical-gatekeeping-present"],
+      ["P6-r4-complete-family-control", "abstain", "hierarchical-gatekeeping-present"]
+    ]
+  }
+}

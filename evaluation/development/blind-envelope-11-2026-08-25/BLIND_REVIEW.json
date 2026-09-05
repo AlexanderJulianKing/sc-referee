@@ -1,0 +1,65 @@
+{
+  "reviewer": "isolated Opus blind reviewer",
+  "cases": {
+    "0249919d05de1abc25fd": {
+      "misstep": true,
+      "reason": "Partial correction. Only the three headline yield outcomes get a Bonferroni multiplier; the other five of eight declared outcomes are judged on raw p at 0.05, including soluble solids at p=0.0489."
+    },
+    "08565c720304eb6fd9d3": {
+      "misstep": false,
+      "reason": "Pre-registered corrected threshold. Protocol fixed per-outcome alpha at 0.01, which is 0.05 divided by the five declared outcomes; every outcome judged against it."
+    },
+    "10e0cfb0c7ba8d03ec52": {
+      "misstep": false,
+      "reason": "All four declared outcomes Holm-adjusted together in one pass at family alpha 0.05. The suspended-solids re-run is an explicitly non-inferential sensitivity check with no verdict."
+    },
+    "114782f595d9c24b923d": {
+      "misstep": true,
+      "reason": "Partial correction. Holm covers only the two primary endpoints; the remaining five of seven declared outcomes are decided on raw p at 0.05, four of them called significant that way."
+    },
+    "1cce7d6b580caa25f597": {
+      "misstep": false,
+      "reason": "Gatekeeping design. A single pre-specified family-level screen on the root-mean-square standardised separation, cutoff fixed in advance, controls entry to any per-outcome testing."
+    },
+    "2a712805024597719d32": {
+      "misstep": false,
+      "reason": "Discovery/validation split fixed before measurement. Discovery p-values are screening only; the four carried-forward outcomes are confirmed in the validation half at Bonferroni 0.05/4 = 0.0125."
+    },
+    "479317f1706d4fb929e5": {
+      "misstep": false,
+      "reason": "All four declared outcomes corrected together with Holm step-down via pingouin.multicomp at family alpha 0.05; every verdict read from adjusted p-values."
+    },
+    "53c4753f38f9e253d541": {
+      "misstep": false,
+      "reason": "Permutation-based family-wise control. One shared label shuffle per round, max absolute Welch t across the five outcomes, 5000 rounds, verdicts against the family-maximum reference."
+    },
+    "69c5d0aec76eefb67148": {
+      "misstep": true,
+      "reason": "No correction at all. All three protocol-declared outcomes are tested and called at an unadjusted 0.05, justified only by calling each outcome a separate question."
+    },
+    "6f08fe90c58e51737a4d": {
+      "misstep": true,
+      "reason": "No correction at all. Six declared outcomes each get a two-sample t-test judged at unadjusted 0.05, with four called significant across the family."
+    },
+    "8726b87ac4ba4c34c0a3": {
+      "misstep": true,
+      "reason": "No correction at all. Four protocol-declared outcomes judged at unadjusted 0.05; FEV1 (p=0.0179) and CRP (p=0.0228) would not survive any family adjustment."
+    },
+    "9bccc428f23dde0d43f0": {
+      "misstep": false,
+      "reason": "Correction performed upstream. Verdicts read from supplied Holm-adjusted p-values covering all four declared outcomes; the arithmetic in the supplied table checks out."
+    },
+    "d11a7136d1e91ed8e26f": {
+      "misstep": false,
+      "reason": "Sidak correction over the declared family of four, threshold derived as 1-(0.95)^(1/4)=0.012741; turbidity at p=0.027 is correctly not called significant."
+    },
+    "d1533e4a8bbd10cb727e": {
+      "misstep": false,
+      "reason": "All five declared p-values passed in one call to statsmodels multipletests, whose default Holm-Sidak method controls family-wise error; verdicts taken from adjusted values."
+    },
+    "dfd35001c5a99ab1486b": {
+      "misstep": true,
+      "reason": "No correction at all. Five declared outcomes each judged at unadjusted 0.05; faecal cortisol (p=0.0140) and body condition (p=0.0039) rest on that uncorrected threshold."
+    }
+  }
+}

@@ -7,7 +7,7 @@ from pathlib import Path
 
 import yaml
 
-from sc_referee.version import __version__
+from sc_referee.version import SCHEMA_VERSION, __version__
 from scripts.build_manifest import (
     INTENTIONALLY_GENERATED_ARTIFACTS,
     MANIFEST_RELATIVE_PATH,
@@ -22,11 +22,30 @@ def test_public_release_version_is_coordinated(project_root: Path) -> None:
         (project_root / "evaluation" / "pyproject.toml").read_text(encoding="utf-8")
     )
     handoff = json.loads((project_root / "HANDOFF_MANIFEST.json").read_text(encoding="utf-8"))
+    capability_manifests = json.loads(
+        (
+            project_root
+            / "src"
+            / "sc_referee"
+            / "resources"
+            / "capability-manifests-v1"
+            / "manifest-set.json"
+        ).read_text(encoding="utf-8")
+    )
+    lock = tomllib.loads((project_root / "uv.lock").read_text(encoding="utf-8"))
 
-    assert __version__ == "0.3.0"
+    assert __version__ == "0.4.0"
     assert package["project"]["version"] == __version__
     assert evaluation["project"]["dependencies"] == [f"sc-referee=={__version__}"]
     assert handoff["program_version"] == __version__
+    assert handoff["schema_version"] == SCHEMA_VERSION
+    assert capability_manifests["release_version"] == __version__
+    assert capability_manifests["manifest_set_id"] == (
+        f"capability-manifest-set:sc-referee-{__version__}"
+    )
+    assert next(item for item in lock["package"] if item["name"] == "sc-referee")["version"] == (
+        __version__
+    )
 
 
 def test_public_release_identity_credits_human_and_ai_roles_exactly(
@@ -38,10 +57,11 @@ def test_public_release_identity_credits_human_and_ai_roles_exactly(
 
     assert package["project"]["authors"] == [{"name": "Alexander King"}]
     assert package["project"]["maintainers"] == [{"name": "Alexander King"}]
-    assert citation["version"] == "0.3.0"
+    assert citation["version"] == "0.4.0"
     assert citation["authors"] == [{"family-names": "King", "given-names": "Alexander"}]
     assert citation["repository-code"] == "https://github.com/AlexanderJulianKing/sc-referee"
     assert "sole human author" in acknowledgments
+    assert f"release {__version__}" in acknowledgments
     assert "OpenAI Codex" in acknowledgments
     assert "Anthropic Claude" in acknowledgments
     assert "not represented as people, copyright holders" in acknowledgments

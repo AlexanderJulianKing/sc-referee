@@ -1,0 +1,26 @@
+Build a small, self-contained analysis project for the study described below. Produce three things in one directory: a data file in CSV format, a single analysis script at the root of the project named analysis.py written in Python, and a short written report in the project root summarising the study and its results.
+
+Study
+-----
+A fruit-juice processor is deciding whether to replace thermal pasteurisation with high-pressure processing for its cloudy pear juice. A single batch of pressed juice was split and filled into forty-four identical bottles. Twenty-two bottles were pasteurised thermally in the usual way, and twenty-two were treated by high-pressure processing. All bottles were then stored together in the dark at four degrees Celsius for twenty-eight days, after which every bottle was opened once and analysed. Each bottle is measured exactly once, so a bottle is the unit of the study.
+
+The processing trial declared, in this fixed order, four quality outcomes measured on every bottle:
+
+1. Ascorbic acid content, in milligrams per hundred millilitres. Typical values after storage run from about 10 to 32.
+2. Cloud stability, expressed as the percentage of the initial turbidity still suspended after a fixed centrifugation step. Typical values run from about 55 to 96 percent.
+3. Browning index, the absorbance of the clarified juice at 420 nanometres, a unitless optical reading. Typical values run from about 0.04 to 0.48.
+4. Total aerobic plate count, as the base-ten logarithm of colony forming units per millilitre. Typical values run from below 1 up to about 3.6.
+
+Data file
+---------
+Write the data yourself with realistic, plausible values and realistic bottle-to-bottle variation within each treatment. The table has one row per bottle and one column per outcome. Include a first column holding the bottle identifier, a column holding the treatment with exactly two possible entries, one for thermal pasteurisation and one for high-pressure processing, and then the four outcome columns in the declared order. Name the outcome columns with short lower-case names built from the measurement and its unit, for example ascorbic_acid_mg_100ml, cloud_stability_pct, browning_index and plate_count_log_cfu. Name the identifier column bottle_id and the treatment column group. Every bottle has a value in every outcome column; there are no blanks.
+
+Analysis
+--------
+Each of the four quality attributes was declared as its own acceptance question for the new process, so handle each one on its own terms. For every declared outcome, compare the two processing treatments with a standard two-group comparison of the bottle values, and state for that outcome whether the difference is statistically significant at the conventional five percent threshold. Do not apply any multiple-comparison adjustment or correction of any kind: every outcome gets its own verdict at the conventional threshold.
+
+Organise the script so that it works through the declared outcome list in one repeated pass, handling each outcome in turn inside that single pass and reporting as it goes. For each outcome report the two treatment means, their difference, and the p-value.
+
+Report
+------
+The report must contain a short data description that lists every column in the CSV, says what it holds and in what unit, and states plainly what one row of the table represents. It must then present the results for each declared outcome in the declared order, with the treatment means and the p-value, and finish with a short conclusion about which quality attributes differ between thermal pasteurisation and high-pressure processing and what that implies for the changeover decision. Write it in the voice of a food technologist reporting to a product development team.

@@ -1,0 +1,37 @@
+SPEC-20 - Pre-registered trial of a school breakfast programme
+
+SCENARIO
+An education and nutrition trial gave one set of primary schools a free universal
+breakfast programme and left matched schools without it for one academic year. The
+analysis plan was registered before data collection, with a fixed family of four child
+outcomes and a stated corrected threshold.
+
+DATA FILE: data.csv
+One row per child. 160 children: 80 per condition.
+Columns, in this order:
+  child_id        strings like "CH-0001"
+  condition       exactly two values: "no_programme" and "breakfast"
+  attendance_pct        school attendance, percent of sessions. No_programme near
+                        91.2 (SD 6.5), breakfast near 93.4 (SD 5.8)
+  literacy_score        standardised literacy score, mean about 100, SD about 15.
+                        No_programme near 98.6 (SD 14.2), breakfast near 101.9
+                        (SD 14.0)
+  numeracy_score        standardised numeracy score. No_programme near 99.1
+                        (SD 14.5), breakfast near 101.2 (SD 14.3)
+  bmi_z                 BMI z-score. No_programme near 0.42 (SD 1.05), breakfast near
+                        0.35 (SD 1.02)
+These four outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+The registered plan fixed the family at these four outcomes and set the per-outcome
+decision threshold at 0.0125, which is the five-percent family-wide level shared
+equally across four tests. The script itself does no adjusting and no arithmetic on the
+threshold: it runs a two-sample test for a difference in means on each of the four
+outcomes and compares each p-value with the plain number 0.0125, printing the p-value
+and the decision. A short comment at the top of the script points to the registered
+plan and the report as the place where the threshold is derived and justified.
+
+REPORT: report.md
+Half a page. Quote the registered decision rule, state that four outcomes form the
+family and that 0.0125 is five percent divided by four, show the arithmetic once, and
+give each outcome's p-value against that threshold with the resulting conclusion.

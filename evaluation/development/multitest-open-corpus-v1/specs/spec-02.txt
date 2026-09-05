@@ -1,0 +1,39 @@
+SPEC-02 - Cover crop effects on soil health
+
+SCENARIO
+An agronomy station compared soil under a winter cereal rye cover crop against bare
+winter fallow across 48 field plots on the same silt loam soil, 24 plots per system,
+after three seasons. Soil cores were taken in spring at 0-15 cm.
+
+DATA FILE: data.csv
+One row per plot. 48 plots.
+Columns, in this order:
+  plot_id          strings like "P-01" through "P-48"
+  system           exactly two values: "fallow" and "rye"
+  soil_organic_c_pct     soil organic carbon, percent by mass. Fallow near 1.42
+                         (SD 0.22), rye near 1.58 (SD 0.24)
+  bulk_density_g_cm3     bulk density, g/cm3. Fallow near 1.38 (SD 0.09),
+                         rye near 1.31 (SD 0.09)
+  aggregate_stability_pct  water-stable aggregates, percent. Fallow near 41 (SD 9),
+                         rye near 52 (SD 10)
+  microbial_biomass_c_mg_kg  microbial biomass carbon, mg/kg. Fallow near 310
+                         (SD 70), rye near 372 (SD 78)
+  nitrate_n_mg_kg        residual nitrate nitrogen, mg/kg. Fallow near 18.5 (SD 6.0),
+                         rye near 11.2 (SD 4.5)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Compare the two systems on each of the five soil outcomes with a two-sample test for
+a difference in means. Collect the five raw p-values in one ordered list that matches
+the outcome order, then pass that complete list of five through the standard
+multiple-comparison adjustment routine of a widely used general-purpose Python
+statistics library, using that routine's default correction method and a family-wide
+error rate of five percent. Report, for each outcome, the raw p-value, the adjusted
+p-value, and the reject-or-not decision that the routine returns. Every significance
+claim in the project rests on the adjusted decision, never on the raw p-value.
+
+REPORT: report.md
+Half a page. Name the correction method actually used and say that all five outcomes
+were corrected together as one family. Give a small table of outcome, raw p, adjusted
+p, and decision. Note in one sentence how the conclusions would differ if raw p-values
+had been read directly.

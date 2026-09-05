@@ -1,0 +1,38 @@
+SPEC-49 - Two feeding regimes for farmed Atlantic salmon
+
+SCENARIO
+An aquaculture research station reared Atlantic salmon smolts on either a standard
+marine-oil diet or a diet where half the fish oil was replaced with algal oil, in
+replicate tanks over sixteen weeks. Individual fish sampled at the end are the records.
+
+DATA FILE: data.csv
+One row per fish. 108 fish: 54 per diet.
+Columns, in this order:
+  fish_id         strings like "SAL-0001"
+  diet            exactly two values: "fish_oil" and "algal_oil"
+  final_weight_g        final body weight, grams. Fish_oil near 1285 (SD 210),
+                        algal_oil near 1240 (SD 215)
+  specific_growth_rate  specific growth rate, percent per day. Fish_oil near 1.18
+                        (SD 0.16), algal_oil near 1.14 (SD 0.16)
+  fillet_epa_dha_mg_g   fillet EPA plus DHA, mg/g. Fish_oil near 12.6 (SD 2.1),
+                        algal_oil near 15.4 (SD 2.4)
+  liver_lipid_pct       liver lipid, percent. Fish_oil near 6.4 (SD 1.3), algal_oil
+                        near 5.8 (SD 1.2)
+  condition_factor      Fulton condition factor. Fish_oil near 1.32 (SD 0.11),
+                        algal_oil near 1.29 (SD 0.11)
+  fillet_colour_score   SalmoFan colour score, 20 to 34. Fish_oil near 27.4 (SD 1.8),
+                        algal_oil near 27.1 (SD 1.9)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Write one reusable comparison step inside the same file. It takes the data table and an
+outcome column name, splits the fish by diet, runs a two-sample test for a difference
+in means, and returns the two means, the difference, the p-value, and a verdict string
+that it decides for itself by comparing the p-value with the conventional five-percent
+cutoff held inside that step. Call the step once for each of the six outcomes in the
+declared order and print what it returns. The step never learns how many outcomes it
+will be called on and nothing outside it looks at the six p-values together.
+
+REPORT: report.md
+Half a page. Give the six outcomes with means, p-values, and verdicts, and conclude on
+whether algal oil can replace half the fish oil.

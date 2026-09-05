@@ -1,0 +1,22 @@
+{
+  "profile_id": "scientific_check_requirement_v1",
+  "profile_version": "1.2.0",
+  "check_id": "check:authorized-complete-family-correction-over-code-test-battery",
+  "candidate_id": "complete-correction-over-authorized-outcome-family",
+  "semantic_role_authority": {
+    "authorized_test_family": {
+      "material_input_path": "wheat_fungicide_trial.csv",
+      "group_contrast_column": "program_group",
+      "outcome_columns": [
+        "grain_yield_g",
+        "tgw_g",
+        "septoria_severity_pct",
+        "green_canopy_days",
+        "plant_height_cm",
+        "spike_count"
+      ],
+      "family_member_rule": "one-two-group-test-per-named-outcome-column",
+      "correction_scope": "complete-authorized-family"
+    }
+  }
+}

@@ -1,0 +1,38 @@
+SPEC-44 - Two rehydration solutions in calf scours
+
+SCENARIO
+A veterinary practice compared a hypotonic oral rehydration solution against the
+standard isotonic product for dairy calves presenting with diarrhoea, over two calving
+seasons on cooperating farms. Each calf is one record.
+
+DATA FILE: data.csv
+One row per calf. 86 calves: 43 per solution.
+Columns, in this order:
+  calf_id         strings like "CF-001"
+  solution        exactly two values: "isotonic" and "hypotonic"
+  time_to_resolution_h  hours to normal faecal consistency. Isotonic near 62 (SD 22),
+                        hypotonic near 51 (SD 20)
+  blood_ph              venous blood pH at 24 h. Isotonic near 7.28 (SD 0.07),
+                        hypotonic near 7.33 (SD 0.06)
+  base_excess_mmol_l    base excess at 24 h, mmol/L. Isotonic near minus 4.8
+                        (SD 3.5), hypotonic near minus 2.6 (SD 3.2)
+  weight_change_pct     body weight change over 72 h, percent. Isotonic near minus
+                        1.4 (SD 2.0), hypotonic near 0.3 (SD 2.1)
+  serum_sodium_mmol_l   serum sodium at 24 h, mmol/L. Isotonic near 139 (SD 4.0),
+                        hypotonic near 137 (SD 4.2)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+For every one of the five outcomes, run and print the usual assumption checks first: a
+normality check on each solution group and a check of whether the two groups' variances
+are comparable. Let those checks decide the test used for that outcome, a mean-based
+two-sample test when the assumptions hold and a version that does not assume equal
+variances, or a rank-based two-group test, when they do not, and print the choice and
+its reason. Then treat all five p-values, however they were produced, as a single
+family and correct them together with a named family-wide correction at a five-percent
+family level. Report raw and adjusted p-values, and declare a difference only where the
+adjusted value clears the family level.
+
+REPORT: report.md
+Half a page. Report the assumption checks, the per-outcome test choices, the raw and
+adjusted p-values for the family of five, and the clinical conclusion.

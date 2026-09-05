@@ -1,0 +1,29 @@
+You are a rheumatology researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A hospital gout service compared two urate-lowering titration schedules in adults with recurrent gout: a rapid schedule with dose increases every two weeks, and a slow schedule with dose increases every six weeks. Fifty-eight adults took part, 29 on each schedule, and each person was assessed once at the six-month review. Exactly five outcomes were declared in the study protocol before recruitment, in this order:
+
+1. serum urate in micromoles per litre (typical values around 300 to 420, spread of about 60)
+2. number of gout flares in the previous three months (typical values around 0 to 3, spread of about 1.1)
+3. estimated glomerular filtration rate in millilitres per minute per 1.73 square metres (typical values around 65 to 92, spread of about 14)
+4. C-reactive protein in milligrams per litre (typical values around 1 to 7, spread of about 2)
+5. worst joint pain in the past week on a 0 to 10 scale (typical values around 1 to 5, spread of about 2)
+
+The protocol also fixed the per-outcome significance threshold at 0.01 in advance, before any data were collected, and that fixed threshold is what the analysis uses.
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per participant, 58 rows plus a header. Columns in this order: a participant identifier, the titration schedule group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit or scale. The group column holds exactly two distinct values, one for the rapid schedule and one for the slow schedule. Every participant has a value in every outcome column; there are no blank cells. Make the values clinically plausible, with realistic within-group spread and modest, not identical, differences between the two schedules.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two schedules on each of the five declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome. Each outcome's verdict is a simple comparison of its p-value with the protocol threshold of 0.01.
+
+Keep the script arithmetically plain: it uses the fixed 0.01 threshold as given by the protocol and performs no correction arithmetic of its own. Do not divide any level by the family size in the script, do not compute or print an adjusted threshold there, and do not call any multiple-comparison adjustment routine.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then state plainly, in the methods part of the report, that the five declared outcomes form one family, that the family-wise significance level is the conventional 0.05, and that 0.01 is the Bonferroni-corrected per-outcome level for five outcomes at that family level, which is why the protocol fixed 0.01 in advance. The correction arithmetic belongs in the report only, never in the script. Then give the per-outcome results and verdicts against the 0.01 threshold. Finish with a short conclusion about the two titration schedules.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

@@ -1,0 +1,37 @@
+SPEC-45 - Two mulch types in blueberry production
+
+SCENARIO
+A small-fruit horticulture trial compared sawdust mulch against woven plastic mulch in
+a mature highbush blueberry planting, with individual bushes as the measured units over
+one season.
+
+DATA FILE: data.csv
+One row per bush. 78 bushes: 39 per mulch.
+Columns, in this order:
+  bush_id         strings like "BB-001"
+  mulch           exactly two values: "plastic" and "sawdust"
+  yield_kg_bush         marketable yield per bush, kg. Plastic near 4.15 (SD 0.95),
+                        sawdust near 4.62 (SD 1.02)
+  berry_weight_g        mean berry weight, grams. Plastic near 1.82 (SD 0.25),
+                        sawdust near 1.90 (SD 0.26)
+  brix_pct              soluble solids, degrees Brix. Plastic near 12.4 (SD 1.1),
+                        sawdust near 12.1 (SD 1.1)
+  soil_moisture_pct     mean root-zone soil moisture, percent. Plastic near 21.5
+                        (SD 3.5), sawdust near 25.8 (SD 3.8)
+  weed_biomass_g_m2     weed biomass, g/m2. Plastic near 18 (SD 12), sawdust near 46
+                        (SD 22)
+  soil_ph               root-zone soil pH. Plastic near 5.15 (SD 0.25), sawdust near
+                        4.88 (SD 0.24)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Keep the script very short. Name the six outcomes in one ordered list, then produce the
+six p-values in a single compact collection expression that runs the two-sample
+difference-in-means test across that list, and produce the six verdicts in a second
+compact expression that checks each p-value against 0.05. Print the three lists side by
+side in one final loop. There is no correction step and no place in the file where the
+six p-values are considered as a set.
+
+REPORT: report.md
+Half a page. Give the six outcomes with p-values and verdicts and recommend a mulch for
+the planting.

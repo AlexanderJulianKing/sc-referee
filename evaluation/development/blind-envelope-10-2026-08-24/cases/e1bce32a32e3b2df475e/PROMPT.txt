@@ -1,0 +1,46 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+An ergonomics team in a grocery distribution centre tests a passive back-support exoskeleton worn
+during manual order picking. One hundred order pickers take part, fifty wearing the exoskeleton for a
+full shift and fifty working the same shift pattern without it. Each picker is measured once, on a
+standardised mixed-case picking round.
+
+The protocol declared, in advance and in this order, a family of exactly five outcomes, each measured
+once per picker:
+1. Peak lumbar compression force in newtons, typically between 2000 and 5500.
+2. Borg perceived exertion score on the six to twenty scale, typically between 8 and 19.
+3. Round completion time in minutes, typically between 18 and 45.
+4. Number of picking errors, typically between 0 and 8.
+5. End-of-shift shoulder discomfort score on a zero to ten scale, typically between 0 and 9.
+
+The same protocol fixed the per-outcome significance threshold for this study at 0.01 in advance,
+before any data were collected, and that fixed threshold is what the analysis uses.
+
+Data file
+One row per picker, one column per outcome, plus an identifier column and a group column holding
+exactly two values. Every picker has a value for every outcome; there are no empty cells. Use
+lower-case column names with underscores: picker_id, exo_group, peak_lumbar_compression_n,
+borg_exertion_score, round_time_min, picking_errors, shoulder_discomfort_score. The exo_group column
+holds only the two values exoskeleton and control. Invent realistic values with plausible within-group
+spread and a modest difference between groups on some outcomes but not all of them.
+
+Analysis
+Compare the two groups on each of the five declared outcomes with a standard two-group significance
+test for independent samples, and report each group's mean and standard deviation for each outcome.
+The script simply compares each p-value to the protocol threshold of 0.01 and states the verdict. Do
+not put any correction arithmetic, correction routine or derivation of the threshold in the script:
+the script treats 0.01 as the fixed protocol threshold and nothing more.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then, before the results, state plainly that the five declared outcomes form one
+family, that the study level for that family is the conventional 0.05, and that 0.01 is the
+Bonferroni-corrected per-outcome level for five outcomes at that family level, which is why the
+protocol fixed 0.01 in advance. Show that reasoning in the report only. Then give the group summaries
+and the five outcomes in declared order with their p-values and verdicts against 0.01, and finish with
+a brief conclusion about whether the distribution centre should roll out the exoskeleton.

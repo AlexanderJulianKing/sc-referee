@@ -1,0 +1,36 @@
+SPEC-27 - Green roofs and building microclimate
+
+SCENARIO
+A building science group instrumented 50 flat-roofed municipal buildings in one city,
+25 retrofitted with extensive green roofs and 25 with conventional membrane roofs, and
+logged one summer of measurements. Each building is one row of season summaries.
+
+DATA FILE: data.csv
+One row per building. 50 buildings.
+Columns, in this order:
+  building_id     strings like "BLD-01"
+  roof_type       exactly two values: "conventional" and "green"
+  peak_roof_temp_c      mean daily peak roof surface temperature, degrees C.
+                        Conventional near 58.4 (SD 6.2), green near 41.7 (SD 5.1)
+  cooling_kwh_m2        summer cooling energy, kWh/m2. Conventional near 34.5
+                        (SD 7.8), green near 28.9 (SD 7.2)
+  indoor_temp_range_c   daily indoor temperature swing, degrees C. Conventional near
+                        4.6 (SD 1.2), green near 3.5 (SD 1.0)
+  runoff_coefficient    stormwater runoff coefficient, 0 to 1. Conventional near 0.88
+                        (SD 0.06), green near 0.52 (SD 0.12)
+  maintenance_hours     annual roof maintenance hours. Conventional near 12.5
+                        (SD 5.0), green near 21.8 (SD 7.5)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+For each of the five outcomes run a two-sample test for a difference in means. Do not
+write the verdict wording by hand: compute it, by indexing a two-element sequence of
+phrases with the truth of the test "p-value below five percent" converted to a position,
+so the phrase is looked up rather than chosen by a written-out branch. Print the outcome
+name, both means, the p-value, and the looked-up phrase. The five-percent level used in
+that lookup is the only threshold in the file and is not changed for the number of
+outcomes tested.
+
+REPORT: report.md
+Half a page. Give the five outcomes with p-values and verdicts and conclude on whether
+green roof retrofits are justified for the municipal estate.

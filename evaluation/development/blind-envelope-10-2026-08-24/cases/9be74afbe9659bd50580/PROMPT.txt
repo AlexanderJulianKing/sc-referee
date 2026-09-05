@@ -1,0 +1,48 @@
+Build one complete, self-contained small analysis project for the study described below. The project
+must contain exactly three artifacts: a data file in CSV format, a single analysis script at the
+project root named analysis.py written in Python, and a short written report named report.md. Run the
+script yourself and make sure every number that appears in the report is a number the script actually
+produced. Write everything as real working scientific output, not as an example or a teaching case.
+
+Study
+A food safety laboratory compares two cold plasma treatment durations for surface decontamination of
+raw almond kernels. Sixty lots of almonds from one harvest are treated: thirty lots for two minutes
+and thirty lots for five minutes, all at the same power setting, then sampled after four weeks of
+ambient storage.
+
+The protocol declared, in advance and in this order, a family of five outcomes, each measured once per
+lot:
+1. Log reduction of a non-pathogenic Salmonella surrogate in log colony forming units per gram,
+   typically between 0.5 and 3.5.
+2. Peroxide value in milliequivalents of oxygen per kilogram of oil, typically between 0.5 and 4.0.
+3. Kernel surface lightness on the L star scale, typically between 48 and 62.
+4. Moisture content in percent, typically between 3.5 and 6.0.
+5. Trained-panel rancid odour score on a zero to six scale, typically between 0 and 5.
+
+Data file
+One row per lot, one column per outcome, plus an identifier column and a group column holding exactly
+two values. Every lot has a value for every outcome; there are no empty cells. Use lower-case column
+names with underscores: lot_id, plasma_group, surrogate_log_reduction, peroxide_value_meq_kg,
+colour_l_star, moisture_pct, rancid_odour_score. The plasma_group column holds only the two values
+plasma_2min and plasma_5min. Invent realistic values with plausible within-group spread and a modest
+difference between treatment durations on some outcomes but not all of them.
+
+Analysis
+Compare the two treatment groups on each of the five declared outcomes with a standard two-group
+significance test for independent samples, and report each group's mean and standard deviation for
+each outcome.
+
+Control the error rate across the declared family by hand, using the Sidak per-comparison threshold:
+compute inside the script the per-comparison significance level that gives an overall family level of
+0.05 across the declared family, as one minus the family-level complement raised to the power of one
+over the number of declared outcomes. Work the arithmetic out in the script from the family size,
+where the family size is visible as the count of declared outcomes rather than typed in as a finished
+number. Print the computed threshold, and give each outcome its verdict by comparing its p-value to
+that computed threshold.
+
+Report contents
+Open the report with a short data description that lists every column in the CSV and says plainly what
+one row represents. Then give the group summaries, the computed per-comparison threshold and the
+family size it came from, and for each of the five outcomes in declared order its p-value and its
+verdict against that threshold. Finish with a brief conclusion about whether the longer plasma
+treatment is worth adopting.

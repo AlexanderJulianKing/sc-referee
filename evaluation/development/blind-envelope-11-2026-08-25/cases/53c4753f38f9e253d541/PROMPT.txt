@@ -1,0 +1,39 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these three:
+1. A data file in CSV format holding the study data.
+2. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+3. A short written report in Markdown at the project root.
+
+Study to implement:
+A crop physiology experiment on quinoa. Sixty-four individually potted quinoa plants of a single accession were grown outdoors in a common garden on the same substrate and sown on the same day. Thirty-two plants were kept under full irrigation and thirty-two under deficit irrigation supplying about half the water from the start of flowering; irrigation regime is the two-level grouping factor. Each plant was harvested and measured individually. Five outcome variables were declared in the experimental plan before flowering, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Seed yield per plant, in grams. Full irrigation around 24, deficit around 18, plant-to-plant spread roughly 5.
+2. Thousand-seed weight, in grams. Full irrigation around 3.1, deficit around 2.7, spread roughly 0.4.
+3. Plant height at harvest, in centimetres. Full irrigation around 118, deficit around 101, spread roughly 12.
+4. Seed saponin content, in milligrams per gram. Full irrigation around 4.2, deficit around 5.4, spread roughly 1.1.
+5. Midday leaf water potential, reported as a positive tension in megapascals. Full irrigation around 1.1, deficit around 1.8, spread roughly 0.3.
+
+Data file requirements:
+- One row per plant. Include a plant identifier column, one column for each outcome in the declared order, and one column recording the irrigation regime with exactly two distinct values.
+- Thirty-two plants in each group.
+- Every plant has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real harvest records: values scattered around the typical levels above with realistic spread and sensible rounding, some outcomes where the two regimes clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the irrigation regime.
+
+Analysis requirements:
+- The script reads the CSV, reports the number of plants in each group, and gives the mean and spread of each outcome within each group.
+- For every one of the five declared outcomes, compute the observed two-group test statistic comparing full with deficit irrigation.
+- Control the family error across all five outcomes with a label-shuffling procedure that you write out yourself in the script, not with a correction routine taken from a library. Shuffle the irrigation labels across the plants exactly five thousand times, a number fixed in advance and stated as an exact quantity in the script and the report. On each shuffle, recompute the test statistic for all five outcomes on the shuffled labels and keep only the largest of the five in absolute size. Those five thousand family maxima form the reference distribution.
+- Each declared outcome's verdict comes from where its own observed statistic stands in that family-maximum reference distribution: the outcome is significant when its observed statistic is extreme relative to the family maxima at the conventional 0.05 family level. Do not judge any outcome against a reference built from its own outcome alone.
+- Fix the shuffling seed so the run reproduces.
+- Print the number of shuffles, then each outcome's observed statistic, its standing against the family-maximum reference, and its verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the CSV and says plainly what one row represents.
+- Give the per-group summary for each outcome: number of plants, mean, and spread.
+- Explain in plain words how the label-shuffling procedure works, state the exact number of shuffles, and explain why taking the largest statistic across the whole family on each shuffle is what controls the family-wise error rate across all five declared outcomes.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the crop physiologist who ran this experiment.

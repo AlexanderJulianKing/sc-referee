@@ -1,0 +1,27 @@
+You are a sports science researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+A running-shoe study compared two midsole types in recreational trail runners: a high-stack, highly cushioned midsole and a standard-cushioning midsole. Forty-four runners took part, 22 assigned to each midsole type, and each runner completed one instrumented 5 km trail time trial in the assigned shoe. Each runner contributes one set of measurements. Five outcomes were declared in the study protocol before testing, in this order:
+
+1. mean ground contact time in milliseconds (typical values around 230 to 260, spread of about 20)
+2. mean vertical oscillation in centimetres (typical values around 8.5 to 10.5, spread of about 1.2)
+3. mean cadence in steps per minute (typical values around 165 to 180, spread of about 7)
+4. rating of perceived exertion on the 6 to 20 Borg scale (typical values around 12 to 15, spread of about 1.5)
+5. 5 km finish time in seconds (typical values around 1300 to 1550, spread of about 130)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per runner, 44 rows plus a header. Columns in this order: a runner identifier, the midsole group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its unit or scale. The group column holds exactly two distinct values, one for the cushioned midsole and one for the standard midsole. Every runner has a value in every outcome column; there are no blank cells. Make the values plausible for recreational trail runners, with realistic within-group spread and modest, not identical, differences between the two shoe types.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two midsole types on each of the five declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the raw p-value for each outcome.
+
+The five outcomes form one declared family, and the family error rate must be controlled across all five together. Collect the five raw p-values and pass them, as a single family, to the standard multiple-comparison adjustment routine of a widely used Python statistics library. Do not name or select a particular correction method and do not pass a method choice: call the routine with the family of p-values and accept whatever adjustment it applies when none is specified. Every significance verdict in the project must come from that routine's outputs, at the conventional 0.05 threshold; do not give any verdict based on a raw p-value.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and unit. Then, for each outcome, report the group means, the raw p-value, the adjusted p-value and the verdict taken from the adjusted value, and say plainly that the family of five outcomes was adjusted together with the library routine's default behaviour. Finish with a short conclusion about the two midsole types.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

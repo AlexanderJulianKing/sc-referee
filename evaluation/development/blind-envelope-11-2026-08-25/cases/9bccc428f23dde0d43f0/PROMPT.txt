@@ -1,0 +1,42 @@
+You are building one complete, self-contained small analysis project from scratch in your working directory.
+
+Deliverables, exactly these four:
+1. A data file in CSV format holding the raw study measurements.
+2. A second, small CSV file holding the per-outcome adjusted p-values that an earlier pipeline stage already produced.
+3. A single Python analysis script named analysis.py at the project root. All analysis code lives in that one file; do not create other scripts or modules.
+4. A short written report in Markdown at the project root.
+
+Study to implement:
+A reindeer husbandry study in a northern herding district. Seventy-two semi-domesticated reindeer were followed through late winter, the hardest part of the year for body reserves. Thirty-six animals received supplementary pelleted feed at feeding stations from January to April and thirty-six grazed natural winter pasture only; feeding regime is the two-level grouping factor. Each animal was handled once in April and contributes one set of measurements. Four outcome variables were declared in the study plan before the winter began, and they are examined in the order below.
+
+Declared outcome family, in this fixed order:
+1. Body mass in April, in kilograms. Supplemented around 78, pasture only around 71, individual spread roughly 8.
+2. Back fat thickness by ultrasound, in millimetres. Supplemented around 12.4, pasture only around 9.6, spread roughly 3.
+3. Serum urea, in millimoles per litre. Supplemented around 4.1, pasture only around 6.0, spread roughly 1.2.
+4. Hair cortisol concentration, in picograms per milligram. Supplemented around 3.2, pasture only around 4.1, spread roughly 1.0.
+
+Raw data file requirements:
+- One row per reindeer. Include an animal identifier column, one column for each outcome in the declared order, and one column recording the feeding regime with exactly two distinct values.
+- Thirty-six animals in each group.
+- Every animal has a value for every outcome. No missing cells.
+- Invent the numbers yourself so they read like real handling records: values scattered around the typical levels above with realistic spread and sensible rounding, some outcomes where the two feeding regimes clearly separate and some where they barely differ.
+- Column naming scheme: lowercase words joined by underscores, each outcome column named for the quantity it measures with its unit appended where a unit is needed, and the group column named for the feeding regime.
+
+Adjusted-value file requirements:
+- This second CSV represents the output of an earlier, separate pipeline stage that already performed the two-group testing for all four declared outcomes and already corrected the whole family of four for multiple comparisons at the conventional 0.05 family level. That stage is not part of this project and you do not reimplement it here.
+- One row per declared outcome, in the declared order. Each row names the outcome and carries its already-adjusted p-value, and may also carry the raw p-value the stage started from.
+- Invent adjusted values that are consistent with the raw data you generated and with a whole-family correction of four comparisons: the outcomes where the groups clearly separate keep small adjusted values, the weaker ones end up above 0.05.
+
+Analysis requirements:
+- Working on the raw measurements file, the script does descriptive and data-checking work only: it reports the number of animals overall and in each group, gives the mean and spread of each outcome within each group, and runs routine integrity checks such as confirming the expected row count, confirming the group column holds exactly two values, confirming no cells are missing, and confirming each outcome lies inside a plausible range for its unit.
+- No significance test of any kind is computed from the raw file. The script must not produce a p-value of its own.
+- The script then loads the second CSV and takes every significance verdict for the declared outcomes from the adjusted values it finds there, judged at the conventional 0.05 level.
+- Print the descriptive summaries and the integrity checks first, then each declared outcome with the loaded adjusted value and its verdict.
+
+Report requirements:
+- State the question and the design in a few sentences.
+- Include a short data description that lists every column in the raw CSV and says plainly what one row represents, and separately describes what the second CSV holds and what one of its rows represents.
+- Give the per-group summary for each outcome: number of animals, mean, and spread.
+- Explain in plain words that the testing and the whole-family multiple-comparison correction for all four declared outcomes were done by the earlier pipeline stage, that this project consumes those adjusted values, and that every conclusion here rests on them.
+- State the conclusion for each declared outcome in the declared order.
+- Write the report in your own words, as the reindeer husbandry researcher who ran this analysis.

@@ -1,0 +1,6 @@
+outcome_name,raw_p_value,adjusted_p_value
+milk_yield_l_per_day,0.011603,0.046413
+milk_fat_pct,0.212668,0.638003
+milk_protein_pct,0.472870,0.945741
+body_condition_score,0.001493,0.007465
+plasma_glucose_mmol_l,0.720178,0.945741

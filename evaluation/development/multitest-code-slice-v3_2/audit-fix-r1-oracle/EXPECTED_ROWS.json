@@ -1,0 +1,179 @@
+{
+  "profile": "multitest-v3.2-audit-fix-r1-consumption-oracle-v1",
+  "provenance": {
+    "audit_date": "2026-08-29",
+    "audit_identity": "MT 3.2 audit fix round 1 conclusion-consumption probe table",
+    "design_document": "docs/implementation/MULTITEST-3.2-CORRECTION-RECOGNITION-DESIGN-2026-08-29.md",
+    "design_revision": "1a",
+    "implementation_output_used": false
+  },
+  "rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "p_corrected = min(p_raw * FAMILY_SIZE, 1.0); p_used = p_corrected; significant = p_used < ALPHA for every family position",
+        "design_clause": "§6 rule 1 — complete corrected-consumer proof",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N."
+      },
+      "expected_authorized_count": 8,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "fixture_name": "positive-ap-complete-corrected-consumer",
+      "fixture_source_sha256": "sha256:ec6e092f5098cab8067497d25a1dcf2d2807afcb2a0c2939d2c866be93699851"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "p_corrected = min(p_raw * FAMILY_SIZE, 1.0); p_used = p_corrected; significant = p_raw < ALPHA",
+        "design_clause": "§6 rule 1 and rule 4 — computed but unconsumed complete correction",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N. Anything else abstains with the unchanged first reason."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "fixture_name": "correct-ap-complete-raw-consumer",
+      "fixture_source_sha256": "sha256:0bfc9e15714d2a816d6042ca561a086f955a4c85d43f6ab59ced4a3259b60de0"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "positions {0,1,3} assign p_used = p_corrected; all other positions assign p_used = p_raw; significant = p_used < ALPHA",
+        "design_clause": "§6 rule 2 — strict-subset corrected/raw conclusion partition",
+        "design_text": "C is a proper subset, every POS in C concludes from its corrected origin, and every POS not in C has a proved raw conclusion: candidate strict_subset, corrected positions C."
+      },
+      "expected_authorized_count": 8,
+      "expected_corrected_positions": [
+        0,
+        1,
+        3
+      ],
+      "expected_outcome": "candidate",
+      "expected_reason": "strict_subset",
+      "fixture_name": "positive-ap-subset-corrected-consumer",
+      "fixture_source_sha256": "sha256:312916423469e85a1e2a539022104a88f864c1006349a34ef05f46e562b26a49"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "positions {0,1,3} compute p_corrected and bind p_used, but significant = p_raw < ALPHA for every family position",
+        "design_clause": "§6 rule 2 and rule 4 — computed but unconsumed subset correction",
+        "design_text": "C is a proper subset, every POS in C concludes from its corrected origin, and every POS not in C has a proved raw conclusion: candidate strict_subset, corrected positions C. Anything else abstains with the unchanged first reason."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "fixture_name": "correct-ap-subset-raw-consumer",
+      "fixture_source_sha256": "sha256:698d0ad7d524322dd66623cbb50d1a2b1f599da2c06415805cc34f277c7b8bdd"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "a complete correction is computed, one static family position concludes from p_raw, and the other seven conclude from p_used",
+        "design_clause": "§6 rule 1 and corrected/raw consumer mismatch refusal",
+        "design_text": "An unused adjusted value, missing outside-C conclusion, corrected/raw consumer mismatch, export, extremum, third emission, unknown call, unresolved container, or ambiguous record/table route does not become a candidate."
+      },
+      "expected_gate": "conclusion-consumption",
+      "expected_outcome": "abstain",
+      "expected_reason": "unresolved-manual-correction-present",
+      "fixture_name": "correct-ap-mixed-corrected-and-raw-consumers",
+      "fixture_source_sha256": "sha256:51e23accf0cac1fbdac4c5ebd772eafb881cd15823cbd6d5799d73fbdff28dd7"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "corrected_reject = p_used < ALPHA; significant = corrected_reject for every family position",
+        "design_clause": "§6 rule 1 — exact derived reject-decision transport",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N."
+      },
+      "expected_authorized_count": 8,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "fixture_name": "positive-ap-complete-reject-flag-transport",
+      "fixture_source_sha256": "sha256:fa7d82472ed461ce0b3f6f61c46cb907c374008312b2e833cb78562f7857ff59"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "decision = supported if test.pvalue < FAMILY_ALPHA / N_OUTCOMES else not supported",
+        "design_clause": "§6 rule 1 — T(C,POS) decision-operand control",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N."
+      },
+      "expected_authorized_count": 4,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "expected_outcome": "covered",
+      "expected_reason": "complete",
+      "fixture_name": "positive-ap-complete-division-threshold-control",
+      "fixture_source_sha256": "sha256:addf601dad872e14f8dacbe3799cd370516260053fb58d7315e56bee9ceacc87"
+    }
+  ],
+  "attestation_rows": [
+    {
+      "derivation": {
+        "audit_probe_shape": "controller applies a complete-family answer to a mixed corrected/raw-consumer source whose AP proof is unverified",
+        "design_clause": "§11.2 — failed guided AP proof",
+        "design_text": "A failed AP proof yields the existing non-accusatory Disclosure and leaves the question open; B alone can never create a candidate, Finding, corrected position, or verified-correct source classification."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [],
+      "expected_disclosure": true,
+      "expected_proof_status": "unverified",
+      "expected_question_status": "open",
+      "fixture_name": "controller-answer-b-fails-ap-raw-consumer",
+      "fixture_source_name": "correct-ap-mixed-corrected-and-raw-consumers",
+      "fixture_source_sha256": "sha256:51e23accf0cac1fbdac4c5ebd772eafb881cd15823cbd6d5799d73fbdff28dd7"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "answer-guided AP proves complete coverage while the independently invoked answer-removed AP proof starts from the source-derived question witness",
+        "design_clause": "§6 rule 1 and §11.2 answer-removal equivalence",
+        "design_text": "C == {0..N-1} and every position's conclusion uses AP(C,POS), T(C,POS), or an exact derived reject decision: covered/complete, corrected positions all N. Removing the Answer and invoking AP at the now-known node must yield the same corrected-position set."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [
+        0,
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ],
+      "expected_proof_status": "complete",
+      "fixture_name": "answer-removal-equivalence-ap-proving",
+      "fixture_source_name": "positive-ap-complete-corrected-consumer",
+      "fixture_source_sha256": "sha256:ec6e092f5098cab8067497d25a1dcf2d2807afcb2a0c2939d2c866be93699851"
+    },
+    {
+      "derivation": {
+        "audit_probe_shape": "answer-guided AP and the independently invoked answer-removed AP proof both refuse a mixed corrected/raw-consumer source",
+        "design_clause": "§6 rule 4 and §11.2 answer-removal equivalence",
+        "design_text": "Anything else abstains with the unchanged first reason. Removing the Answer and invoking AP at the now-known node must yield the same corrected-position set."
+      },
+      "expected_answer_removal_equivalent": true,
+      "expected_corrected_positions": [],
+      "expected_proof_status": "unverified",
+      "fixture_name": "answer-removal-equivalence-ap-failing",
+      "fixture_source_name": "correct-ap-mixed-corrected-and-raw-consumers",
+      "fixture_source_sha256": "sha256:51e23accf0cac1fbdac4c5ebd772eafb881cd15823cbd6d5799d73fbdff28dd7"
+    }
+  ]
+}

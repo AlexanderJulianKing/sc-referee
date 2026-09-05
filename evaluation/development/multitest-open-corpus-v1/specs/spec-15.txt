@@ -1,0 +1,39 @@
+SPEC-15 - Night-shift work and metabolic markers
+
+SCENARIO
+An occupational medicine survey compared permanent night-shift workers at a
+distribution centre against day-shift workers at the same site, matched on age band and
+job grade. Fasting bloods and anthropometry were collected at a single occupational
+health visit.
+
+DATA FILE: data.csv
+One row per worker. 110 workers: 55 night, 55 day.
+Columns, in this order:
+  worker_id       strings like "W-1001"
+  shift           exactly two values: "day" and "night"
+  fasting_glucose_mmol_l  fasting glucose, mmol/L. Day near 5.12 (SD 0.55), night
+                        near 5.38 (SD 0.62)
+  hdl_mmol_l            HDL cholesterol, mmol/L. Day near 1.38 (SD 0.30), night near
+                        1.26 (SD 0.29)
+  triglycerides_mmol_l  triglycerides, mmol/L. Day near 1.32 (SD 0.60), night near
+                        1.58 (SD 0.72)
+  waist_cm              waist circumference, cm. Day near 92.4 (SD 11.0), night near
+                        96.1 (SD 11.5)
+  systolic_bp_mmhg      systolic blood pressure, mmHg. Day near 124 (SD 13), night
+                        near 128 (SD 14)
+  sleep_hours           self-reported sleep per 24 h, hours. Day near 7.1 (SD 1.0),
+                        night near 6.2 (SD 1.2)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Run the analysis in two clearly separated passes. In the first pass, loop over the six
+outcomes, run a two-sample test for a difference in means on each, and gather the
+outcome name, both group means, and the p-value into a growing container of result
+records, printing nothing. In the second pass, walk that container and print the
+results table, deciding at print time whether each row is significant by checking its
+stored p-value against the conventional five-percent cutoff. The number of records in
+the container is never used to change the cutoff.
+
+REPORT: report.md
+Half a page. Give the six-row results table with verdicts and discuss what the
+significant markers imply for shift-worker health surveillance.

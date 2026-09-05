@@ -26,6 +26,42 @@ from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_0 import (
 from sc_referee.detectors.bounded_code_csv_dependence_conflict_v3_1 import (
     BoundedCodeCsvDependenceConflictV31Detector,
 )
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1 import (
+    BoundedCodeCsvMultipleTestingConflictV1Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v1_1 import (
+    BoundedCodeCsvMultipleTestingConflictV1_1Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2 import (
+    BoundedCodeCsvMultipleTestingConflictV2Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_1 import (
+    BoundedCodeCsvMultipleTestingConflictV2_1Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_2 import (
+    BoundedCodeCsvMultipleTestingConflictV2_2Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v2_3 import (
+    BoundedCodeCsvMultipleTestingConflictV2_3Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3 import (
+    BoundedCodeCsvMultipleTestingConflictV3Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_1 import (
+    BoundedCodeCsvMultipleTestingConflictV3_1Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_2 import (
+    BoundedCodeCsvMultipleTestingConflictV3_2Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_3 import (
+    BoundedCodeCsvMultipleTestingConflictV3_3Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_4 import (
+    BoundedCodeCsvMultipleTestingConflictV3_4Detector,
+)
+from sc_referee.detectors.bounded_code_csv_multiple_testing_conflict_v3_5 import (
+    BoundedCodeCsvMultipleTestingConflictV3_5Detector,
+)
 from sc_referee.scientific_checks.core import (
     EvidencePlane,
     MethodConflictBinding,
@@ -174,6 +210,18 @@ def _detector_class(
         BoundedCodeCsvDependenceConflictV23Detector,
         BoundedCodeCsvDependenceConflictV30Detector,
         BoundedCodeCsvDependenceConflictV31Detector,
+        BoundedCodeCsvMultipleTestingConflictV1Detector,
+        BoundedCodeCsvMultipleTestingConflictV1_1Detector,
+        BoundedCodeCsvMultipleTestingConflictV2Detector,
+        BoundedCodeCsvMultipleTestingConflictV2_1Detector,
+        BoundedCodeCsvMultipleTestingConflictV2_2Detector,
+        BoundedCodeCsvMultipleTestingConflictV2_3Detector,
+        BoundedCodeCsvMultipleTestingConflictV3Detector,
+        BoundedCodeCsvMultipleTestingConflictV3_1Detector,
+        BoundedCodeCsvMultipleTestingConflictV3_2Detector,
+        BoundedCodeCsvMultipleTestingConflictV3_3Detector,
+        BoundedCodeCsvMultipleTestingConflictV3_4Detector,
+        BoundedCodeCsvMultipleTestingConflictV3_5Detector,
     )
     matches = [
         item

@@ -1,0 +1,27 @@
+You are a clinical dietetics researcher building a small, self-contained analysis project from scratch. Create three things in the working directory you are given: one data file, one analysis script, and one short written report. Keep the project small and do not add extra files beyond those three.
+
+SCENARIO
+
+An outpatient gastroenterology service compared two dietary advice programmes in adults with irritable bowel syndrome: structured advice to reduce fermentable carbohydrates, delivered by a dietitian, and standard healthy-eating advice. Sixty-two adults took part, 31 in each programme, and each person was assessed once after six weeks of follow-up. Five outcomes were declared in the study protocol before recruitment, in this order:
+
+1. total symptom severity score on a 0 to 500 scale (typical values around 170 to 270, spread of about 80)
+2. worst abdominal pain in the past week on a 0 to 10 scale (typical values around 3 to 6, spread of about 2)
+3. number of days with bloating in the past week (typical values around 2 to 5, spread of about 1.8)
+4. mean stool consistency on the 1 to 7 Bristol scale (typical values around 3.5 to 4.8, spread of about 1)
+5. disease-specific quality of life score on a 0 to 100 scale where higher is better (typical values around 60 to 78, spread of about 12)
+
+DATA FILE
+
+Write one CSV at the project root holding the invented but realistic measurements. One row per participant, 62 rows plus a header. Columns in this order: a participant identifier, the advice programme group, then one column per outcome in the declared order above. Use lower case column names with underscores, and end each outcome column name with its scale or unit where it has one. The group column holds exactly two distinct values, one for the structured fermentable-carbohydrate advice and one for standard healthy-eating advice. Every participant has a value in every outcome column; there are no blank cells. Make the values clinically plausible, with realistic within-group spread and modest, not identical, differences between the two programmes.
+
+ANALYSIS
+
+Write a single Python script named analysis.py at the project root. It reads the CSV, compares the two programmes on each of the five declared outcomes using a standard two-sample significance test, using the same kind of test for every outcome, and prints group sizes, group means, the test statistic and the p-value for each outcome.
+
+The first three outcomes, symptom severity, abdominal pain and bloating days, are the ones the service will quote to commissioners, so correct those three by hand in the script: multiply each of their p-values by the number of comparisons in that corrected set and cap the result at one, then base their verdicts on the corrected values at the conventional 0.05 threshold. For the remaining two declared outcomes, stool consistency and quality of life, report the raw p-values and give each a straightforward significant or not significant verdict at 0.05.
+
+REPORT
+
+Write a short report at the project root. Begin with a brief data description that says what one row represents and lists every column with its meaning and scale or unit. Then give the per-outcome results and, for each outcome, your significance verdict and its clinical interpretation. Finish with a short conclusion about which programme the service should offer.
+
+Make sure analysis.py runs from the project root and that the numbers in the report match what it prints.

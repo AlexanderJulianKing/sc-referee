@@ -1,0 +1,6 @@
+outcome,mean_unrestored,mean_restored,p_raw,p_adjusted,decision,correction_method
+amphibian_species,2.815,4.667,2.55691e-05,7.1928e-05,significant,holm
+egg_mass_count,18.407,41.148,2.3976e-05,7.1928e-05,significant,holm
+emergent_veg_pct,24.144,51.996,2.61071e-09,1.30536e-08,significant,holm
+dissolved_oxygen_mg_l,5.396,7.096,7.18906e-05,7.1928e-05,significant,holm
+hydroperiod_days,118.296,165.0,2.72628e-06,1.09051e-05,significant,holm

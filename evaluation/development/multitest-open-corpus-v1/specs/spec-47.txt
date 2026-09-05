@@ -1,0 +1,38 @@
+SPEC-47 - Two water treatment steps and drinking water quality
+
+SCENARIO
+An environmental engineering study compared two small municipal water treatment works
+in the same region, one that had added a granular activated carbon stage and one that
+had not, using routine finished-water samples over one year. Each sample is one row.
+
+DATA FILE: data.csv
+One row per sample. 96 samples: 48 per works.
+Columns, in this order:
+  sample_id       strings like "WS-0001"
+  works_type      exactly two values: "conventional" and "gac_added"
+  total_thm_ug_l        total trihalomethanes, ug/L. Conventional near 62 (SD 18),
+                        gac_added near 34 (SD 12)
+  haa5_ug_l             five haloacetic acids, ug/L. Conventional near 41 (SD 14),
+                        gac_added near 22 (SD 9)
+  toc_mg_l              total organic carbon, mg/L. Conventional near 2.45 (SD 0.55),
+                        gac_added near 1.32 (SD 0.35)
+  turbidity_ntu         turbidity, NTU. Conventional near 0.18 (SD 0.07), gac_added
+                        near 0.15 (SD 0.06)
+  free_chlorine_mg_l    free chlorine residual, mg/L. Conventional near 0.62
+                        (SD 0.15), gac_added near 0.55 (SD 0.14)
+  taste_odour_ton       threshold odour number. Conventional near 3.4 (SD 1.2),
+                        gac_added near 2.1 (SD 0.9)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Trihalomethanes and haloacetic acids are the regulated disinfection by-products and
+were pre-specified as the regulatory pair; the other four are operational measures.
+Test all six outcomes between works with a two-sample test for a difference in means.
+Apply a hand-computed Bonferroni threshold of five percent divided by two to the
+regulatory pair only, and judge those two against it. Judge the four operational
+outcomes against the plain five-percent level with no correction, and report all six in
+one table with the same significance wording throughout.
+
+REPORT: report.md
+Half a page. Present the six-outcome table, note that only the regulatory pair used a
+corrected threshold, and say what the results imply for the carbon stage.

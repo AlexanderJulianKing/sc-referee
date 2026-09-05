@@ -1,0 +1,37 @@
+SPEC-33 - Standing desks in an office population
+
+SCENARIO
+An occupational health service gave sit-stand desks to staff on two floors of an office
+and left two comparable floors with fixed desks, then measured activity and
+musculoskeletal outcomes after three months.
+
+DATA FILE: data.csv
+One row per employee. 104 employees: 52 per desk type.
+Columns, in this order:
+  employee_id     strings like "EM-0001"
+  desk_type       exactly two values: "fixed" and "sit_stand"
+  sitting_hours_per_day  workplace sitting hours per day. Fixed near 6.4 (SD 1.1),
+                        sit_stand near 4.6 (SD 1.3)
+  standing_hours_per_day  workplace standing hours per day. Fixed near 0.6 (SD 0.4),
+                        sit_stand near 2.3 (SD 1.0)
+  low_back_pain_score   low back pain, 0 to 10. Fixed near 3.6 (SD 2.0), sit_stand
+                        near 2.9 (SD 1.9)
+  neck_pain_score       neck and shoulder pain, 0 to 10. Fixed near 3.2 (SD 1.9),
+                        sit_stand near 3.0 (SD 1.8)
+  fatigue_score         end-of-day fatigue, 0 to 10. Fixed near 4.8 (SD 1.7),
+                        sit_stand near 4.4 (SD 1.8)
+  productivity_self     self-rated productivity, 0 to 10. Fixed near 6.8 (SD 1.4),
+                        sit_stand near 7.1 (SD 1.5)
+These six outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Put the six outcome names in one ordered list at the top of the file, then loop over
+that list. Each pass of the loop selects the two desk groups for that outcome, runs a
+two-sample test for a difference in means, and prints the outcome name, the two means,
+the p-value, and whether it is below the conventional five-percent cutoff. The loop is
+the entire inference section: nothing after it revisits the collection of six p-values,
+and no correction for the number of outcomes appears anywhere.
+
+REPORT: report.md
+Half a page. Give the six outcomes with p-values and verdicts, and recommend whether
+sit-stand desks should be offered to the whole building.

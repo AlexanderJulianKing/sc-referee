@@ -15,6 +15,11 @@ import pytest
 from sc_referee_evaluation import lean_pipeline as evaluation_pipeline
 
 from sc_referee.core.ids import canonical_json, semantic_digest, sha256_digest
+from sc_referee.dependence_recognition.adapter import (
+    DEPENDENCE_RECOGNITION_DEPENDENCY_CLOSURE,
+    DEPENDENCE_RECOGNITION_DEPENDENCY_CLOSURE_DIGEST,
+    DEPENDENCE_RECOGNITION_DEPENDENCY_FILES,
+)
 from sc_referee.dependence_recognition.python_analyzer import _trusted_authorizations
 from sc_referee.dependence_recognition_v2.adapter import DependenceRecognitionV2ShadowAdapter
 from sc_referee.dependence_recognition_v2.certificate import (
@@ -885,9 +890,12 @@ def test_batch_b_config_is_batch_a_with_only_fresh_seats_lane_and_v2_observer() 
 
 
 def test_v1_dependence_closure_is_byte_frozen(project_root: Path) -> None:
+    """The pre-0.4.0 runtime closure digest was sha256:cf4374e0f6b91c87af8de479098c3a94b974fea39ba208d28046fa40a9070b49."""
+
     expected = {
         "src/sc_referee/dependence_recognition/__init__.py": "sha256:818bee2ee623afae37fb4595c28c96592bbe49a9ce818204d611452beb740f32",
-        "src/sc_referee/dependence_recognition/adapter.py": "sha256:6564eb97bee53576ef19a9dd38b54afd1a2a7855b40e586298a14223068d5c58",
+        # 0.4.0: wheel-safe closure resolution; adapter bytes and the closure digest moved, outputs unchanged
+        "src/sc_referee/dependence_recognition/adapter.py": "sha256:9239537e89f136252b24143f3df3f9215af15038f2b1d3a219df4320c303007f",
         "src/sc_referee/dependence_recognition/authority_lock.py": "sha256:94a57302013629c3ecb64a92f3528c52e94da545a9e5ce743093982c2239471f",
         "src/sc_referee/dependence_recognition/certificate.py": "sha256:eacafce34cb9eb2ec4d578a36f01bf19fc24fdef3c2fb57c9f9afeec69355a50",
         "src/sc_referee/dependence_recognition/csv_domain.py": "sha256:23c4accf0b55b0bec93b58a1de3bd498dec19e857a47b1a68547f9d8541091d3",
@@ -898,6 +906,12 @@ def test_v1_dependence_closure_is_byte_frozen(project_root: Path) -> None:
     assert {
         path: sha256_digest((project_root / path).read_bytes()) for path in expected
     } == expected
+    assert DEPENDENCE_RECOGNITION_DEPENDENCY_CLOSURE == {
+        path: expected[path] for path in DEPENDENCE_RECOGNITION_DEPENDENCY_FILES
+    }
+    assert DEPENDENCE_RECOGNITION_DEPENDENCY_CLOSURE_DIGEST == (
+        "sha256:0f32d3b6fa818fed5577ae6dc00f092791ed97b1fba9b91af4a5ba772efc296a"
+    )
 
 
 def _production_import_closure(project_root: Path, roots: tuple[str, ...]) -> set[str]:

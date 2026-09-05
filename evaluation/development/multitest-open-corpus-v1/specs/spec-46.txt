@@ -1,0 +1,39 @@
+SPEC-46 - Two mosquito control methods in a coastal district
+
+SCENARIO
+A vector control programme applied a larvicide-based control regime in half the
+surveyed villages of one coastal district and an insecticide-treated net distribution
+alone in the other half, then surveyed households and traps through one wet season.
+Each village is one row.
+
+DATA FILE: data.csv
+One row per village. 52 villages: 26 per regime.
+Columns, in this order:
+  village_id      strings like "VG-01"
+  regime          exactly two values: "nets_only" and "larvicide"
+  adult_mosquitoes_per_trap_night  adult Anopheles per trap night. Nets_only near
+                        14.5 (SD 5.5), larvicide near 8.2 (SD 4.0)
+  larval_habitat_positive_pct  water bodies positive for larvae, percent. Nets_only
+                        near 42 (SD 14), larvicide near 19 (SD 10)
+  household_biting_rate  reported bites per person per night. Nets_only near 6.8
+                        (SD 2.6), larvicide near 4.5 (SD 2.1)
+  fever_cases_per_1000   fever cases per 1000 residents. Nets_only near 58 (SD 20),
+                        larvicide near 44 (SD 18)
+  programme_cost_usd_per_capita  cost per resident, USD. Nets_only near 2.15
+                        (SD 0.45), larvicide near 3.40 (SD 0.70)
+These five outcome columns are the outcome family, in that order.
+
+ANALYSIS: analysis.py in the project root
+Run a two-sample test for a difference in means on each of the five outcomes and place
+the raw p-values into one ordered list matching the outcome order. Pass that whole list
+in a single call to the standard multiple-comparison adjustment routine of a widely
+used general-purpose Python statistics library, accepting the routine's default
+correction method and setting the family-wide error rate to five percent. Use the
+routine's returned reject decisions and adjusted p-values for every claim, print the
+method name it applied, and show raw and adjusted values side by side for all five
+outcomes.
+
+REPORT: report.md
+Half a page. Name the default method used, confirm the family is all five outcomes,
+present the raw and adjusted values, and advise the district on regime choice given
+both effect and cost.
