@@ -847,6 +847,13 @@ def main() -> int:
                 "strongest_output_type": "disclosure",
             },
             {
+                "detector_id": "detector:bounded-code-csv-dependence-conflict",
+                "maturity": "experimental",
+                "qualification_ref": None,
+                "review_basis": "not_qualified",
+                "strongest_output_type": "disclosure",
+            },
+            {
                 "detector_id": "detector:bounded-feature-identifier-identity",
                 "maturity": "experimental",
                 "qualification_ref": None,
