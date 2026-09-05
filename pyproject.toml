@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sc-referee"
-version = "0.3.0"
+version = "0.4.0"
 description = "Conservative evidence compiler for scientific-analysis auditing"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -49,6 +49,11 @@ sc_referee = [
   "reporting/templates/*.j2",
   "resources/capability-manifests-v1/*.json",
   "resources/qualification-grants-v1/*.json",
+  "resources/input-schemas-v1/*.json",
+  "resources/multiple-testing-question-profiles-v1/*.json",
+  "resources/dependence-recognition/*.md",
+  "resources/multiple-testing-recognition/*.md",
+  "resources/frozen-code-csv-dependence-v2.1.0/*",
   "resources/calculation-check-manifests-v1/*.json",
   "resources/calculation-check-manifests-v2/*.json",
   "resources/calculation-check-manifests-v3/*.json",

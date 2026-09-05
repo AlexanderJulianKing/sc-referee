@@ -29,7 +29,7 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
 
     assert manifest["name"] == plugin_root.name
     assert STRICT_SEMVER.fullmatch(manifest["version"])
-    assert manifest["version"].startswith("0.3.0+codex.")
+    assert manifest["version"].startswith("0.4.0+codex.")
     assert manifest["skills"] == "./skills/"
     assert manifest["license"] == "Apache-2.0"
     assert manifest["author"]["name"] == "Alexander King"
@@ -49,7 +49,7 @@ def test_codex_plugin_manifest_declares_the_bounded_local_surface(project_root: 
     assert all(len(prompt) <= 128 for prompt in prompts)
     assert "installed sc-referee CLI" in manifest["interface"]["longDescription"]
     assert "one atomic registered requirement" in manifest["interface"]["longDescription"]
-    assert "scientist-supplied closed analysis requirement" in prompts[0]
+    assert "scientist confirms" in prompts[0]
     assert "bounded pre-analysis method contracts" in manifest["description"]
 
 

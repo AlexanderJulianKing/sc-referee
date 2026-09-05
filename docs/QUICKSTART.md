@@ -27,10 +27,10 @@ its interpreter does not add the checkout's `src` directory, invoke the source c
 Expected version shape:
 
 ```text
-sc-referee 0.3.0 (schema 0.21.0; starter lineage 0.1.0)
+sc-referee 0.4.0 (schema 0.21.0; starter lineage 0.1.0)
 ```
 
-Program `0.3.0` is a public-alpha release. The schema version is a separate record-format identity;
+Program `0.4.0` is a public-alpha release. The schema version is a separate record-format identity;
 do not infer program stability or scientific coverage from it.
 
 ## 2. Run the deterministic demo
@@ -189,7 +189,7 @@ Never summarize zero Findings as “passed,” “correct,” or “publication-
 
 ### Worked interpretation example
 
-For the bundled `examples/general-static` command above, sc-referee 0.3.0 reports verified
+For the bundled `examples/general-static` command above, sc-referee 0.4.0 reports verified
 integrity, `partial_evidence_unavailable` coverage, zero Findings, one MaterialQuestion,
 and twenty-one Disclosures. A conservative summary is:
 

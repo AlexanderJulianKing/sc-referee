@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.4.0
+
+- Dependence-recognition closure digests changed for wheel-safe dependency-file resolution; recognizer behavior and outputs are unchanged.
+- Multiple-testing recognition closure digests changed for wheel-safe resolution; behavior and outputs are unchanged, and sealed records retain their historical identities.
+- Advanced the multiple-testing recognizer to development lane `3.5.0` after sealed examinations
+  E10-E18. The last promotion window scored `6/12` against the required `7/12`, so the lane is not
+  promoted and cannot emit a Finding. The sealed first-contact and replay record remains public
+  under `evaluation/development/blind-envelope-10-2026-08-24/` through
+  `blind-envelope-18-2026-09-01/`.
+- Development lane `3.5.0` carries audit-fix rounds 1 to 3 on the library-correction consumption
+  proof.
+- Added the method-contract propose, validate, present, and scientist-confirm flow, including the
+  `draft-profile` command and the `method-contract --draft-provenance` binding.
+- Recorded the performance-only frozen-lane re-pin and added the opt-in `make test-parallel` gate.
+- Updated the public-alpha program version to `0.4.0` and corrected the documented record schema
+  to the `0.21.0` the program already reports. The existing production Finding grants are
+  unchanged.
+
 ## 0.3.0
 
 - **2026-08-11 — first production Findings demonstrated:** Recorded canonical real-controller

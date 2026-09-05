@@ -4,9 +4,11 @@
 the analysis code, the exact data files it was given, and the report it produced, without ever
 running the code. When it can demonstrate a real problem, it says so with evidence. When it
 cannot be certain, it stays quiet or asks a question instead of guessing. Across every blind
-trial and sealed examination to date, it has never made a false accusation.
+trial and sealed examination to date, it has never made a false accusation. Adversarial review,
+which probes shapes no trial contained, still finds and records routes that must stay outside
+accusation authority until they are closed.
 
-> **Public alpha:** program version `0.3.0`, public record schema `0.19.0`. Usable for bounded
+> **Public alpha:** program version `0.4.0`, public record schema `0.21.0`. Usable for bounded
 > review; not a correctness certificate, publication approval, or detector of every possible
 > scientific mistake.
 
@@ -40,6 +42,29 @@ record (sealed examinations, promotion decisions, and every blind pilot, includi
 ones) are committed in this repository and linked from the
 [roadmap and status board](docs/ROADMAP.md). More error classes are in development on the same
 ladder; nothing reports a Finding without passing its own examination first.
+
+**In development:** the multiple-testing code lane is at version `3.5.0`. Given a human-confirmed
+ordered outcome family and two-group contrast column, it checks for one registered two-group test
+per declared outcome and whether correction covers the complete family, only part of it, or none
+of it. It runs only in the development lane, cannot emit a Finding, and is not promoted. Across
+sealed E10-E18, first-contact recall (planted errors caught on the first sealed run) was `0/6`,
+`0/6`, `2/6`, `3/6`, `1/6`, `2/6`, `1/6`, `4/6`, and `2/6`; every sealed negative produced zero
+accusation candidates (nothing was ever flagged on a clean case); all `15/15` reruns produced
+identical records; and true complete-family clearances, where every declared outcome used its own
+corrected result, occurred in E15, E16, and E18. The last promotion window, E17+E18, scored `6/12`,
+below the required `7/12`. Those envelopes examined lane versions `1.0.0` through `3.4.0`. Version
+`3.5.0` has not yet faced a sealed envelope.
+<!-- Sealed sources for the preceding figures:
+evaluation/development/blind-envelope-10-2026-08-24/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-11-2026-08-25/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-12-2026-08-26/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-13-2026-08-26/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-14-2026-08-27/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-15-2026-08-29/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-16-2026-08-30/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-17-2026-08-30/AUDIT_RESULTS.json
+evaluation/development/blind-envelope-18-2026-09-01/AUDIT_RESULTS.json
+-->
 
 ## Five-minute start
 
@@ -195,12 +220,12 @@ record meaning.
 
 The three visible version lines describe different things:
 
-- `0.3.0` — the installable public-alpha Python program;
-- `0.19.0` — the current public JSON Schema release; and
-- `0.1.0` — the historical starter lineage.
+- `0.4.0` - the installable public-alpha Python program;
+- `0.21.0` - the current public JSON Schema release; and
+- `0.1.0` - the historical starter lineage.
 
 The accepted “0.6.0 minimum proud product” is an architecture boundary, not the package version.
-The public-alpha package release is `0.3.0`.
+The public-alpha package release is `0.4.0`.
 
 ## License
 

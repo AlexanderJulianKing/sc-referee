@@ -38,6 +38,7 @@ _MULTIPLE_TESTING_FAMILY_MEMBER_RULE = "one-two-group-test-per-named-outcome-col
 _MULTIPLE_TESTING_CORRECTION_SCOPE = "complete-authorized-family"
 _SAFE_AUTHORITY_SEGMENT = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*\Z")
 _SAFE_AUTHORITY_COLUMN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,127}\Z")
+_LEGACY_PROFILE_TOOL_VERSION = "0.3.0"
 
 
 class ScientificRequirementContractError(ValueError):
@@ -340,6 +341,15 @@ def build_scientific_requirement_records(
     """
 
     task_ref = typed_ref("file_record", str(task_record["file_record_id"]))
+    tool_version = (
+        _LEGACY_PROFILE_TOOL_VERSION
+        if resolved.profile_version
+        in {
+            LEGACY_SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+            SCIENTIFIC_REQUIREMENT_PROFILE_VERSION,
+        }
+        else __version__
+    )
     contract_id = stable_id(
         "scientific-contract-analysis",
         run_id,
@@ -391,7 +401,7 @@ def build_scientific_requirement_records(
             "method": "scientist_answer",
             "created_at": created_at,
             "tool": "sc-referee",
-            "tool_version": __version__,
+            "tool_version": tool_version,
         },
         "extensions": {
             "x-scientific-check-id": resolved.check_id,
@@ -418,6 +428,7 @@ def build_scientific_requirement_records(
         actor_id=actor_id,
         answer=answer,
         declaration_id=None,
+        tool_version=tool_version,
     )
     verified = _parent_requirement_assertion(
         assertion_id=stable_id(
@@ -434,6 +445,7 @@ def build_scientific_requirement_records(
         actor_id=actor_id,
         answer=answer,
         declaration_id=declaration_id,
+        tool_version=tool_version,
     )
     dimensions: dict[str, Any] = {}
     for dimension in SCIENTIFIC_CONTRACT_DIMENSIONS:
@@ -532,8 +544,10 @@ def build_scientific_requirement_records(
         "status": "answered",
         "answer_ids": [answer_id],
         "created_at": created_at,
-        "provenance": controller_provenance(
-            "deterministic_claimless_scientific_requirement_question_v1", created_at
+        "provenance": _controller_provenance_at_version(
+            "deterministic_claimless_scientific_requirement_question_v1",
+            created_at,
+            tool_version,
         ),
         "extensions": {
             "x-contract-ref": typed_ref("scientific_contract", contract_id),
@@ -569,8 +583,10 @@ def build_scientific_requirement_records(
         ),
         "next_step": "Bind this lock to a later audit of the unchanged governing task.",
         "created_at": created_at,
-        "provenance": controller_provenance(
-            "deterministic_scientific_requirement_contract_disclosure", created_at
+        "provenance": _controller_provenance_at_version(
+            "deterministic_scientific_requirement_contract_disclosure",
+            created_at,
+            tool_version,
         ),
     }
     return {
@@ -995,6 +1011,7 @@ def _parent_requirement_assertion(
     actor_id: str,
     answer: Mapping[str, Any],
     declaration_id: str | None,
+    tool_version: str,
 ) -> dict[str, Any]:
     derived = declaration_id is not None
     return {
@@ -1030,8 +1047,10 @@ def _parent_requirement_assertion(
         ),
         "source_refs": [copy.deepcopy(dict(source_ref))],
         "provenance": (
-            controller_provenance(
-                "deterministic_claimless_scientific_requirement_derivation_v1", created_at
+            _controller_provenance_at_version(
+                "deterministic_claimless_scientific_requirement_derivation_v1",
+                created_at,
+                tool_version,
             )
             if derived
             else {
@@ -1040,7 +1059,7 @@ def _parent_requirement_assertion(
                 "created_at": created_at,
                 "source_refs": [copy.deepcopy(dict(source_ref))],
                 "tool": "sc-referee",
-                "tool_version": __version__,
+                "tool_version": tool_version,
             }
         ),
         "extensions": {
@@ -1063,6 +1082,14 @@ def _parent_requirement_assertion(
             ),
         },
     }
+
+
+def _controller_provenance_at_version(
+    method: str, created_at: str, tool_version: str
+) -> dict[str, Any]:
+    provenance = controller_provenance(method, created_at)
+    provenance["tool_version"] = tool_version
+    return provenance
 
 
 def _matching_parent_assertions(
